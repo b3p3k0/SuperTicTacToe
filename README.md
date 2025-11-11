@@ -1,37 +1,55 @@
-# Super Tic-Tac-Toe
+# Super Tic-Tac-Toe (Super T3)
 
-A zero-dependency browser game that brings the 3×3 mega-board twist on classic tic-tac-toe. Built with TypeScript, compiled to a single `game.js`, and ready to drop onto any static web server.
+A zero-dependency, browser-ready take on the 3×3 mega tic-tac-toe grid. Clone it, drop the folder onto any static host (or just open `index.html` locally), and you’re ready to play.
 
-## Getting Started
+---
 
+## Quick Play
+1. Download or clone this repo.
+2. Open `index.html` in any modern browser (double-click works via `file://`).
+3. Hit **New Game** and start trading moves.
+
+No web server or build step is required for players—all compiled assets (`game.js`, `style.css`, `index.html`) ship in the repo.
+
+---
+
+## Development Setup
 ```bash
 npm install
-npm run build
+npm run build    # compiles game.ts → game.js
+# or
+npm run watch    # auto-recompile while editing
 ```
 
-The build step compiles `game.ts` into `game.js` next to the HTML/CSS so everything stays copy-paste simple.
+`game.ts` holds all logic + DOM wiring. Running the build rewrites `game.js`, which is what the browser loads. Keep both files committed so new users can either play immediately or rebuild if they’re hacking on the TypeScript.
 
-## Playing & Hosting
+---
 
-1. Open `index.html` in any modern browser (file:// works) or copy the whole folder into your web server directory.
-2. Click **New Game** to reset anytime.
-3. Use the Rules and Move History toggles to keep the layout tidy on smaller screens.
+## What’s Included
+- **Full Super T3 rules**: forced-board routing, captured/drawn mini-boards, free-choice fallback when a destination board is full.
+- **Two-player hot seat**: X always starts; no AI (yet) and no network logic.
+- **Visual guidance**: active board highlighting, captured/drawn states, latest move glow, and a status bar describing whose turn it is plus any board constraints.
+- **Move history**: chess-style log (e.g., `T12: P1BB3LB2 -> P2BB2LB5(F)`) with `(F)` indicating when the destination board was full and the next player could choose freely.
+- **Rules & history toggles**: collapsible panels keep the layout tidy on smaller screens.
+- **Friendly guardrails**: illegal moves trigger a modal (“Oops! can’t move there because …”) with a single “got it!” button so players know what went wrong.
 
-### Notation
+---
 
-Move history uses the chess-like shorthand requested by the project brief:
+## File Map
+| File | Purpose |
+| --- | --- |
+| `index.html` | Shell markup and dialog scaffolding |
+| `style.css` | Responsive layout + color tokens (easy to reskin for future themes) |
+| `game.ts` | TypeScript source for the rules engine and UI controller |
+| `game.js` | Compiled bundle served to the browser |
+| `package.json` / `package-lock.json` | Tooling metadata (`typescript` dev dependency, build scripts) |
+| `tsconfig.json` | Compiler settings targeting ES2018/browser-friendly output |
 
-- `P1BB3LB2` → Player 1 played in Big Board 3, Little Box 2.
-- `(F)` → the destination board for the opponent was already full, so they could choose anywhere.
+---
 
-### Illegal Moves
+## Deployment Tips
+- To self-host, copy the entire folder into your web server’s document root (Apache, Nginx, GitHub Pages, etc.). No backend required.
+- For kiosks/classrooms, keep the repo synced and just launch `index.html` locally; it runs offline.
+- Want multiple visual themes later? Override the CSS custom properties at the top of `style.css` or wire up a selector that swaps them on the fly—everything else already references those tokens.
 
-Attempting to play on the wrong board or in a used square pops a friendly modal dialog explaining why the move failed.
-
-## Development Notes
-
-- `game.ts` holds all board logic and UI wiring; it compiles straight to `game.js` (no bundler).
-- Styling relies on CSS custom properties so we can add selectable themes later without rewiring the markup.
-- The app highlights the active big board, marks captured/drawn boards, and tracks the last move for quick visual parsing.
-
-Feel free to riff on the visuals—swap palettes, add fonts, or extend the UI. Just re-run `npm run build` before shipping so the latest TypeScript changes land in `game.js`.
+Enjoy the grid warfare! If you add features (AI, saved games, themes), re-run `npm run build` so the distributable `game.js` stays in sync.***
