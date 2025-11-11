@@ -181,7 +181,7 @@ class GameEngine {
         this.moveCount = 0;
         this.history = [];
         this.lastMove = null;
-        this.ruleSet = "modern";
+        this.ruleSet = "classic";
         this.reset();
     }
     reset(startingPlayer = "X", ruleSet) {
@@ -415,7 +415,7 @@ class GameUI {
         this.resultTitle = null;
         this.resultBody = null;
         this.startPreference = "random";
-        this.ruleSet = "modern";
+        this.ruleSet = "classic";
         this.pendingMode = "solo";
         this.rulesDescription = null;
         this.settingsHeading = null;

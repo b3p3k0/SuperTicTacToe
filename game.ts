@@ -246,7 +246,7 @@ class GameEngine {
   private moveCount = 0;
   private history: HistoryEntry[] = [];
   private lastMove: MoveInfo | null = null;
-  private ruleSet: RuleSet = "modern";
+  private ruleSet: RuleSet = "classic";
 
   constructor() {
     this.reset();
@@ -518,7 +518,7 @@ class GameUI {
   private resultTitle: HTMLElement | null = null;
   private resultBody: HTMLElement | null = null;
   private startPreference: StartPreference = "random";
-  private ruleSet: RuleSet = "modern";
+  private ruleSet: RuleSet = "classic";
   private pendingMode: GameMode = "solo";
   private rulesDescription: HTMLElement | null = null;
   private settingsHeading: HTMLElement | null = null;
