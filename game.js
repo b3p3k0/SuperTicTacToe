@@ -717,42 +717,18 @@ class GameUI {
         }
     }
 }
-document.addEventListener("DOMContentLoaded", () => {
-    const engine = new GameEngine();
-    const ui = new GameUI(engine);
-    ui.init();
-});
-class AiController {
-    constructor(difficulty) {
-        this.difficulty = difficulty;
-    }
-    chooseMove(snapshot) {
-        switch (this.difficulty) {
-            case "normal":
-            default:
-                return NormalAiStrategy.choose(snapshot);
-        }
-    }
-}
-class NormalAiStrategy {
-    static choose(snapshot) {
-        const candidates = this.collectCandidates(snapshot);
-        if (candidates.length === 0) {
-            return null;
-        }
-        const winningMove = this.findImmediateWin(snapshot, candidates, "O");
-        if (winningMove) {
-            return winningMove;
-        }
-        const blockingMove = this.findImmediateWin(snapshot, candidates, "X");
-        if (blockingMove) {
-            return blockingMove;
-        }
-        return this.scoreAndPick(snapshot, candidates);
-    }
+class AiUtils {
     static collectCandidates(snapshot) {
+        if (snapshot.status !== "playing") {
+            return [];
+        }
         const candidates = [];
-        snapshot.allowedBoards.forEach((boardIndex) => {
+        const boardIndexes = snapshot.allowedBoards.length > 0
+            ? snapshot.allowedBoards
+            : snapshot.boards
+                .map((board, index) => (!board.isFull ? index : -1))
+                .filter((index) => index >= 0);
+        boardIndexes.forEach((boardIndex) => {
             const board = snapshot.boards[boardIndex];
             if (!board) {
                 return;
@@ -777,65 +753,10 @@ class NormalAiStrategy {
         }
         return null;
     }
-    static scoreAndPick(snapshot, candidates) {
-        let bestMove = candidates[0];
-        let bestScore = -Infinity;
-        for (const move of candidates) {
-            const score = this.scoreMove(snapshot, move);
-            if (score > bestScore) {
-                bestScore = score;
-                bestMove = move;
-            }
-        }
-        return bestMove;
-    }
-    static scoreMove(snapshot, move) {
-        var _a, _b;
-        const board = snapshot.boards[move.boardIndex];
-        if (!board) {
-            return -Infinity;
-        }
-        let score = 0;
-        score += (_a = BOARD_PRIORITY[move.boardIndex]) !== null && _a !== void 0 ? _a : 0;
-        score += (_b = CELL_PRIORITY[move.cellIndex]) !== null && _b !== void 0 ? _b : 0;
-        if (!board.winner) {
-            score += this.patternOpportunityScore(board.cells, "O", move.cellIndex);
-            score += this.patternBlockScore(board.cells, "X", move.cellIndex);
-        }
-        else if (board.winner === "X") {
-            score -= 2;
-        }
-        else if (board.winner === "O") {
-            score -= 0.5;
-        }
-        const targetBoardIndex = move.cellIndex;
-        const targetBoard = snapshot.boards[targetBoardIndex];
-        if (targetBoard) {
-            if (targetBoard.isFull) {
-                score += 2;
-            }
-            else if (targetBoard.winner === "O") {
-                score += 1.5;
-            }
-            else if (targetBoard.winner === "X") {
-                score -= 1.5;
-            }
-            else {
-                score += this.evaluateBoardComfort(targetBoard);
-            }
-        }
-        else {
-            score += 0.5;
-        }
-        if (this.createsMacroThreat(snapshot, move)) {
-            score += 2.5;
-        }
-        return score + Math.random() * 0.001;
-    }
     static patternOpportunityScore(cells, player, cellIndex) {
         const simulated = cells.slice();
         simulated[cellIndex] = player;
-        const opponent = player === "O" ? "X" : "O";
+        const opponent = this.getOpponent(player);
         let score = 0;
         for (const pattern of WIN_PATTERNS) {
             if (!pattern.includes(cellIndex)) {
@@ -922,4 +843,344 @@ class NormalAiStrategy {
             });
         });
     }
+    static boardPotential(cells, player) {
+        let score = 0;
+        const opponent = this.getOpponent(player);
+        for (const pattern of WIN_PATTERNS) {
+            let blocked = false;
+            let marks = 0;
+            for (const idx of pattern) {
+                if (cells[idx] === opponent) {
+                    blocked = true;
+                    break;
+                }
+                if (cells[idx] === player) {
+                    marks += 1;
+                }
+            }
+            if (blocked) {
+                continue;
+            }
+            if (marks === 3) {
+                score += 5;
+            }
+            else if (marks === 2) {
+                score += 1.5;
+            }
+            else if (marks === 1) {
+                score += 0.4;
+            }
+            else {
+                score += 0.1;
+            }
+        }
+        return score;
+    }
+    static getOpponent(player) {
+        return player === "X" ? "O" : "X";
+    }
+    static findWinner(cells) {
+        for (const [a, b, c] of WIN_PATTERNS) {
+            const mark = cells[a];
+            if (mark && mark === cells[b] && mark === cells[c]) {
+                return mark;
+            }
+        }
+        return null;
+    }
+    static findMacroWinner(boards) {
+        var _a, _b, _c;
+        for (const pattern of WIN_PATTERNS) {
+            const [a, b, c] = pattern;
+            const first = (_a = boards[a]) === null || _a === void 0 ? void 0 : _a.winner;
+            if (first && first === ((_b = boards[b]) === null || _b === void 0 ? void 0 : _b.winner) && first === ((_c = boards[c]) === null || _c === void 0 ? void 0 : _c.winner)) {
+                return first;
+            }
+        }
+        return null;
+    }
 }
+class AiSimulator {
+    static applyMove(snapshot, move, player) {
+        const boards = snapshot.boards.map((board) => ({
+            cells: [...board.cells],
+            winner: board.winner,
+            isDraw: board.isDraw,
+            isFull: board.isFull,
+        }));
+        const board = boards[move.boardIndex];
+        if (!board || board.cells[move.cellIndex] !== null) {
+            return null;
+        }
+        board.cells[move.cellIndex] = player;
+        if (!board.winner) {
+            const winner = AiUtils.findWinner(board.cells);
+            if (winner) {
+                board.winner = winner;
+            }
+        }
+        board.isFull = board.cells.every((cell) => cell !== null);
+        board.isDraw = !board.winner && board.isFull;
+        const result = {
+            boards,
+            currentPlayer: AiUtils.getOpponent(player),
+            activeBoardIndex: null,
+            allowedBoards: [],
+            status: "playing",
+            winner: null,
+            moveCount: snapshot.moveCount + 1,
+            history: snapshot.history,
+            lastMove: {
+                player,
+                boardIndex: move.boardIndex,
+                cellIndex: move.cellIndex,
+                forcedBoardFull: false,
+            },
+        };
+        const forcedIndex = move.cellIndex;
+        const forcedBoard = boards[forcedIndex];
+        const forcedFull = !forcedBoard || forcedBoard.isFull;
+        result.lastMove.forcedBoardFull = forcedFull;
+        if (!forcedFull && forcedBoard) {
+            result.activeBoardIndex = forcedIndex;
+            result.allowedBoards = [forcedIndex];
+        }
+        else {
+            result.activeBoardIndex = null;
+            result.allowedBoards = boards
+                .map((mini, idx) => (!mini.isFull ? idx : -1))
+                .filter((idx) => idx >= 0);
+        }
+        const macroWinner = AiUtils.findMacroWinner(boards);
+        if (macroWinner) {
+            result.status = "won";
+            result.winner = macroWinner;
+            result.allowedBoards = [];
+            result.activeBoardIndex = null;
+        }
+        else if (boards.every((mini) => mini.isFull)) {
+            result.status = "draw";
+            result.allowedBoards = [];
+            result.activeBoardIndex = null;
+        }
+        return result;
+    }
+}
+class EasyAiStrategy {
+    static choose(snapshot) {
+        var _a;
+        const candidates = AiUtils.collectCandidates(snapshot);
+        if (candidates.length === 0) {
+            return null;
+        }
+        const winningMove = AiUtils.findImmediateWin(snapshot, candidates, "O");
+        if (winningMove) {
+            return winningMove;
+        }
+        if (Math.random() < 0.45) {
+            const blockingMove = AiUtils.findImmediateWin(snapshot, candidates, "X");
+            if (blockingMove) {
+                return blockingMove;
+            }
+        }
+        const scored = candidates.map((move) => {
+            var _a, _b;
+            const priority = ((_a = CELL_PRIORITY[move.cellIndex]) !== null && _a !== void 0 ? _a : 0) +
+                ((_b = BOARD_PRIORITY[move.boardIndex]) !== null && _b !== void 0 ? _b : 0);
+            return {
+                move,
+                score: priority + Math.random() * 4 - 2,
+            };
+        });
+        scored.sort((a, b) => b.score - a.score);
+        return ((_a = scored[0]) !== null && _a !== void 0 ? _a : { move: candidates[0] }).move;
+    }
+}
+class NormalAiStrategy {
+    static choose(snapshot) {
+        const candidates = AiUtils.collectCandidates(snapshot);
+        if (candidates.length === 0) {
+            return null;
+        }
+        const winningMove = AiUtils.findImmediateWin(snapshot, candidates, "O");
+        if (winningMove) {
+            return winningMove;
+        }
+        const blockingMove = AiUtils.findImmediateWin(snapshot, candidates, "X");
+        if (blockingMove) {
+            return blockingMove;
+        }
+        return this.scoreAndPick(snapshot, candidates);
+    }
+    static scoreAndPick(snapshot, candidates) {
+        let bestMove = candidates[0];
+        let bestScore = -Infinity;
+        for (const move of candidates) {
+            const score = this.scoreMove(snapshot, move);
+            if (score > bestScore) {
+                bestScore = score;
+                bestMove = move;
+            }
+        }
+        return bestMove;
+    }
+    static scoreMove(snapshot, move) {
+        var _a, _b;
+        const board = snapshot.boards[move.boardIndex];
+        if (!board) {
+            return -Infinity;
+        }
+        let score = 0;
+        score += (_a = BOARD_PRIORITY[move.boardIndex]) !== null && _a !== void 0 ? _a : 0;
+        score += (_b = CELL_PRIORITY[move.cellIndex]) !== null && _b !== void 0 ? _b : 0;
+        if (!board.winner) {
+            score += AiUtils.patternOpportunityScore(board.cells, "O", move.cellIndex);
+            score += AiUtils.patternBlockScore(board.cells, "X", move.cellIndex);
+        }
+        else if (board.winner === "X") {
+            score -= 2;
+        }
+        else if (board.winner === "O") {
+            score -= 0.5;
+        }
+        const targetBoardIndex = move.cellIndex;
+        const targetBoard = snapshot.boards[targetBoardIndex];
+        if (targetBoard) {
+            if (targetBoard.isFull) {
+                score += 2;
+            }
+            else if (targetBoard.winner === "O") {
+                score += 1.5;
+            }
+            else if (targetBoard.winner === "X") {
+                score -= 1.5;
+            }
+            else {
+                score += AiUtils.evaluateBoardComfort(targetBoard);
+            }
+        }
+        else {
+            score += 0.5;
+        }
+        if (AiUtils.createsMacroThreat(snapshot, move)) {
+            score += 2.5;
+        }
+        return score + Math.random() * 0.001;
+    }
+}
+class HardAiStrategy {
+    static choose(snapshot) {
+        const candidates = AiUtils.collectCandidates(snapshot);
+        if (candidates.length === 0) {
+            return null;
+        }
+        let bestMove = null;
+        let bestScore = -Infinity;
+        for (const move of candidates) {
+            const next = AiSimulator.applyMove(snapshot, move, "O");
+            if (!next) {
+                continue;
+            }
+            const score = this.minimax(next, 1, this.MAX_DEPTH);
+            if (score > bestScore) {
+                bestScore = score;
+                bestMove = move;
+            }
+        }
+        return bestMove !== null && bestMove !== void 0 ? bestMove : candidates[0];
+    }
+    static minimax(state, depth, maxDepth) {
+        const terminal = this.evaluateTerminal(state, depth);
+        if (terminal !== null) {
+            return terminal;
+        }
+        if (depth >= maxDepth) {
+            return this.evaluateState(state);
+        }
+        const candidates = AiUtils.collectCandidates(state);
+        if (candidates.length === 0) {
+            return this.evaluateState(state);
+        }
+        const maximizing = state.currentPlayer === "O";
+        let bestScore = maximizing ? -Infinity : Infinity;
+        for (const move of candidates) {
+            const next = AiSimulator.applyMove(state, move, state.currentPlayer);
+            if (!next) {
+                continue;
+            }
+            const value = this.minimax(next, depth + 1, maxDepth);
+            if (maximizing) {
+                if (value > bestScore) {
+                    bestScore = value;
+                }
+            }
+            else if (value < bestScore) {
+                bestScore = value;
+            }
+        }
+        return bestScore;
+    }
+    static evaluateTerminal(state, depth) {
+        if (state.status === "won" && state.winner) {
+            return state.winner === "O" ? 100 - depth * 2 : depth * 2 - 100;
+        }
+        if (state.status === "draw") {
+            return 0;
+        }
+        return null;
+    }
+    static evaluateState(state) {
+        let score = 0;
+        state.boards.forEach((board) => {
+            if (board.winner === "O") {
+                score += 8;
+            }
+            else if (board.winner === "X") {
+                score -= 8;
+            }
+            else {
+                score += AiUtils.boardPotential(board.cells, "O") * 0.8;
+                score -= AiUtils.boardPotential(board.cells, "X") * 0.8;
+            }
+        });
+        score += this.evaluateMacro(state.boards) * 5;
+        return score;
+    }
+    static evaluateMacro(boards) {
+        let score = 0;
+        for (const pattern of WIN_PATTERNS) {
+            const winners = pattern.map((idx) => { var _a, _b; return (_b = (_a = boards[idx]) === null || _a === void 0 ? void 0 : _a.winner) !== null && _b !== void 0 ? _b : null; });
+            const aiWins = winners.filter((mark) => mark === "O").length;
+            const humanWins = winners.filter((mark) => mark === "X").length;
+            if (humanWins === 0) {
+                score += aiWins;
+            }
+            else if (aiWins === 0) {
+                score -= humanWins;
+            }
+        }
+        return score;
+    }
+}
+HardAiStrategy.MAX_DEPTH = 3;
+class AiController {
+    constructor(difficulty) {
+        this.difficulty = difficulty;
+    }
+    chooseMove(snapshot) {
+        switch (this.difficulty) {
+            case "easy":
+                return EasyAiStrategy.choose(snapshot);
+            case "hard":
+                return HardAiStrategy.choose(snapshot);
+            case "normal":
+            default:
+                return NormalAiStrategy.choose(snapshot);
+        }
+    }
+}
+document.addEventListener("DOMContentLoaded", () => {
+    const engine = new GameEngine();
+    const ui = new GameUI(engine);
+    ui.init();
+});

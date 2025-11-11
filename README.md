@@ -7,7 +7,7 @@ A zero-dependency, browser-ready take on the 3×3 mega tic-tac-toe grid. Clone i
 ## Quick Play
 1. Download or clone this repo.
 2. Open `index.html` in any modern browser (double-click works via `file://`).
-3. Hit **New Game** (or load the page) and pick **1 Player** or **2 Players** when the overlay pops up.
+3. Hit **New Game** (or load the page) and pick **1 Player** or **2 Players** when the overlay pops up. Solo players also choose Easy/Normal/Hard before the board appears.
 
 No web server or build step is required for players—all compiled assets (`game.js`, `style.css`, `index.html`) ship in the repo.
 
@@ -27,7 +27,7 @@ npm run watch    # auto-recompile while editing
 
 ## What’s Included
 - **Full Super T3 rules**: forced-board routing, captured/drawn mini-boards, free-choice fallback when a destination board is full.
-- **Solo or hot-seat play**: choose 1P to battle the built-in “Normal” AI (P2) or 2P for classic pass-and-play. Solo mode randomly decides who moves first; Easy/Hard toggles are scaffolded for future tuning.
+- **Solo or hot-seat play**: choose 1P to battle the built-in AI (Easy / Normal / Hard) or 2P for classic pass-and-play. Solo mode randomly decides who moves first.
 - **Visual guidance**: active board highlighting, captured/drawn states, latest move glow, and a status bar describing whose turn it is plus any board constraints.
 - **Move history**: chess-style log (e.g., `T12: P1BB3LB2 -> P2BB2LB5(F)`) with `(F)` indicating when the destination board was full and the next player could choose freely.
 - **Rules & history toggles**: collapsible panels keep the layout tidy on smaller screens.
