@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "module": "es2015",
+    "target": "es2018",
+    "lib": ["dom", "es2018"],
+    "sourceMap": false,
+    "declaration": false,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,
+    "noEmitOnError": true
+  },
+  "include": ["game.ts"]
+}

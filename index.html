@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Super Tic-Tac-Toe</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="hero-copy">
+          <p class="eyebrow">Super Tic-Tac-Toe</p>
+          <h1>Play the mega 3×3 showdown</h1>
+          <p class="lede">
+            Two players, one screen, nine boards. Follow the arrow your opponent
+            leaves and capture three big boards to win.
+          </p>
+        </div>
+        <div class="primary-actions">
+          <button id="new-game" class="btn accent">New Game</button>
+        </div>
+      </header>
+
+      <section class="status-bar" aria-live="polite">
+        <p id="turn-label">Player 1 (X) starts.</p>
+        <p id="constraint-label">Pick any board to begin.</p>
+        <p id="result-label"></p>
+      </section>
+
+      <main class="layout">
+        <section class="board-panel">
+          <div
+            id="super-board"
+            class="super-board"
+            role="grid"
+            aria-label="Super Tic-Tac-Toe board"
+          ></div>
+        </section>
+
+        <aside class="info-column">
+          <section
+            id="rules-panel"
+            class="info-panel"
+            data-expanded="false"
+            aria-labelledby="rules-heading"
+          >
+            <div class="panel-header">
+              <h2 id="rules-heading">Rules</h2>
+              <button
+                class="panel-toggle"
+                type="button"
+                data-target="rules-panel"
+                aria-expanded="false"
+              >
+                Show
+              </button>
+            </div>
+            <div class="panel-body">
+              <ol>
+                <li>Player 1 (X) starts on any square of any board.</li>
+                <li>
+                  The little square you pick (1–9) chooses the big board your
+                  opponent must play next.
+                </li>
+                <li>
+                  If that destination board is full, they may pick any board
+                  with open spaces.
+                </li>
+                <li>
+                  Little boards can be captured (win) or dead (draw) but are
+                  still playable if the rules send you there.
+                </li>
+                <li>
+                  First to capture three big boards in a row wins the whole
+                  game. If everything fills up, it’s a draw.
+                </li>
+              </ol>
+            </div>
+          </section>
+
+          <section
+            id="history-panel"
+            class="info-panel"
+            data-expanded="true"
+            aria-labelledby="history-heading"
+          >
+            <div class="panel-header">
+              <h2 id="history-heading">Move History</h2>
+              <button
+                class="panel-toggle"
+                type="button"
+                data-target="history-panel"
+                aria-expanded="true"
+              >
+                Hide
+              </button>
+            </div>
+            <div class="panel-body">
+              <ol id="history-list" class="history-list"></ol>
+            </div>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <dialog id="illegal-move-dialog">
+      <p id="illegal-move-message"></p>
+      <button type="button" id="illegal-move-close" class="btn">
+        got it!
+      </button>
+    </dialog>
+
+    <script src="game.js"></script>
+  </body>
+</html>
