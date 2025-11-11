@@ -181,9 +181,13 @@ class GameEngine {
         this.moveCount = 0;
         this.history = [];
         this.lastMove = null;
+        this.ruleSet = "modern";
         this.reset();
     }
-    reset(startingPlayer = "X") {
+    reset(startingPlayer = "X", ruleSet) {
+        if (ruleSet) {
+            this.ruleSet = ruleSet;
+        }
         this.boards = Array.from({ length: BOARD_COUNT }, () => this.createBoard());
         this.currentPlayer = startingPlayer;
         this.activeBoardIndex = null;
@@ -214,6 +218,7 @@ class GameEngine {
                 p2Move: entry.p2Move ? { ...entry.p2Move } : undefined,
             })),
             lastMove: this.lastMove ? { ...this.lastMove } : undefined,
+            ruleSet: this.ruleSet,
         };
     }
     attemptMove(boardIndex, cellIndex) {
@@ -232,9 +237,9 @@ class GameEngine {
         const allowedBoards = this.getAllowedBoards();
         if (!allowedBoards.includes(boardIndex)) {
             const reason = this.activeBoardIndex !== null &&
-                !this.boardAt(this.activeBoardIndex).isFull
+                !this.isBoardClosed(this.activeBoardIndex)
                 ? `board #${this.activeBoardIndex + 1} is the active board right now.`
-                : `board #${boardIndex + 1} is already full—pick another.`;
+                : `board #${boardIndex + 1} is closed—pick another.`;
             return {
                 success: false,
                 reason,
@@ -252,7 +257,7 @@ class GameEngine {
         this.evaluateBoardState(boardIndex);
         this.updateMacroState();
         const forcedBoardIndex = cellIndex;
-        const forcedBoardFull = this.boardAt(forcedBoardIndex).isFull;
+        const forcedBoardFull = this.isBoardClosed(forcedBoardIndex);
         this.activeBoardIndex = forcedBoardFull ? null : forcedBoardIndex;
         const moveInfo = {
             player: this.currentPlayer,
@@ -285,6 +290,19 @@ class GameEngine {
         }
         return board;
     }
+    isBoardClosed(index) {
+        const board = this.boards[index];
+        if (!board) {
+            return true;
+        }
+        if (board.isFull) {
+            return true;
+        }
+        if (this.ruleSet === "modern") {
+            return !!board.winner || board.isDraw;
+        }
+        return false;
+    }
     evaluateBoardState(boardIndex) {
         const board = this.boardAt(boardIndex);
         if (!board.winner) {
@@ -303,8 +321,8 @@ class GameEngine {
             this.winner = macroWinner;
             return;
         }
-        const allFull = this.boards.every((board) => board.isFull);
-        if (allFull) {
+        const allClosed = this.boards.every((_, idx) => this.isBoardClosed(idx));
+        if (allClosed) {
             this.status = "draw";
         }
     }
@@ -338,15 +356,14 @@ class GameEngine {
             return [];
         }
         if (this.activeBoardIndex !== null) {
-            const targetBoard = this.boardAt(this.activeBoardIndex);
-            if (!targetBoard.isFull) {
+            if (!this.isBoardClosed(this.activeBoardIndex)) {
                 return [this.activeBoardIndex];
             }
             this.activeBoardIndex = null;
         }
         const available = [];
-        this.boards.forEach((board, index) => {
-            if (!board.isFull) {
+        this.boards.forEach((_, index) => {
+            if (!this.isBoardClosed(index)) {
                 available.push(index);
             }
         });
@@ -398,6 +415,13 @@ class GameUI {
         this.resultTitle = null;
         this.resultBody = null;
         this.startPreference = "random";
+        this.ruleSet = "modern";
+        this.pendingMode = "solo";
+        this.rulesDescription = null;
+        this.settingsHeading = null;
+        this.settingsCopy = null;
+        this.settingsStartButton = null;
+        this.soloOnlyBlocks = [];
         this.overlayVisible = false;
         this.humanInputLocked = true;
         this.awaitingAiMove = false;
@@ -410,13 +434,19 @@ class GameUI {
         const historyList = document.getElementById("history-list");
         const rulesPanel = document.getElementById("rules-panel");
         const historyPanel = document.getElementById("history-panel");
+        const rulesDescription = document.getElementById("rules-mode-description");
+        const settingsHeading = document.querySelector("[data-settings-heading]");
+        const settingsCopy = document.querySelector("[data-settings-copy]");
         if (!boardContainer ||
             !turnLabel ||
             !constraintLabel ||
             !resultLabel ||
             !historyList ||
             !rulesPanel ||
-            !historyPanel) {
+            !historyPanel
+            || !rulesDescription
+            || !settingsHeading
+            || !settingsCopy) {
             throw new Error("Missing key DOM elements.");
         }
         this.boardContainer = boardContainer;
@@ -426,6 +456,9 @@ class GameUI {
         this.historyList = historyList;
         this.rulesPanel = rulesPanel;
         this.historyPanel = historyPanel;
+        this.rulesDescription = rulesDescription;
+        this.settingsHeading = settingsHeading;
+        this.settingsCopy = settingsCopy;
         this.illegalDialog = document.getElementById("illegal-move-dialog");
         this.illegalMessage = document.getElementById("illegal-move-message");
     }
@@ -488,6 +521,7 @@ class GameUI {
         (_a = this.illegalDialog) === null || _a === void 0 ? void 0 : _a.addEventListener("close", () => { var _a; return (_a = this.illegalDialog) === null || _a === void 0 ? void 0 : _a.classList.remove("open"); });
     }
     initModeOverlay() {
+        var _a;
         const overlay = document.getElementById("mode-overlay");
         if (!overlay) {
             throw new Error("Missing mode selection overlay.");
@@ -500,12 +534,8 @@ class GameUI {
                 return;
             }
             button.addEventListener("click", () => {
-                if (modeChoice === "solo") {
-                    this.showModeOverlay("difficulty");
-                }
-                else {
-                    this.beginGame("local");
-                }
+                this.pendingMode = modeChoice;
+                this.showModeOverlay("difficulty");
             });
         });
         const diffButtons = overlay.querySelectorAll("[data-difficulty-choice]");
@@ -515,10 +545,17 @@ class GameUI {
                 return;
             }
             button.addEventListener("click", () => {
+                var _a;
                 if (button.disabled) {
                     return;
                 }
-                this.beginGame("solo", diff);
+                const mode = (_a = this.pendingMode) !== null && _a !== void 0 ? _a : "solo";
+                if (mode === "solo") {
+                    this.beginGame("solo", diff);
+                }
+                else {
+                    this.beginGame("local");
+                }
             });
         });
         const backButton = document.getElementById("difficulty-back");
@@ -533,6 +570,24 @@ class GameUI {
             if (radio.checked) {
                 this.startPreference = radio.value;
             }
+        });
+        const ruleRadios = overlay.querySelectorAll('input[name="ruleset"]');
+        ruleRadios.forEach((radio) => {
+            radio.addEventListener("change", () => {
+                if (radio.checked) {
+                    this.ruleSet = radio.value;
+                    this.updateRulesDescription();
+                }
+            });
+            if (radio.checked) {
+                this.ruleSet = radio.value;
+                this.updateRulesDescription();
+            }
+        });
+        this.soloOnlyBlocks = Array.from(overlay.querySelectorAll(".solo-only"));
+        this.settingsStartButton = document.getElementById("settings-start");
+        (_a = this.settingsStartButton) === null || _a === void 0 ? void 0 : _a.addEventListener("click", () => {
+            this.beginGame("local");
         });
     }
     initResultOverlay() {
@@ -562,6 +617,7 @@ class GameUI {
         this.modeOverlay.setAttribute("aria-hidden", "false");
         this.cancelPendingAiMove();
         this.setHumanInputLocked(true);
+        this.refreshSettingsPanel();
     }
     hideModeOverlay() {
         if (!this.modeOverlay) {
@@ -599,7 +655,8 @@ class GameUI {
             this.aiProfile = null;
             this.aiController = null;
         }
-        this.engine.reset(startingPlayer);
+        this.engine.reset(startingPlayer, this.ruleSet);
+        this.updateRulesDescription();
         this.closeIllegalDialog();
         this.hideModeOverlay();
         const humanLocked = this.mode === "solo" && startingPlayer === "O";
@@ -614,6 +671,41 @@ class GameUI {
             return "O";
         }
         return Math.random() < 0.5 ? "X" : "O";
+    }
+    refreshSettingsPanel() {
+        const isSolo = this.pendingMode === "solo";
+        this.soloOnlyBlocks.forEach((el) => {
+            el.style.display = isSolo ? "" : "none";
+        });
+        if (this.settingsStartButton) {
+            this.settingsStartButton.style.display = isSolo ? "none" : "inline-flex";
+        }
+        if (this.settingsHeading) {
+            const text = isSolo
+                ? this.settingsHeading.dataset.soloText
+                : this.settingsHeading.dataset.localText;
+            if (text) {
+                this.settingsHeading.textContent = text;
+            }
+        }
+        if (this.settingsCopy) {
+            const text = isSolo
+                ? this.settingsCopy.dataset.soloText
+                : this.settingsCopy.dataset.localText;
+            if (text) {
+                this.settingsCopy.textContent = text;
+            }
+        }
+        this.updateRulesDescription();
+    }
+    updateRulesDescription() {
+        var _a, _b;
+        if (!this.rulesDescription) {
+            return;
+        }
+        const modeKey = this.ruleSet === "classic" ? "classic" : "modern";
+        const text = (_b = (_a = this.rulesDescription.dataset[modeKey]) !== null && _a !== void 0 ? _a : this.rulesDescription.textContent) !== null && _b !== void 0 ? _b : "";
+        this.rulesDescription.textContent = text;
     }
     handleCellClick(boardIndex, cellIndex) {
         var _a;
@@ -1132,6 +1224,7 @@ class AiUtils {
 }
 class AiSimulator {
     static applyMove(snapshot, move, player) {
+        var _a;
         const boards = snapshot.boards.map((board) => ({
             cells: [...board.cells],
             winner: board.winner,
@@ -1151,6 +1244,19 @@ class AiSimulator {
         }
         board.isFull = board.cells.every((cell) => cell !== null);
         board.isDraw = !board.winner && board.isFull;
+        const ruleSet = (_a = snapshot.ruleSet) !== null && _a !== void 0 ? _a : "modern";
+        const isClosed = (mini) => {
+            if (!mini) {
+                return true;
+            }
+            if (mini.isFull) {
+                return true;
+            }
+            if (ruleSet === "modern") {
+                return !!mini.winner || mini.isDraw;
+            }
+            return false;
+        };
         const result = {
             boards,
             currentPlayer: AiUtils.getOpponent(player),
@@ -1166,10 +1272,11 @@ class AiSimulator {
                 cellIndex: move.cellIndex,
                 forcedBoardFull: false,
             },
+            ruleSet,
         };
         const forcedIndex = move.cellIndex;
         const forcedBoard = boards[forcedIndex];
-        const forcedFull = !forcedBoard || forcedBoard.isFull;
+        const forcedFull = isClosed(forcedBoard);
         result.lastMove.forcedBoardFull = forcedFull;
         if (!forcedFull && forcedBoard) {
             result.activeBoardIndex = forcedIndex;
@@ -1178,7 +1285,7 @@ class AiSimulator {
         else {
             result.activeBoardIndex = null;
             result.allowedBoards = boards
-                .map((mini, idx) => (!mini.isFull ? idx : -1))
+                .map((mini, idx) => (!isClosed(mini) ? idx : -1))
                 .filter((idx) => idx >= 0);
         }
         const macroWinner = AiUtils.findMacroWinner(boards);
@@ -1188,7 +1295,7 @@ class AiSimulator {
             result.allowedBoards = [];
             result.activeBoardIndex = null;
         }
-        else if (boards.every((mini) => mini.isFull)) {
+        else if (boards.every((mini) => isClosed(mini))) {
             result.status = "draw";
             result.allowedBoards = [];
             result.activeBoardIndex = null;

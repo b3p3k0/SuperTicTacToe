@@ -77,9 +77,13 @@
                   If that destination board is full, they may pick any board
                   with open spaces.
                 </li>
-                <li>
-                  Little boards can be captured (win) or dead (draw) but are
-                  still playable if the rules send you there.
+                <li
+                  id="rules-mode-description"
+                  data-modern="Captured or dead big boards close and can’t be played again. If you’re sent to a closed board, pick any open one."
+                  data-classic="Little boards can be captured (win) or dead (draw) but are still playable if the rules send you there."
+                >
+                  Captured or dead big boards close and can’t be played again. If
+                  you’re sent to a closed board, pick any open one.
                 </li>
                 <li>
                   First to capture three big boards in a row wins the whole
@@ -155,13 +159,24 @@
         </div>
 
         <div class="overlay-panel" data-panel="difficulty">
-          <p class="eyebrow">Pick Difficulty</p>
-          <h2>Choose your challenger</h2>
-          <p class="overlay-copy">
+          <p class="eyebrow">Settings</p>
+          <h2
+            data-settings-heading
+            data-solo-text="Choose your challenger"
+            data-local-text="Choose your rules"
+          >
+            Choose your challenger
+          </h2>
+          <p
+            class="overlay-copy"
+            data-settings-copy
+            data-solo-text="Choose how spicy you want the challenge. Easy is more forgiving, Normal is balanced, and Hard thinks a few moves ahead."
+            data-local-text="Pick Old (strategic) or New (fast) rules for this hot-seat match."
+          >
             Choose how spicy you want the challenge. Easy is more forgiving,
             Normal is balanced, and Hard thinks a few moves ahead.
           </p>
-          <div class="overlay-actions">
+          <div class="overlay-actions solo-only">
             <button
               type="button"
               class="btn overlay-choice"
@@ -184,7 +199,11 @@
               Hard
             </button>
           </div>
-          <div class="start-options" role="group" aria-label="Starting player">
+          <div
+            class="choice-group solo-only start-options"
+            role="group"
+            aria-label="Starting player"
+          >
             <p>Who starts?</p>
             <label>
               <input type="radio" name="start-mode" value="random" checked />
@@ -199,9 +218,25 @@
               AI
             </label>
           </div>
-          <button type="button" class="overlay-link" id="difficulty-back">
-            ← Back to player select
-          </button>
+          <div class="choice-group rule-options" role="group" aria-label="Ruleset">
+            <p>Rule set</p>
+            <label>
+              <input type="radio" name="ruleset" value="modern" checked />
+              New (faster play)
+            </label>
+            <label>
+              <input type="radio" name="ruleset" value="classic" />
+              Old (slower, strategic)
+            </label>
+          </div>
+          <div class="overlay-footer">
+            <button type="button" class="overlay-link" id="difficulty-back">
+              ← Back to player select
+            </button>
+            <button type="button" class="btn accent overlay-start" id="settings-start">
+              Start Game
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,13 +1,13 @@
-game button et# Super Tic-Tac-Toe (Super T3)
+# Super Tic-Tac-Toe (Super T3)
 
-A zero-dependency, browser-ready take on the 3×3 mega tic-tac-toe grid. Clone it, drop the folder onto any static host (or just open `index.html` locally), and you’re ready to play.
+A zero-dependency, browser-ready take on the 3×3 mega tic-tac-toe grid. Clone it, drop the folder onto any static host (or just open `index.html` locally), and you’re ready to play. Want to try it right now? Visit https://supert3.com for the live demo.
 
 ---
 
 ## Quick Play
 1. Download or clone this repo.
 2. Open `index.html` in any modern browser (double-click works via `file://`).
-3. Hit **New Game** (or load the page) and pick **1 Player** or **2 Players** when the overlay pops up. Solo players choose Easy/Normal/Hard and who starts (Human / AI / Random) before the board appears.
+3. Hit **New Game** (or load the page) and pick **1 Player** or **2 Players** when the overlay pops up. Choose Old (Classic) or New (Modern) rules, and if you’re in solo mode also pick Easy/Normal/Hard plus who starts (Human / AI / Random) before the board appears.
 
 No web server or build step is required for players—all compiled assets (`game.js`, `style.css`, `index.html`) ship in the repo.
 
@@ -27,7 +27,8 @@ npm run watch    # auto-recompile while editing
 
 ## What’s Included
 - **Full Super T3 rules**: forced-board routing, captured/drawn mini-boards, free-choice fallback when a destination board is full.
-- **Solo or hot-seat play**: choose 1P to battle the built-in AI (Easy / Normal / Hard) or 2P for classic pass-and-play. Solo mode randomly decides who moves first.
+- **Solo or hot-seat play**: choose 1P to battle the built-in AI (Easy / Normal / Hard) or 2P for classic pass-and-play. Solo mode randomly decides who moves first (or you can force Human/AI).
+- **Classic vs. Modern rules**: at the start of every match pick Old (slower, strategic) or New (faster) rules. Modern mode closes captured/dead boards; Classic keeps them playable.
 - **Visual guidance**: active board highlighting, captured/drawn states, latest move glow, and a status bar describing whose turn it is plus any board constraints.
 - **Move history**: chess-style log (e.g., `T12: P1BB3LB2 -> P2BB2LB5(F)`) with `(F)` indicating when the destination board was full and the next player could choose freely.
 - **Rules & history toggles**: collapsible panels keep the layout tidy on smaller screens.
