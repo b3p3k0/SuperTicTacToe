@@ -6,11 +6,24 @@
   --muted: #5b6275;
   --accent: #ff6b6b;
   --accent-strong: #ff3d57;
+  --accent-shadow: rgba(255, 107, 107, 0.25);
   --p1: #2463eb;
   --p2: #f97316;
   --capture-bg: #eef2ff;
+  --capture-bg-p2: #fff4ec;
   --draw-bg: #f2f4f7;
+  --cell-bg: #f8f9ff;
+  --last-move-glow: rgba(36, 99, 235, 0.3);
+  --active-board-border: #00d600;
+  --active-board-glow: rgba(0, 214, 0, 0.35);
+  --active-board-glow-strong: rgba(0, 214, 0, 0.5);
+  --macro-line: rgba(0, 0, 0, 0.35);
+  --overlay-scrim: rgba(20, 24, 35, 0.85);
   --radius: 16px;
+  --font-body: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --font-heading: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
 }
 
 * {
@@ -20,8 +33,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  font-family: var(--font-body);
   background: var(--bg);
   color: var(--text);
   line-height: 1.5;
@@ -56,6 +68,7 @@ body {
 
 .app-header h1 {
   margin: 0 0 0.5rem;
+  font-family: var(--font-heading, var(--font-body));
 }
 
 .lede {
@@ -66,7 +79,28 @@ body {
 .primary-actions {
   display: flex;
   gap: 0.75rem;
-  align-items: center;
+  align-items: flex-end;
+}
+
+.theme-picker {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.theme-picker select {
+  appearance: none;
+  border-radius: 10px;
+  border: 2px solid var(--border);
+  padding: 0.35rem 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.95rem;
+  font-family: var(--font-body);
+  cursor: pointer;
+  margin-top: 0.15rem;
 }
 
 .btn {
@@ -91,7 +125,7 @@ body {
   background: var(--accent);
   border-color: var(--accent);
   color: white;
-  box-shadow: 0 8px 20px rgba(255, 107, 107, 0.25);
+  box-shadow: 0 8px 20px var(--accent-shadow, rgba(0, 0, 0, 0.2));
 }
 
 .status-bar {
@@ -140,29 +174,29 @@ body {
     linear-gradient(
       90deg,
       transparent calc(33.333% - 2px),
-      rgba(0, 0, 0, 0.35) calc(33.333% - 2px),
-      rgba(0, 0, 0, 0.35) calc(33.333% + 2px),
+      var(--macro-line) calc(33.333% - 2px),
+      var(--macro-line) calc(33.333% + 2px),
       transparent calc(33.333% + 2px)
     ),
     linear-gradient(
       90deg,
       transparent calc(66.666% - 2px),
-      rgba(0, 0, 0, 0.35) calc(66.666% - 2px),
-      rgba(0, 0, 0, 0.35) calc(66.666% + 2px),
+      var(--macro-line) calc(66.666% - 2px),
+      var(--macro-line) calc(66.666% + 2px),
       transparent calc(66.666% + 2px)
     ),
     linear-gradient(
       0deg,
       transparent calc(33.333% - 2px),
-      rgba(0, 0, 0, 0.35) calc(33.333% - 2px),
-      rgba(0, 0, 0, 0.35) calc(33.333% + 2px),
+      var(--macro-line) calc(33.333% - 2px),
+      var(--macro-line) calc(33.333% + 2px),
       transparent calc(33.333% + 2px)
     ),
     linear-gradient(
       0deg,
       transparent calc(66.666% - 2px),
-      rgba(0, 0, 0, 0.35) calc(66.666% - 2px),
-      rgba(0, 0, 0, 0.35) calc(66.666% + 2px),
+      var(--macro-line) calc(66.666% - 2px),
+      var(--macro-line) calc(66.666% + 2px),
       transparent calc(66.666% + 2px)
     );
 }
@@ -186,8 +220,8 @@ body {
 }
 
 .mini-board.active-board {
-  border-color: #00d600;
-  box-shadow: 0 0 0 3px rgba(0, 214, 0, 0.35);
+  border-color: var(--active-board-border);
+  box-shadow: 0 0 0 3px var(--active-board-glow);
 }
 
 .mini-board.free-choice {
@@ -201,7 +235,7 @@ body {
 
 .mini-board.captured-p2 {
   border-color: var(--p2);
-  background: #fff4ec;
+  background: var(--capture-bg-p2, var(--capture-bg));
 }
 
 .mini-board.drawn {
@@ -212,8 +246,8 @@ body {
 .mini-board.active-board.captured-p1,
 .mini-board.active-board.captured-p2,
 .mini-board.active-board.drawn {
-  border-color: #00d600;
-  box-shadow: 0 0 0 4px rgba(0, 214, 0, 0.5);
+  border-color: var(--active-board-border);
+  box-shadow: 0 0 0 4px var(--active-board-glow-strong);
 }
 
 .mini-board.disabled {
@@ -225,7 +259,7 @@ body {
   aspect-ratio: 1 / 1;
   border-radius: 12px;
   border: 2px solid var(--border);
-  background: #f8f9ff;
+  background: var(--cell-bg);
   font-size: clamp(1.2rem, 3vw, 2rem);
   font-weight: 700;
   color: var(--text);
@@ -252,7 +286,7 @@ body {
 }
 
 .cell.last-move {
-  box-shadow: 0 0 0 3px rgba(36, 99, 235, 0.3);
+  box-shadow: 0 0 0 3px var(--last-move-glow);
 }
 
 .info-column {
@@ -279,6 +313,7 @@ body {
 .panel-header h2 {
   margin: 0;
   font-size: 1.1rem;
+  font-family: var(--font-heading, var(--font-body));
 }
 
 .panel-toggle {
@@ -334,7 +369,7 @@ body {
 .mode-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(20, 24, 35, 0.85);
+  background: var(--overlay-scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -373,6 +408,7 @@ body {
 
 .overlay-card h2 {
   margin: 0 0 0.4rem;
+  font-family: var(--font-heading, var(--font-body));
 }
 
 .overlay-copy {
@@ -404,6 +440,30 @@ body {
   font-weight: 600;
   cursor: pointer;
   padding: 0;
+}
+
+.start-options {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.start-options p {
+  margin: 0;
+  width: 100%;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.start-options label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 600;
 }
 
 @media (max-width: 960px) {

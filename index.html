@@ -18,6 +18,16 @@
           </p>
         </div>
         <div class="primary-actions">
+          <label class="theme-picker" for="theme-select">
+            <span>Theme</span>
+            <select id="theme-select" aria-label="Theme selector">
+              <option value="default">Default</option>
+              <option value="krayon">Krayon</option>
+              <option value="vibewave">VibeWave</option>
+              <option value="insomniac">Insomniac</option>
+              <option value="contrast">High Contrast</option>
+            </select>
+          </label>
           <button id="new-game" class="btn accent">New Game</button>
         </div>
       </header>
@@ -123,8 +133,8 @@
           <p class="eyebrow">Choose Players</p>
           <h2>How many humans?</h2>
           <p class="overlay-copy">
-            1 Player pairs you with Super T3’s built-in opponent. 2 Players keeps
-            the classic hot-seat experience.
+            1 Player pairs you with Super T3’s built-in opponent.<br />
+            2 Players keeps the classic hot-seat experience.
           </p>
           <div class="overlay-actions">
             <button
@@ -173,6 +183,21 @@
             >
               Hard
             </button>
+          </div>
+          <div class="start-options" role="group" aria-label="Starting player">
+            <p>Who starts?</p>
+            <label>
+              <input type="radio" name="start-mode" value="random" checked />
+              Random
+            </label>
+            <label>
+              <input type="radio" name="start-mode" value="human" />
+              Human
+            </label>
+            <label>
+              <input type="radio" name="start-mode" value="ai" />
+              AI
+            </label>
           </div>
           <button type="button" class="overlay-link" id="difficulty-back">
             ← Back to player select

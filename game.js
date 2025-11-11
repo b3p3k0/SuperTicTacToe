@@ -33,6 +33,144 @@ const DIFFICULTY_LABELS = {
     normal: "Normal",
     hard: "Hard",
 };
+const THEME_STORAGE_KEY = "st3.theme";
+const THEMES = {
+    default: {
+        label: "Default",
+        tokens: {
+            "--bg": "#f3f4f8",
+            "--surface": "#ffffff",
+            "--border": "#d7d9e0",
+            "--text": "#1f2430",
+            "--muted": "#5b6275",
+            "--accent": "#ff6b6b",
+            "--accent-strong": "#ff3d57",
+            "--accent-shadow": "rgba(255, 107, 107, 0.25)",
+            "--p1": "#2463eb",
+            "--p2": "#f97316",
+            "--capture-bg": "#eef2ff",
+            "--capture-bg-p2": "#fff4ec",
+            "--draw-bg": "#f2f4f7",
+            "--cell-bg": "#f8f9ff",
+            "--last-move-glow": "rgba(36, 99, 235, 0.3)",
+            "--active-board-border": "#00d600",
+            "--active-board-glow": "rgba(0, 214, 0, 0.35)",
+            "--active-board-glow-strong": "rgba(0, 214, 0, 0.5)",
+            "--macro-line": "rgba(0, 0, 0, 0.35)",
+            "--overlay-scrim": "rgba(20, 24, 35, 0.85)",
+            "--font-body": "\"Inter\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+            "--font-heading": "\"Inter\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+        },
+    },
+    krayon: {
+        label: "Krayon",
+        tokens: {
+            "--bg": "#fff3d1",
+            "--surface": "#fffcee",
+            "--border": "#ffcf66",
+            "--text": "#1d2a4f",
+            "--muted": "#8c5d00",
+            "--accent": "#ff5b00",
+            "--accent-strong": "#ff007a",
+            "--accent-shadow": "rgba(255, 91, 0, 0.45)",
+            "--p1": "#0074ff",
+            "--p2": "#ff0f65",
+            "--capture-bg": "#d9ecff",
+            "--capture-bg-p2": "#ffe0f0",
+            "--draw-bg": "#fff0b3",
+            "--cell-bg": "#fff4cc",
+            "--last-move-glow": "rgba(0, 116, 255, 0.45)",
+            "--active-board-border": "#00c853",
+            "--active-board-glow": "rgba(0, 200, 83, 0.5)",
+            "--active-board-glow-strong": "rgba(0, 200, 83, 0.65)",
+            "--macro-line": "rgba(105, 72, 0, 0.4)",
+            "--overlay-scrim": "rgba(82, 53, 8, 0.75)",
+            "--font-body": "\"Baloo 2\", \"Comic Sans MS\", \"Trebuchet MS\", sans-serif",
+            "--font-heading": "\"Baloo 2\", \"Comic Sans MS\", \"Trebuchet MS\", sans-serif",
+        },
+    },
+    vibewave: {
+        label: "VibeWave",
+        tokens: {
+            "--bg": "#0c0518",
+            "--surface": "#1a0f2b",
+            "--border": "#362554",
+            "--text": "#f5e1ff",
+            "--muted": "#b493ff",
+            "--accent": "#ff4ecd",
+            "--accent-strong": "#fe89f5",
+            "--accent-shadow": "rgba(255, 78, 205, 0.4)",
+            "--p1": "#62f4ff",
+            "--p2": "#ff5efc",
+            "--capture-bg": "#291846",
+            "--capture-bg-p2": "#32102f",
+            "--draw-bg": "#231437",
+            "--cell-bg": "#291744",
+            "--last-move-glow": "rgba(94, 223, 255, 0.4)",
+            "--active-board-border": "#62ff95",
+            "--active-board-glow": "rgba(98, 255, 149, 0.4)",
+            "--active-board-glow-strong": "rgba(98, 255, 149, 0.55)",
+            "--macro-line": "rgba(255, 78, 205, 0.35)",
+            "--overlay-scrim": "rgba(5, 2, 12, 0.85)",
+            "--font-body": "\"Orbitron\", \"Segoe UI\", system-ui, sans-serif",
+            "--font-heading": "\"Orbitron\", \"Segoe UI\", system-ui, sans-serif",
+        },
+    },
+    insomniac: {
+        label: "Insomniac",
+        tokens: {
+            "--bg": "#050910",
+            "--surface": "#0f1729",
+            "--border": "#1c2638",
+            "--text": "#d7dee8",
+            "--muted": "#7c8a9c",
+            "--accent": "#1d8cf8",
+            "--accent-strong": "#1273cc",
+            "--accent-shadow": "rgba(18, 115, 204, 0.35)",
+            "--p1": "#4fb4ff",
+            "--p2": "#ff8c66",
+            "--capture-bg": "#151f32",
+            "--capture-bg-p2": "#1f1b26",
+            "--draw-bg": "#141c2b",
+            "--cell-bg": "#10192a",
+            "--last-move-glow": "rgba(79, 180, 255, 0.35)",
+            "--active-board-border": "#3dd68c",
+            "--active-board-glow": "rgba(61, 214, 140, 0.35)",
+            "--active-board-glow-strong": "rgba(61, 214, 140, 0.5)",
+            "--macro-line": "rgba(255, 255, 255, 0.15)",
+            "--overlay-scrim": "rgba(2, 6, 23, 0.85)",
+            "--font-body": "\"Inter\", system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+            "--font-heading": "\"Space Grotesk\", \"Segoe UI\", system-ui, sans-serif",
+        },
+    },
+    contrast: {
+        label: "High Contrast",
+        tokens: {
+            "--bg": "#ffffff",
+            "--surface": "#ffffff",
+            "--border": "#000000",
+            "--text": "#000000",
+            "--muted": "#000000",
+            "--accent": "#000000",
+            "--accent-strong": "#000000",
+            "--accent-shadow": "rgba(0, 0, 0, 0.45)",
+            "--p1": "#000000",
+            "--p2": "#000000",
+            "--capture-bg": "#d9d9d9",
+            "--capture-bg-p2": "#c0c0c0",
+            "--draw-bg": "#b5b5b5",
+            "--cell-bg": "#ffffff",
+            "--last-move-glow": "rgba(0, 0, 0, 0.5)",
+            "--active-board-border": "#000000",
+            "--active-board-glow": "rgba(0, 0, 0, 0.45)",
+            "--active-board-glow-strong": "rgba(0, 0, 0, 0.6)",
+            "--macro-line": "rgba(0, 0, 0, 0.9)",
+            "--overlay-scrim": "rgba(0, 0, 0, 0.85)",
+            "--font-body": "\"Source Sans Pro\", \"Arial\", sans-serif",
+            "--font-heading": "\"Source Sans Pro\", \"Arial\", sans-serif",
+        },
+    },
+};
 class GameEngine {
     constructor() {
         this.boards = [];
@@ -259,6 +397,7 @@ class GameUI {
         this.resultOverlay = null;
         this.resultTitle = null;
         this.resultBody = null;
+        this.startPreference = "random";
         this.overlayVisible = false;
         this.humanInputLocked = true;
         this.awaitingAiMove = false;
@@ -384,6 +523,17 @@ class GameUI {
         });
         const backButton = document.getElementById("difficulty-back");
         backButton === null || backButton === void 0 ? void 0 : backButton.addEventListener("click", () => this.showModeOverlay("players"));
+        const startRadios = overlay.querySelectorAll('input[name="start-mode"]');
+        startRadios.forEach((radio) => {
+            radio.addEventListener("change", () => {
+                if (radio.checked) {
+                    this.startPreference = radio.value;
+                }
+            });
+            if (radio.checked) {
+                this.startPreference = radio.value;
+            }
+        });
     }
     initResultOverlay() {
         const overlay = document.getElementById("solo-result-overlay");
@@ -443,7 +593,7 @@ class GameUI {
             const selected = difficulty !== null && difficulty !== void 0 ? difficulty : "normal";
             this.aiProfile = { difficulty: selected };
             this.aiController = new AiController(selected);
-            startingPlayer = Math.random() < 0.5 ? "X" : "O";
+            startingPlayer = this.pickStartingPlayer();
         }
         else {
             this.aiProfile = null;
@@ -455,6 +605,15 @@ class GameUI {
         const humanLocked = this.mode === "solo" && startingPlayer === "O";
         this.setHumanInputLocked(humanLocked);
         this.render();
+    }
+    pickStartingPlayer() {
+        if (this.startPreference === "human") {
+            return "X";
+        }
+        if (this.startPreference === "ai") {
+            return "O";
+        }
+        return Math.random() < 0.5 ? "X" : "O";
     }
     handleCellClick(boardIndex, cellIndex) {
         var _a;
@@ -715,6 +874,77 @@ class GameUI {
         if ((_a = this.illegalDialog) === null || _a === void 0 ? void 0 : _a.open) {
             this.illegalDialog.close();
         }
+    }
+}
+class ThemeManager {
+    constructor(select) {
+        var _a;
+        this.select = select;
+        this.current = "default";
+        this.populateOptions();
+        const initialTheme = this.getStoredTheme();
+        this.applyTheme(initialTheme, false);
+        (_a = this.select) === null || _a === void 0 ? void 0 : _a.addEventListener("change", () => {
+            var _a, _b;
+            const value = ((_b = (_a = this.select) === null || _a === void 0 ? void 0 : _a.value) !== null && _b !== void 0 ? _b : "default");
+            this.applyTheme(value, true);
+        });
+    }
+    populateOptions() {
+        if (!this.select) {
+            return;
+        }
+        const existingValues = new Set();
+        Array.from(this.select.options).forEach((option) => {
+            existingValues.add(option.value);
+            const theme = THEMES[option.value];
+            if (theme) {
+                option.textContent = theme.label;
+            }
+        });
+        Object.entries(THEMES).forEach(([key, theme]) => {
+            if (!existingValues.has(key)) {
+                const option = document.createElement("option");
+                option.value = key;
+                option.textContent = theme.label;
+                this.select.append(option);
+            }
+        });
+    }
+    getStoredTheme() {
+        try {
+            const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+            if (stored && stored in THEMES) {
+                return stored;
+            }
+        }
+        catch (error) {
+            console.warn("Unable to read saved theme:", error);
+        }
+        return "default";
+    }
+    applyTheme(name, persist = true) {
+        const themeName = (name in THEMES ? name : "default");
+        const theme = THEMES[themeName];
+        Object.entries(theme.tokens).forEach(([key, value]) => {
+            document.documentElement.style.setProperty(key, value);
+        });
+        document.body.dataset.theme = themeName;
+        if (this.select) {
+            this.select.value = themeName;
+        }
+        this.current = themeName;
+        if (persist) {
+            try {
+                window.localStorage.setItem(THEME_STORAGE_KEY, themeName);
+            }
+            catch (error) {
+                console.warn("Unable to save theme preference:", error);
+            }
+        }
+    }
+    getCurrentTheme() {
+        return this.current;
     }
 }
 class AiUtils {
@@ -1180,6 +1410,8 @@ class AiController {
     }
 }
 document.addEventListener("DOMContentLoaded", () => {
+    const themeSelect = document.getElementById("theme-select");
+    new ThemeManager(themeSelect);
     const engine = new GameEngine();
     const ui = new GameUI(engine);
     ui.init();

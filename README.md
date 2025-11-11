@@ -1,4 +1,4 @@
-# Super Tic-Tac-Toe (Super T3)
+game button et# Super Tic-Tac-Toe (Super T3)
 
 A zero-dependency, browser-ready take on the 3×3 mega tic-tac-toe grid. Clone it, drop the folder onto any static host (or just open `index.html` locally), and you’re ready to play.
 
@@ -7,7 +7,7 @@ A zero-dependency, browser-ready take on the 3×3 mega tic-tac-toe grid. Clone i
 ## Quick Play
 1. Download or clone this repo.
 2. Open `index.html` in any modern browser (double-click works via `file://`).
-3. Hit **New Game** (or load the page) and pick **1 Player** or **2 Players** when the overlay pops up. Solo players also choose Easy/Normal/Hard before the board appears.
+3. Hit **New Game** (or load the page) and pick **1 Player** or **2 Players** when the overlay pops up. Solo players choose Easy/Normal/Hard and who starts (Human / AI / Random) before the board appears.
 
 No web server or build step is required for players—all compiled assets (`game.js`, `style.css`, `index.html`) ship in the repo.
 
