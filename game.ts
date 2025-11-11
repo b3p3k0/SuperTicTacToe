@@ -649,6 +649,9 @@ class GameUI {
         panel.dataset.expanded = (!expanded).toString();
         button.textContent = expanded ? "Show" : "Hide";
         button.setAttribute("aria-expanded", (!expanded).toString());
+        if (panel === this.rulesPanel) {
+          this.syncHistoryLimits();
+        }
       });
     });
 
@@ -743,6 +746,8 @@ class GameUI {
     this.settingsStartButton?.addEventListener("click", () => {
       this.beginGame("local");
     });
+
+    this.syncHistoryLimits();
   }
 
   private initResultOverlay(): void {
@@ -858,6 +863,11 @@ class GameUI {
       }
     }
     this.updateRulesDescription();
+  }
+
+  private syncHistoryLimits(): void {
+    const rulesExpanded = this.rulesPanel.dataset.expanded === "true";
+    this.historyList.classList.toggle("compact-history", rulesExpanded);
   }
 
   private updateRulesDescription(): void {

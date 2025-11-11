@@ -519,6 +519,9 @@ class GameUI {
                 panel.dataset.expanded = (!expanded).toString();
                 button.textContent = expanded ? "Show" : "Hide";
                 button.setAttribute("aria-expanded", (!expanded).toString());
+                if (panel === this.rulesPanel) {
+                    this.syncHistoryLimits();
+                }
             });
         });
         const dialogClose = document.getElementById("illegal-move-close");
@@ -594,6 +597,7 @@ class GameUI {
         (_a = this.settingsStartButton) === null || _a === void 0 ? void 0 : _a.addEventListener("click", () => {
             this.beginGame("local");
         });
+        this.syncHistoryLimits();
     }
     initResultOverlay() {
         const overlay = document.getElementById("solo-result-overlay");
@@ -702,6 +706,10 @@ class GameUI {
             }
         }
         this.updateRulesDescription();
+    }
+    syncHistoryLimits() {
+        const rulesExpanded = this.rulesPanel.dataset.expanded === "true";
+        this.historyList.classList.toggle("compact-history", rulesExpanded);
     }
     updateRulesDescription() {
         var _a, _b;

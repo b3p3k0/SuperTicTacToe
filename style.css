@@ -353,6 +353,10 @@ body {
   padding-right: 0.5rem;
 }
 
+.history-list.compact-history {
+  max-height: calc(1.6rem * 6);
+}
+
 .history-list li {
   padding-left: 0.25rem;
 }
