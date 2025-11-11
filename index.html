@@ -111,6 +111,104 @@
       </button>
     </dialog>
 
+    <div
+      id="mode-overlay"
+      class="mode-overlay"
+      data-visible="true"
+      data-step="players"
+      aria-hidden="false"
+    >
+      <div class="overlay-card" data-card="mode">
+        <div class="overlay-panel" data-panel="players">
+          <p class="eyebrow">Choose Players</p>
+          <h2>How many humans?</h2>
+          <p class="overlay-copy">
+            1 Player pairs you with Super T3’s built-in opponent. 2 Players keeps
+            the classic hot-seat experience.
+          </p>
+          <div class="overlay-actions">
+            <button
+              type="button"
+              class="btn overlay-choice"
+              data-mode-choice="solo"
+            >
+              1 Player
+            </button>
+            <button
+              type="button"
+              class="btn overlay-choice accent"
+              data-mode-choice="local"
+            >
+              2 Players
+            </button>
+          </div>
+        </div>
+
+        <div class="overlay-panel" data-panel="difficulty">
+          <p class="eyebrow">Pick Difficulty</p>
+          <h2>Choose your challenger</h2>
+          <p class="overlay-copy">
+            We’ll start with Normal, then tune Easy & Hard after testing.
+          </p>
+          <div class="overlay-actions">
+            <button
+              type="button"
+              class="btn overlay-choice"
+              data-difficulty-choice="easy"
+              disabled
+              title="Coming soon"
+            >
+              Easy (soon)
+            </button>
+            <button
+              type="button"
+              class="btn overlay-choice accent"
+              data-difficulty-choice="normal"
+            >
+              Normal
+            </button>
+            <button
+              type="button"
+              class="btn overlay-choice"
+              data-difficulty-choice="hard"
+              disabled
+              title="Coming soon"
+            >
+              Hard (soon)
+            </button>
+          </div>
+          <button type="button" class="overlay-link" id="difficulty-back">
+            ← Back to player select
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="solo-result-overlay"
+      class="mode-overlay"
+      data-visible="false"
+      aria-hidden="true"
+    >
+      <div class="overlay-card" data-card="result">
+        <div class="overlay-panel" data-panel="result">
+          <p class="eyebrow">Match Complete</p>
+          <h2 id="solo-result-title">We tied!</h2>
+          <p class="overlay-copy" id="solo-result-body">
+            Want a rematch or head back to the menu?
+          </p>
+          <div class="overlay-actions">
+            <button type="button" class="btn overlay-choice" id="solo-result-close">
+              Close
+            </button>
+            <button type="button" class="btn overlay-choice accent" id="solo-result-play">
+              Play Again
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="game.js"></script>
   </body>
 </html>

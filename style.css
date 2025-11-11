@@ -129,6 +129,11 @@ body {
   gap: 1rem;
 }
 
+.super-board.board-locked {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
 .mini-board {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -162,6 +167,13 @@ body {
 .mini-board.drawn {
   border-color: var(--border);
   background: var(--draw-bg);
+}
+
+.mini-board.active-board.captured-p1,
+.mini-board.active-board.captured-p2,
+.mini-board.active-board.drawn {
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 4px rgba(255, 107, 107, 0.45);
 }
 
 .mini-board.disabled {
@@ -253,6 +265,9 @@ body {
   gap: 0.35rem;
   font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
   font-size: 0.95rem;
+  max-height: calc(1.6rem * 20);
+  overflow-y: auto;
+  padding-right: 0.5rem;
 }
 
 .history-list li {
@@ -274,6 +289,81 @@ body {
 #illegal-move-message {
   margin: 0 0 1rem;
   font-weight: 600;
+}
+
+.mode-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 24, 35, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1rem, 4vw, 2.5rem);
+  z-index: 30;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.mode-overlay[data-visible="false"] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.overlay-card {
+  width: min(520px, 100%);
+  background: var(--surface);
+  border-radius: 20px;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  box-shadow: 0 35px 70px rgba(15, 18, 28, 0.35);
+  text-align: left;
+}
+
+.overlay-panel {
+  display: none;
+}
+
+.overlay-card[data-card="result"] [data-panel="result"] {
+  display: block;
+}
+
+.mode-overlay[data-step="players"] [data-panel="players"],
+.mode-overlay[data-step="difficulty"] [data-panel="difficulty"] {
+  display: block;
+}
+
+.overlay-card h2 {
+  margin: 0 0 0.4rem;
+}
+
+.overlay-copy {
+  margin: 0 0 1rem;
+  color: var(--muted);
+}
+
+.overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.overlay-choice {
+  flex: 1 1 120px;
+  justify-content: center;
+}
+
+.overlay-choice[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.overlay-link {
+  margin-top: 1rem;
+  background: none;
+  border: none;
+  color: var(--accent-strong);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
 }
 
 @media (max-width: 960px) {

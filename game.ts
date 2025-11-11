@@ -3,6 +3,10 @@ type CellValue = Player | null;
 
 type GameStatus = "playing" | "won" | "draw";
 
+type GameMode = "local" | "solo";
+type Difficulty = "easy" | "normal" | "hard";
+type ModeStep = "players" | "difficulty";
+
 interface MiniBoardState {
   cells: CellValue[];
   winner: Player | null;
@@ -40,6 +44,15 @@ interface MoveAttemptResult {
   reason?: string;
 }
 
+interface AiProfile {
+  difficulty: Difficulty;
+}
+
+interface AiMove {
+  boardIndex: number;
+  cellIndex: number;
+}
+
 const WIN_PATTERNS: ReadonlyArray<[number, number, number]> = [
   [0, 1, 2],
   [3, 4, 5],
@@ -58,6 +71,24 @@ const PLAYER_LABELS: Record<Player, string> = {
 
 const BOARD_COUNT = 9;
 const CELLS_PER_BOARD = 9;
+const BOARD_PRIORITY: number[] = [3, 2, 3, 2, 4, 2, 3, 2, 3];
+const CELL_PRIORITY: number[] = [2, 1, 2, 1, 3, 1, 2, 1, 2];
+const BOARD_NAME_MAP: ReadonlyArray<string> = [
+  "top left",
+  "top center",
+  "top right",
+  "middle left",
+  "center",
+  "middle right",
+  "bottom left",
+  "bottom center",
+  "bottom right",
+];
+const DIFFICULTY_LABELS: Record<Difficulty, string> = {
+  easy: "Easy",
+  normal: "Normal",
+  hard: "Hard",
+};
 
 class GameEngine {
   private boards: MiniBoardState[] = [];
@@ -73,9 +104,9 @@ class GameEngine {
     this.reset();
   }
 
-  public reset(): void {
+  public reset(startingPlayer: Player = "X"): void {
     this.boards = Array.from({ length: BOARD_COUNT }, () => this.createBoard());
-    this.currentPlayer = "X";
+    this.currentPlayer = startingPlayer;
     this.activeBoardIndex = null;
     this.status = "playing";
     this.winner = null;
@@ -314,6 +345,18 @@ class GameUI {
   private illegalMessage: HTMLElement | null;
   private miniBoards: HTMLElement[] = [];
   private cellButtons: HTMLButtonElement[][] = [];
+  private mode: GameMode = "local";
+  private aiProfile: AiProfile | null = null;
+  private aiController: AiController | null = null;
+  private modeOverlay: HTMLElement | null = null;
+  private resultOverlay: HTMLElement | null = null;
+  private resultTitle: HTMLElement | null = null;
+  private resultBody: HTMLElement | null = null;
+  private overlayVisible = false;
+  private humanInputLocked = true;
+  private awaitingAiMove = false;
+  private aiMoveTimer: number | null = null;
+  private overlayStep: ModeStep = "players";
 
   constructor(private engine: GameEngine) {
     const boardContainer = document.getElementById("super-board");
@@ -352,6 +395,9 @@ class GameUI {
   public init(): void {
     this.buildBoards();
     this.attachControls();
+    this.initModeOverlay();
+    this.initResultOverlay();
+    this.showModeOverlay("players");
     this.render();
   }
 
@@ -393,9 +439,8 @@ class GameUI {
   private attachControls(): void {
     const newGameButton = document.getElementById("new-game");
     newGameButton?.addEventListener("click", () => {
-      this.engine.reset();
       this.closeIllegalDialog();
-      this.render();
+      this.showModeOverlay("players");
     });
 
     const panelButtons = document.querySelectorAll<HTMLButtonElement>(
@@ -421,7 +466,130 @@ class GameUI {
     );
   }
 
+  private initModeOverlay(): void {
+    const overlay = document.getElementById("mode-overlay");
+    if (!overlay) {
+      throw new Error("Missing mode selection overlay.");
+    }
+    this.modeOverlay = overlay;
+    const modeButtons =
+      overlay.querySelectorAll<HTMLButtonElement>("[data-mode-choice]");
+    modeButtons.forEach((button) => {
+      const modeChoice = button.dataset.modeChoice as
+        | GameMode
+        | undefined;
+      if (!modeChoice) {
+        return;
+      }
+      button.addEventListener("click", () => {
+        if (modeChoice === "solo") {
+          this.showModeOverlay("difficulty");
+        } else {
+          this.beginGame("local");
+        }
+      });
+    });
+
+    const diffButtons = overlay.querySelectorAll<HTMLButtonElement>(
+      "[data-difficulty-choice]",
+    );
+    diffButtons.forEach((button) => {
+      const diff = button.dataset.difficultyChoice as Difficulty | undefined;
+      if (!diff) {
+        return;
+      }
+      button.addEventListener("click", () => {
+        if (button.disabled) {
+          return;
+        }
+        this.beginGame("solo", diff);
+      });
+    });
+
+    const backButton = document.getElementById("difficulty-back");
+    backButton?.addEventListener("click", () => this.showModeOverlay("players"));
+  }
+
+  private initResultOverlay(): void {
+    const overlay = document.getElementById("solo-result-overlay");
+    if (!overlay) {
+      throw new Error("Missing solo result overlay.");
+    }
+    this.resultOverlay = overlay;
+    this.resultTitle = document.getElementById("solo-result-title");
+    this.resultBody = document.getElementById("solo-result-body");
+    const closeButton = document.getElementById("solo-result-close");
+    const playAgainButton = document.getElementById("solo-result-play");
+    closeButton?.addEventListener("click", () => this.hideResultOverlay());
+    playAgainButton?.addEventListener("click", () => {
+      this.hideResultOverlay();
+      this.showModeOverlay("players");
+    });
+  }
+
+  private showModeOverlay(step: ModeStep): void {
+    if (!this.modeOverlay) {
+      return;
+    }
+    this.overlayVisible = true;
+    this.overlayStep = step;
+    this.modeOverlay.dataset.step = step;
+    this.modeOverlay.dataset.visible = "true";
+    this.modeOverlay.setAttribute("aria-hidden", "false");
+    this.cancelPendingAiMove();
+    this.setHumanInputLocked(true);
+  }
+
+  private hideModeOverlay(): void {
+    if (!this.modeOverlay) {
+      return;
+    }
+    this.overlayVisible = false;
+    this.modeOverlay.dataset.visible = "false";
+    this.modeOverlay.setAttribute("aria-hidden", "true");
+  }
+
+  private showResultOverlay(): void {
+    if (!this.resultOverlay) {
+      return;
+    }
+    this.resultOverlay.dataset.visible = "true";
+    this.resultOverlay.setAttribute("aria-hidden", "false");
+  }
+
+  private hideResultOverlay(): void {
+    if (!this.resultOverlay) {
+      return;
+    }
+    this.resultOverlay.dataset.visible = "false";
+    this.resultOverlay.setAttribute("aria-hidden", "true");
+  }
+
+  private beginGame(mode: GameMode, difficulty?: Difficulty): void {
+    this.mode = mode;
+    this.cancelPendingAiMove();
+    let startingPlayer: Player = "X";
+    if (mode === "solo") {
+      const selected = difficulty ?? "normal";
+      this.aiProfile = { difficulty: selected };
+      this.aiController = new AiController(selected);
+      startingPlayer = Math.random() < 0.5 ? "X" : "O";
+    } else {
+      this.aiProfile = null;
+      this.aiController = null;
+    }
+    this.engine.reset(startingPlayer);
+    this.closeIllegalDialog();
+    this.hideModeOverlay();
+    const humanLocked = this.mode === "solo" && startingPlayer === "O";
+    this.setHumanInputLocked(humanLocked);
+    this.render();
+  }
+
   private handleCellClick(boardIndex: number, cellIndex: number): void {
+    if (this.humanInputLocked) {
+      return;
+    }
     const result = this.engine.attemptMove(boardIndex, cellIndex);
     if (!result.success) {
       const reason = result.reason ?? "that move breaks the rules.";
@@ -436,37 +604,94 @@ class GameUI {
     this.updateStatus(snapshot);
     this.updateBoards(snapshot);
     this.updateHistory(snapshot.history);
+    this.handleAiFlow(snapshot);
   }
 
   private updateStatus(snapshot: GameSnapshot): void {
     if (snapshot.status === "playing") {
-      const playerLabel = `${PLAYER_LABELS[snapshot.currentPlayer]} (${snapshot.currentPlayer})`;
+      const playerLabel = this.formatCurrentPlayerLabel(snapshot);
       this.turnLabel.textContent = `${playerLabel} is up.`;
       if (
         snapshot.activeBoardIndex !== null &&
         snapshot.allowedBoards.includes(snapshot.activeBoardIndex)
       ) {
-        this.constraintLabel.textContent = `Play in board #${
-          snapshot.activeBoardIndex + 1
-        }.`;
+        const boardName =
+          BOARD_NAME_MAP[snapshot.activeBoardIndex] ??
+          `board #${snapshot.activeBoardIndex + 1}`;
+        this.constraintLabel.textContent = `Next play in ${boardName} square.`;
       } else {
         this.constraintLabel.textContent = "Pick any open board.";
       }
       this.resultLabel.textContent = "";
     } else if (snapshot.status === "won" && snapshot.winner) {
-      const winnerLabel = `${PLAYER_LABELS[snapshot.winner]} (${snapshot.winner})`;
+      const winnerLabel = this.formatWinnerLabel(snapshot);
       this.turnLabel.textContent = `${winnerLabel} captures the match!`;
       this.constraintLabel.textContent = "Hit New Game to play again.";
       this.resultLabel.textContent = "Three big boards in a row seals the win.";
+      this.maybeShowResultOverlay(snapshot);
     } else {
       this.turnLabel.textContent = "It’s a draw!";
       this.constraintLabel.textContent = "All boards are full.";
       this.resultLabel.textContent = "Tap New Game for a rematch.";
+      this.maybeShowResultOverlay(snapshot);
     }
+  }
+
+  private formatCurrentPlayerLabel(snapshot: GameSnapshot): string {
+    let label = `${PLAYER_LABELS[snapshot.currentPlayer]} (${snapshot.currentPlayer})`;
+    if (
+      this.mode === "solo" &&
+      snapshot.currentPlayer === "O" &&
+      this.aiProfile
+    ) {
+      label += ` · ${DIFFICULTY_LABELS[this.aiProfile.difficulty]} AI`;
+    }
+    return label;
+  }
+
+  private formatWinnerLabel(snapshot: GameSnapshot): string {
+    if (!snapshot.winner) {
+      return "";
+    }
+    let label = `${PLAYER_LABELS[snapshot.winner]} (${snapshot.winner})`;
+    if (this.mode === "solo" && snapshot.winner === "O" && this.aiProfile) {
+      label += ` · ${DIFFICULTY_LABELS[this.aiProfile.difficulty]} AI`;
+    }
+    return label;
+  }
+
+  private maybeShowResultOverlay(snapshot: GameSnapshot): void {
+    if (this.mode !== "solo" || !this.resultOverlay || !this.resultTitle) {
+      return;
+    }
+    if (snapshot.status === "playing") {
+      this.hideResultOverlay();
+      return;
+    }
+    let title = "We tied!";
+    let body = "Want a rematch or head back to the menu?";
+    if (snapshot.status === "won" && snapshot.winner) {
+      if (snapshot.winner === "X") {
+        title = "You won!";
+        body = "Nice work! Try a rematch or bump the difficulty once it's ready.";
+      } else {
+        title = "I won!";
+        body = "The AI took this round—want to try again?";
+      }
+    } else if (snapshot.status === "draw") {
+      title = "We tied!";
+      body = "Nobody claimed three boards. Play again?";
+    }
+    this.resultTitle.textContent = title;
+    if (this.resultBody) {
+      this.resultBody.textContent = body;
+    }
+    this.showResultOverlay();
   }
 
   private updateBoards(snapshot: GameSnapshot): void {
     const allowedSet = new Set(snapshot.allowedBoards);
+    this.boardContainer.classList.toggle("board-locked", this.humanInputLocked);
     this.miniBoards.forEach((boardEl, index) => {
       const state = snapshot.boards[index];
       if (!state) {
@@ -531,6 +756,86 @@ class GameUI {
     });
   }
 
+  private handleAiFlow(snapshot: GameSnapshot): void {
+    if (
+      this.mode !== "solo" ||
+      !this.aiController ||
+      this.overlayVisible
+    ) {
+      this.cancelPendingAiMove();
+      if (!this.overlayVisible) {
+        this.setHumanInputLocked(false);
+      }
+      return;
+    }
+
+    if (snapshot.status !== "playing") {
+      this.cancelPendingAiMove();
+      this.setHumanInputLocked(false);
+      this.maybeShowResultOverlay(snapshot);
+      return;
+    }
+
+    if (snapshot.currentPlayer === "O") {
+      if (this.awaitingAiMove) {
+        return;
+      }
+      this.setHumanInputLocked(true);
+      this.awaitingAiMove = true;
+      this.aiMoveTimer = window.setTimeout(() => {
+        this.aiMoveTimer = null;
+        const latest = this.engine.getSnapshot();
+        if (
+          latest.status !== "playing" ||
+          latest.currentPlayer !== "O" ||
+          !this.aiController
+        ) {
+          this.awaitingAiMove = false;
+          if (!this.overlayVisible) {
+            this.setHumanInputLocked(false);
+          }
+          return;
+        }
+        const move = this.aiController.chooseMove(latest);
+        if (!move) {
+          this.awaitingAiMove = false;
+          if (!this.overlayVisible) {
+            this.setHumanInputLocked(false);
+          }
+          return;
+        }
+        const outcome = this.engine.attemptMove(move.boardIndex, move.cellIndex);
+        this.awaitingAiMove = false;
+        if (!outcome.success) {
+          if (!this.overlayVisible) {
+            this.setHumanInputLocked(false);
+          }
+          return;
+        }
+        this.render();
+      }, 120);
+      return;
+    }
+
+    this.cancelPendingAiMove();
+    if (!this.overlayVisible) {
+      this.setHumanInputLocked(false);
+    }
+  }
+
+  private cancelPendingAiMove(): void {
+    if (this.aiMoveTimer !== null) {
+      window.clearTimeout(this.aiMoveTimer);
+      this.aiMoveTimer = null;
+    }
+    this.awaitingAiMove = false;
+  }
+
+  private setHumanInputLocked(locked: boolean): void {
+    this.humanInputLocked = locked;
+    this.boardContainer.classList.toggle("board-locked", locked);
+  }
+
   private formatHistoryEntry(entry: HistoryEntry): string {
     const left = entry.p1Move ? this.describeMove(entry.p1Move) : "";
     const right = entry.p2Move ? this.describeMove(entry.p2Move) : "";
@@ -582,3 +887,231 @@ document.addEventListener("DOMContentLoaded", () => {
   const ui = new GameUI(engine);
   ui.init();
 });
+
+class AiController {
+  constructor(private difficulty: Difficulty) {}
+
+  public chooseMove(snapshot: GameSnapshot): AiMove | null {
+    switch (this.difficulty) {
+      case "normal":
+      default:
+        return NormalAiStrategy.choose(snapshot);
+    }
+  }
+}
+
+class NormalAiStrategy {
+  public static choose(snapshot: GameSnapshot): AiMove | null {
+    const candidates = this.collectCandidates(snapshot);
+    if (candidates.length === 0) {
+      return null;
+    }
+    const winningMove = this.findImmediateWin(snapshot, candidates, "O");
+    if (winningMove) {
+      return winningMove;
+    }
+    const blockingMove = this.findImmediateWin(snapshot, candidates, "X");
+    if (blockingMove) {
+      return blockingMove;
+    }
+    return this.scoreAndPick(snapshot, candidates);
+  }
+
+  private static collectCandidates(snapshot: GameSnapshot): AiMove[] {
+    const candidates: AiMove[] = [];
+    snapshot.allowedBoards.forEach((boardIndex) => {
+      const board = snapshot.boards[boardIndex];
+      if (!board) {
+        return;
+      }
+      board.cells.forEach((value, cellIndex) => {
+        if (value === null) {
+          candidates.push({ boardIndex, cellIndex });
+        }
+      });
+    });
+    return candidates;
+  }
+
+  private static findImmediateWin(
+    snapshot: GameSnapshot,
+    candidates: AiMove[],
+    player: Player,
+  ): AiMove | null {
+    for (const move of candidates) {
+      const board = snapshot.boards[move.boardIndex];
+      if (!board || board.winner) {
+        continue;
+      }
+      if (this.completesLine(board.cells, move.cellIndex, player)) {
+        return move;
+      }
+    }
+    return null;
+  }
+
+  private static scoreAndPick(
+    snapshot: GameSnapshot,
+    candidates: AiMove[],
+  ): AiMove {
+    let bestMove = candidates[0]!;
+    let bestScore = -Infinity;
+    for (const move of candidates) {
+      const score = this.scoreMove(snapshot, move);
+      if (score > bestScore) {
+        bestScore = score;
+        bestMove = move;
+      }
+    }
+    return bestMove;
+  }
+
+  private static scoreMove(snapshot: GameSnapshot, move: AiMove): number {
+    const board = snapshot.boards[move.boardIndex];
+    if (!board) {
+      return -Infinity;
+    }
+    let score = 0;
+    score += BOARD_PRIORITY[move.boardIndex] ?? 0;
+    score += CELL_PRIORITY[move.cellIndex] ?? 0;
+
+    if (!board.winner) {
+      score += this.patternOpportunityScore(board.cells, "O", move.cellIndex);
+      score += this.patternBlockScore(board.cells, "X", move.cellIndex);
+    } else if (board.winner === "X") {
+      score -= 2;
+    } else if (board.winner === "O") {
+      score -= 0.5;
+    }
+
+    const targetBoardIndex = move.cellIndex;
+    const targetBoard = snapshot.boards[targetBoardIndex];
+    if (targetBoard) {
+      if (targetBoard.isFull) {
+        score += 2;
+      } else if (targetBoard.winner === "O") {
+        score += 1.5;
+      } else if (targetBoard.winner === "X") {
+        score -= 1.5;
+      } else {
+        score += this.evaluateBoardComfort(targetBoard);
+      }
+    } else {
+      score += 0.5;
+    }
+
+    if (this.createsMacroThreat(snapshot, move)) {
+      score += 2.5;
+    }
+
+    return score + Math.random() * 0.001;
+  }
+
+  private static patternOpportunityScore(
+    cells: CellValue[],
+    player: Player,
+    cellIndex: number,
+  ): number {
+    const simulated = cells.slice();
+    simulated[cellIndex] = player;
+    const opponent: Player = player === "O" ? "X" : "O";
+    let score = 0;
+    for (const pattern of WIN_PATTERNS) {
+      if (!pattern.includes(cellIndex)) {
+        continue;
+      }
+      const marks = pattern.map((idx) => simulated[idx]);
+      if (marks.includes(opponent)) {
+        continue;
+      }
+      const playerCount = marks.filter((mark) => mark === player).length;
+      if (playerCount === 3) {
+        score += 5;
+      } else if (playerCount === 2) {
+        score += 2;
+      } else if (playerCount === 1) {
+        score += 0.5;
+      }
+    }
+    return score;
+  }
+
+  private static patternBlockScore(
+    cells: CellValue[],
+    opponent: Player,
+    cellIndex: number,
+  ): number {
+    let score = 0;
+    for (const pattern of WIN_PATTERNS) {
+      if (!pattern.includes(cellIndex)) {
+        continue;
+      }
+      const marks = pattern.map((idx) => cells[idx]);
+      const opponentCount = marks.filter((mark) => mark === opponent).length;
+      const emptyCount = marks.filter((mark) => mark === null).length;
+      if (opponentCount === 2 && emptyCount === 1) {
+        score += 2.5;
+      }
+    }
+    return score;
+  }
+
+  private static evaluateBoardComfort(board: MiniBoardState): number {
+    let score = 0;
+    for (const pattern of WIN_PATTERNS) {
+      const marks = pattern.map((idx) => board.cells[idx]);
+      const ours = marks.filter((mark) => mark === "O").length;
+      const theirs = marks.filter((mark) => mark === "X").length;
+      if (theirs === 0) {
+        score += ours * 0.4;
+      }
+      if (ours === 0 && theirs === 2) {
+        score -= 1.5;
+      }
+    }
+    return score;
+  }
+
+  private static createsMacroThreat(
+    snapshot: GameSnapshot,
+    move: AiMove,
+  ): boolean {
+    const board = snapshot.boards[move.boardIndex];
+    if (!board || board.winner) {
+      return false;
+    }
+    if (!this.completesLine(board.cells, move.cellIndex, "O")) {
+      return false;
+    }
+    const futureWinners = snapshot.boards.map((mini, index) => {
+      if (index === move.boardIndex) {
+        return "O";
+      }
+      return mini.winner;
+    });
+    return WIN_PATTERNS.some((pattern) => {
+      const wins = pattern.map((idx) => futureWinners[idx]);
+      const oCount = wins.filter((mark) => mark === "O").length;
+      const blanks = wins.filter((mark) => !mark).length;
+      return oCount === 2 && blanks === 1;
+    });
+  }
+
+  private static completesLine(
+    cells: CellValue[],
+    cellIndex: number,
+    player: Player,
+  ): boolean {
+    return WIN_PATTERNS.some((pattern) => {
+      if (!pattern.includes(cellIndex)) {
+        return false;
+      }
+      return pattern.every((idx) => {
+        if (idx === cellIndex) {
+          return true;
+        }
+        return cells[idx] === player;
+      });
+    });
+  }
+}
