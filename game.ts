@@ -27,6 +27,8 @@ interface MoveInfo {
   boardIndex: number;
   cellIndex: number;
   forcedBoardFull: boolean;
+  capturedBoard?: boolean;
+  deadBoard?: boolean;
 }
 
 interface HistoryEntry {
@@ -333,7 +335,10 @@ class GameEngine {
 
     board.cells[cellIndex] = this.currentPlayer;
     this.moveCount += 1;
+    const beforeWinner = board.winner;
     this.evaluateBoardState(boardIndex);
+    const capturedBoard = !beforeWinner && board.winner === this.currentPlayer;
+    const deadBoard = !capturedBoard && board.isDraw;
     this.updateMacroState();
 
     const forcedBoardIndex = cellIndex;
@@ -346,6 +351,8 @@ class GameEngine {
       boardIndex,
       cellIndex,
       forcedBoardFull,
+      capturedBoard,
+      deadBoard,
     };
 
     this.recordMove(moveInfo);
@@ -1131,7 +1138,16 @@ class GameUI {
   private describeMove(move: MoveInfo): string {
     const boardLabel = move.boardIndex + 1;
     const cellLabel = move.cellIndex + 1;
-    const suffix = move.forcedBoardFull ? "(F)" : "";
+    const tags: string[] = [];
+    if (move.forcedBoardFull) {
+      tags.push("F");
+    }
+    if (move.capturedBoard) {
+      tags.push("C");
+    } else if (move.deadBoard) {
+      tags.push("D");
+    }
+    const suffix = tags.length ? `(${tags.join("")})` : "";
     return `${PLAYER_LABELS[move.player]}BB${boardLabel}LB${cellLabel}${suffix}`;
   }
 
@@ -1455,6 +1471,7 @@ class AiSimulator {
     if (!board || board.cells[move.cellIndex] !== null) {
       return null;
     }
+    const beforeWinner = board.winner;
     board.cells[move.cellIndex] = player;
     if (!board.winner) {
       const winner = AiUtils.findWinner(board.cells);
@@ -1493,6 +1510,8 @@ class AiSimulator {
         boardIndex: move.boardIndex,
         cellIndex: move.cellIndex,
         forcedBoardFull: false,
+        capturedBoard: !beforeWinner && board.winner === player,
+        deadBoard: !beforeWinner && !board.winner && board.isDraw,
       },
       ruleSet,
     };
@@ -1633,21 +1652,28 @@ class NormalAiStrategy {
 }
 
 class HardAiStrategy {
-  private static readonly MAX_DEPTH = 3;
+  private static readonly BASE_DEPTH = 3;
+  private static readonly EXTENDED_DEPTH = 4;
+  private static readonly HIGH_BRANCH_THRESHOLD = 18;
 
   public static choose(snapshot: GameSnapshot): AiMove | null {
     const candidates = AiUtils.collectCandidates(snapshot);
     if (candidates.length === 0) {
       return null;
     }
+    const depthLimit =
+      candidates.length <= this.HIGH_BRANCH_THRESHOLD
+        ? this.EXTENDED_DEPTH
+        : this.BASE_DEPTH;
     let bestMove: AiMove | null = null;
     let bestScore = -Infinity;
-    for (const move of candidates) {
+    const ordered = this.orderCandidates(snapshot, candidates, "O");
+    for (const { move } of ordered) {
       const next = AiSimulator.applyMove(snapshot, move, "O");
       if (!next) {
         continue;
       }
-      const score = this.minimax(next, 1, this.MAX_DEPTH);
+      const score = this.minimax(next, 1, depthLimit, -Infinity, Infinity);
       if (score > bestScore) {
         bestScore = score;
         bestMove = move;
@@ -1660,6 +1686,8 @@ class HardAiStrategy {
     state: GameSnapshot,
     depth: number,
     maxDepth: number,
+    alpha: number,
+    beta: number,
   ): number {
     const terminal = this.evaluateTerminal(state, depth);
     if (terminal !== null) {
@@ -1674,18 +1702,27 @@ class HardAiStrategy {
     }
     const maximizing = state.currentPlayer === "O";
     let bestScore = maximizing ? -Infinity : Infinity;
-    for (const move of candidates) {
+    const ordered = this.orderCandidates(state, candidates, state.currentPlayer);
+    for (const { move } of ordered) {
       const next = AiSimulator.applyMove(state, move, state.currentPlayer);
       if (!next) {
         continue;
       }
-      const value = this.minimax(next, depth + 1, maxDepth);
+      const value = this.minimax(next, depth + 1, maxDepth, alpha, beta);
       if (maximizing) {
         if (value > bestScore) {
           bestScore = value;
         }
+        alpha = Math.max(alpha, value);
+        if (beta <= alpha) {
+          break;
+        }
       } else if (value < bestScore) {
         bestScore = value;
+        beta = Math.min(beta, value);
+        if (beta <= alpha) {
+          break;
+        }
       }
     }
     return bestScore;
@@ -1708,15 +1745,16 @@ class HardAiStrategy {
     let score = 0;
     state.boards.forEach((board) => {
       if (board.winner === "O") {
-        score += 8;
+        score += 9;
       } else if (board.winner === "X") {
-        score -= 8;
+        score -= 9;
       } else {
-        score += AiUtils.boardPotential(board.cells, "O") * 0.8;
-        score -= AiUtils.boardPotential(board.cells, "X") * 0.8;
+        score += AiUtils.boardPotential(board.cells, "O") * 1.1;
+        score -= AiUtils.boardPotential(board.cells, "X") * 0.9;
       }
     });
-    score += this.evaluateMacro(state.boards) * 5;
+    score += this.evaluateMacro(state.boards) * 6;
+    score += this.evaluateDirectedTargets(state) * 3;
     return score;
   }
 
@@ -1733,6 +1771,50 @@ class HardAiStrategy {
       }
     }
     return score;
+  }
+
+  private static evaluateDirectedTargets(state: GameSnapshot): number {
+    if (!state.lastMove) {
+      return 0;
+    }
+    const targetIndex = state.activeBoardIndex;
+    if (targetIndex === null) {
+      return 0;
+    }
+    const targetBoard = state.boards[targetIndex];
+    if (!targetBoard) {
+      return 0;
+    }
+    const aiPotential = AiUtils.boardPotential(targetBoard.cells, "O");
+    const humanPotential = AiUtils.boardPotential(targetBoard.cells, "X");
+    return (aiPotential - humanPotential) * 0.6;
+  }
+
+  private static orderCandidates(
+    snapshot: GameSnapshot,
+    moves: AiMove[],
+    player: Player,
+  ): { move: AiMove; score: number }[] {
+    return moves
+      .map((move) => {
+        const board = snapshot.boards[move.boardIndex];
+        const cellScore =
+          (CELL_PRIORITY[move.cellIndex] ?? 0) +
+          (BOARD_PRIORITY[move.boardIndex] ?? 0);
+        const potential = board
+          ? AiUtils.patternOpportunityScore(board.cells, player, move.cellIndex)
+          : 0;
+        const block = board
+          ? AiUtils.patternBlockScore(
+              board.cells,
+              player === "O" ? "X" : "O",
+              move.cellIndex,
+            )
+          : 0;
+        const heuristic = cellScore + potential * 1.5 + block;
+        return { move, score: heuristic };
+      })
+      .sort((a, b) => b.score - a.score);
   }
 }
 

@@ -254,7 +254,10 @@ class GameEngine {
         }
         board.cells[cellIndex] = this.currentPlayer;
         this.moveCount += 1;
+        const beforeWinner = board.winner;
         this.evaluateBoardState(boardIndex);
+        const capturedBoard = !beforeWinner && board.winner === this.currentPlayer;
+        const deadBoard = !capturedBoard && board.isDraw;
         this.updateMacroState();
         const forcedBoardIndex = cellIndex;
         const forcedBoardFull = this.isBoardClosed(forcedBoardIndex);
@@ -264,6 +267,8 @@ class GameEngine {
             boardIndex,
             cellIndex,
             forcedBoardFull,
+            capturedBoard,
+            deadBoard,
         };
         this.recordMove(moveInfo);
         this.lastMove = moveInfo;
@@ -941,7 +946,17 @@ class GameUI {
     describeMove(move) {
         const boardLabel = move.boardIndex + 1;
         const cellLabel = move.cellIndex + 1;
-        const suffix = move.forcedBoardFull ? "(F)" : "";
+        const tags = [];
+        if (move.forcedBoardFull) {
+            tags.push("F");
+        }
+        if (move.capturedBoard) {
+            tags.push("C");
+        }
+        else if (move.deadBoard) {
+            tags.push("D");
+        }
+        const suffix = tags.length ? `(${tags.join("")})` : "";
         return `${PLAYER_LABELS[move.player]}BB${boardLabel}LB${cellLabel}${suffix}`;
     }
     showIllegalMove(reason) {
@@ -1235,6 +1250,7 @@ class AiSimulator {
         if (!board || board.cells[move.cellIndex] !== null) {
             return null;
         }
+        const beforeWinner = board.winner;
         board.cells[move.cellIndex] = player;
         if (!board.winner) {
             const winner = AiUtils.findWinner(board.cells);
@@ -1271,6 +1287,8 @@ class AiSimulator {
                 boardIndex: move.boardIndex,
                 cellIndex: move.cellIndex,
                 forcedBoardFull: false,
+                capturedBoard: !beforeWinner && board.winner === player,
+                deadBoard: !beforeWinner && !board.winner && board.isDraw,
             },
             ruleSet,
         };
@@ -1411,14 +1429,18 @@ class HardAiStrategy {
         if (candidates.length === 0) {
             return null;
         }
+        const depthLimit = candidates.length <= this.HIGH_BRANCH_THRESHOLD
+            ? this.EXTENDED_DEPTH
+            : this.BASE_DEPTH;
         let bestMove = null;
         let bestScore = -Infinity;
-        for (const move of candidates) {
+        const ordered = this.orderCandidates(snapshot, candidates, "O");
+        for (const { move } of ordered) {
             const next = AiSimulator.applyMove(snapshot, move, "O");
             if (!next) {
                 continue;
             }
-            const score = this.minimax(next, 1, this.MAX_DEPTH);
+            const score = this.minimax(next, 1, depthLimit, -Infinity, Infinity);
             if (score > bestScore) {
                 bestScore = score;
                 bestMove = move;
@@ -1426,7 +1448,7 @@ class HardAiStrategy {
         }
         return bestMove !== null && bestMove !== void 0 ? bestMove : candidates[0];
     }
-    static minimax(state, depth, maxDepth) {
+    static minimax(state, depth, maxDepth, alpha, beta) {
         const terminal = this.evaluateTerminal(state, depth);
         if (terminal !== null) {
             return terminal;
@@ -1440,19 +1462,28 @@ class HardAiStrategy {
         }
         const maximizing = state.currentPlayer === "O";
         let bestScore = maximizing ? -Infinity : Infinity;
-        for (const move of candidates) {
+        const ordered = this.orderCandidates(state, candidates, state.currentPlayer);
+        for (const { move } of ordered) {
             const next = AiSimulator.applyMove(state, move, state.currentPlayer);
             if (!next) {
                 continue;
             }
-            const value = this.minimax(next, depth + 1, maxDepth);
+            const value = this.minimax(next, depth + 1, maxDepth, alpha, beta);
             if (maximizing) {
                 if (value > bestScore) {
                     bestScore = value;
                 }
+                alpha = Math.max(alpha, value);
+                if (beta <= alpha) {
+                    break;
+                }
             }
             else if (value < bestScore) {
                 bestScore = value;
+                beta = Math.min(beta, value);
+                if (beta <= alpha) {
+                    break;
+                }
             }
         }
         return bestScore;
@@ -1470,17 +1501,18 @@ class HardAiStrategy {
         let score = 0;
         state.boards.forEach((board) => {
             if (board.winner === "O") {
-                score += 8;
+                score += 9;
             }
             else if (board.winner === "X") {
-                score -= 8;
+                score -= 9;
             }
             else {
-                score += AiUtils.boardPotential(board.cells, "O") * 0.8;
-                score -= AiUtils.boardPotential(board.cells, "X") * 0.8;
+                score += AiUtils.boardPotential(board.cells, "O") * 1.1;
+                score -= AiUtils.boardPotential(board.cells, "X") * 0.9;
             }
         });
-        score += this.evaluateMacro(state.boards) * 5;
+        score += this.evaluateMacro(state.boards) * 6;
+        score += this.evaluateDirectedTargets(state) * 3;
         return score;
     }
     static evaluateMacro(boards) {
@@ -1498,8 +1530,44 @@ class HardAiStrategy {
         }
         return score;
     }
+    static evaluateDirectedTargets(state) {
+        if (!state.lastMove) {
+            return 0;
+        }
+        const targetIndex = state.activeBoardIndex;
+        if (targetIndex === null) {
+            return 0;
+        }
+        const targetBoard = state.boards[targetIndex];
+        if (!targetBoard) {
+            return 0;
+        }
+        const aiPotential = AiUtils.boardPotential(targetBoard.cells, "O");
+        const humanPotential = AiUtils.boardPotential(targetBoard.cells, "X");
+        return (aiPotential - humanPotential) * 0.6;
+    }
+    static orderCandidates(snapshot, moves, player) {
+        return moves
+            .map((move) => {
+            var _a, _b;
+            const board = snapshot.boards[move.boardIndex];
+            const cellScore = ((_a = CELL_PRIORITY[move.cellIndex]) !== null && _a !== void 0 ? _a : 0) +
+                ((_b = BOARD_PRIORITY[move.boardIndex]) !== null && _b !== void 0 ? _b : 0);
+            const potential = board
+                ? AiUtils.patternOpportunityScore(board.cells, player, move.cellIndex)
+                : 0;
+            const block = board
+                ? AiUtils.patternBlockScore(board.cells, player === "O" ? "X" : "O", move.cellIndex)
+                : 0;
+            const heuristic = cellScore + potential * 1.5 + block;
+            return { move, score: heuristic };
+        })
+            .sort((a, b) => b.score - a.score);
+    }
 }
-HardAiStrategy.MAX_DEPTH = 3;
+HardAiStrategy.BASE_DEPTH = 3;
+HardAiStrategy.EXTENDED_DEPTH = 4;
+HardAiStrategy.HIGH_BRANCH_THRESHOLD = 18;
 class AiController {
     constructor(difficulty) {
         this.difficulty = difficulty;
