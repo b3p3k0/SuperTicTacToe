@@ -39,6 +39,18 @@ body {
   line-height: 1.5;
 }
 
+.app-footer {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--muted);
+  padding: 1.5rem 1rem 2rem;
+}
+
+.app-footer a {
+  color: inherit;
+  text-decoration: underline;
+}
+
 .app-shell {
   max-width: 1200px;
   margin: 0 auto;
