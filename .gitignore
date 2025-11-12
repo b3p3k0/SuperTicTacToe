@@ -7,8 +7,6 @@ CLAUDE.md
 
 # Dependency and build artifacts not needed for a fresh checkout
 /node_modules/
-/dist/
-/game.js
 *.tsbuildinfo
 *.log
 .DS_Store
