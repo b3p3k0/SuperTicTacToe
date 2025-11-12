@@ -1,0 +1,42 @@
+SUPER TIC-TAC-TOE
+-----------------
+A bigger, trickier version of normal tic-tac-toe!
+
+WHAT YOU NEED
+-------------
+• Paper and pencil (or dry-erase board)
+• Draw one big 3×3 grid.  
+  Inside each big square, draw another 3×3 tic-tac-toe board.  
+  That makes 9 little boards total.
+
+HOW TO PLAY
+------------
+1. The first player (X) can start anywhere on any little board.
+2. The spot you pick (1–9) tells your opponent which big board they must play in next.
+
+   Example:
+   - You play in Big Box 1, Little Box 3 → opponent must play on Big Box 3.
+   - They play in Big Box 3, Little Box 6 → you must play on Big Box 6.
+
+3. If the next big board is **full**, you can choose any other big board to play in.
+4. If the next big board has **open spaces**, you MUST play there — even if someone already won or tied that little game.
+
+WINNING LITTLE BOARDS
+---------------------
+• Each big board is its own tiny tic-tac-toe game.  
+• Win three in a row on that little board to **capture** it for your team.  
+• Drawn (tied) little boards are **dead** — no one owns them.  
+• Even if a board is captured or dead, you can still play there if the rules send you there.
+
+WINNING THE WHOLE GAME
+-----------------------
+• The first player to capture **three big boards in a row** (across, down, or diagonal) wins!  
+• If every big board is full and no one has three in a row, it’s a draw.
+
+TIPS
+----
+• Think ahead! The square you choose now decides where your opponent must go next.
+• Sometimes forcing them into a captured or full board can block their plans.
+• Keep the game moving — it always ends after 81 turns or less.
+
+Have fun, Super Players!

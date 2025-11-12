@@ -1,0 +1,60 @@
+```
+SUPER TIC-TAC-TOE (NEW RULES)
+-----------------------------
+A big, fun version of tic-tac-toe played across nine smaller boards — now with two game styles you can choose from.
+
+WHAT YOU NEED
+-------------
+• Paper and pencil (or dry-erase board)
+• Draw one big 3×3 grid.  
+  Inside each big square, draw another 3×3 tic-tac-toe board.  
+  That makes 9 little boards total.
+
+GOAL
+----
+Win by capturing three big boards in a row — across, down, or diagonal.
+
+HOW TO PLAY
+------------
+1. The first player (X) can start anywhere on any little board.
+2. The space they pick (1–9) decides which big board the other player must play in next.
+
+   Example:
+   - X plays in Big Box 1, Little Box 3 → O must play in Big Box 3.
+   - O plays in Big Box 3, Little Box 6 → X must play in Big Box 6.
+
+3. If the next big board is **full**, the next player may choose **any open** big board.
+
+4. Each big board is its own tiny game:
+   - Win three in a row on a little board to **capture** that big board.
+   - A tied (drawn) little board is **dead** — no one owns it.
+
+5. When a big board is captured or dead, it becomes **closed** — players can no longer play moves there.
+
+6. If a move would send a player to a **closed** board, they may instead choose **any open** big board.
+
+TWO WAYS TO PLAY
+----------------
+• **Modern Mode (default)**  
+  - Captured and dead big boards are closed and cannot be played on.  
+  - If a move points to a closed board, the next player can choose any open board.  
+  - Fast and easy to learn.
+
+• **Classic Mode (strategic)**  
+  - Captured and dead big boards stay playable if there are still open spaces.  
+  - You can be forced to move into already-won or dead boards, adding deeper strategy.
+
+HOW TO WIN
+----------
+• First player to capture three big boards in a row wins.  
+• If every big board is full, captured, or dead and no one has three in a row, the game ends in a draw.
+
+TIPS
+----
+• Plan ahead! The small square you pick tells your opponent where to go next.
+• In Classic Mode, forcing them into a dead or captured board can be a clever trap.
+• In Modern Mode, pick your next move wisely since you have more freedom.
+• Every game ends in 81 moves or fewer.
+
+Have fun and may the best player rule the Super Board!
+```

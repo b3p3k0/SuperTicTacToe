@@ -1,6 +1,10 @@
 # Ignore local-only reference material
 /notes/
 
+# Claude Code files
+CLAUDE.md
+.claude/
+
 # Dependency and build artifacts not needed for a fresh checkout
 /node_modules/
 *.tsbuildinfo

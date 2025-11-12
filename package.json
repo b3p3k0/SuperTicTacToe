@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Super Tic-Tac-Toe static web app",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node bundle.js",
+    "build-modules": "tsc",
     "watch": "tsc --watch"
   },
   "keywords": [],

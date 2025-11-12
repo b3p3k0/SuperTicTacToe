@@ -9,7 +9,10 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "skipLibCheck": true,
-    "noEmitOnError": true
+    "noEmitOnError": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "moduleResolution": "node"
   },
-  "include": ["game.ts"]
+  "include": ["src/**/*.ts"]
 }

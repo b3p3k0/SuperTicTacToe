@@ -48,6 +48,16 @@ npm run watch    # auto-recompile while editing
 
 ---
 
+## Customize Themes (No Coding Degree Needed)
+Want your own color vibe? Follow these three simple steps:
+1. Open `src/core/constants.ts` and scroll to the `THEMES` section. Copy any existing theme block (everything between `{ … }`) and paste it below the others.
+2. Change the `label` plus the color tokens inside `tokens` (e.g., `--bg`, `--surface`, `--p1`, `--p2`). Think of each token as a paint bucket for part of the UI—backgrounds, buttons, or player marks.
+3. Run `npm run build` so the new theme ships into `game.js`. Reload `index.html`, pick your theme from the dropdown, and you’re done.
+
+Optional polish: if you want special fonts or effects for that theme, add a CSS rule like `body[data-theme="mytheme"] { … }` near the end of `style.css`.
+
+---
+
 ## Deployment Tips
 - To self-host, copy the entire folder into your web server’s document root (Apache, Nginx, GitHub Pages, etc.). No backend required.
 - For kiosks/classrooms, keep the repo synced and just launch `index.html` locally; it runs offline.
