@@ -9,7 +9,7 @@ export class GameEngine {
         this.moveCount = 0;
         this.history = [];
         this.lastMove = null;
-        this.ruleSet = "classic";
+        this.ruleSet = "battle";
         this.reset();
     }
     reset(startingPlayer = "X", ruleSet) {

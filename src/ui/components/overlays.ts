@@ -23,7 +23,7 @@ export class OverlayManager {
   public overlayStep: ModeStep = "players";
   public pendingMode: GameMode = "solo";
   public startPreference: StartPreference = "random";
-  public ruleSet: RuleSet = "classic";
+  public ruleSet: RuleSet = "battle";
 
   private onBeginGame?: (mode: GameMode, difficulty?: Difficulty) => void;
 

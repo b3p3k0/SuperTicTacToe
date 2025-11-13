@@ -35,7 +35,12 @@ HOW TO PLAY
 
 THREE WAYS TO PLAY
 ------------------
-• **Modern Mode (default)**  
+• **Battle Mode (default)**  
+  - Captured boards stay playable and can be stolen back until that mini-board fills.  
+  - Forces both players to juggle offense and defense every turn.  
+  - See the dedicated Battle rulesheet for the full rundown.
+
+• **Modern Mode (fast locks)**  
   - Captured and dead big boards are closed and cannot be played on.  
   - If a move points to a closed board, the next player can choose any open board.  
   - Fast and easy to learn.
@@ -43,11 +48,6 @@ THREE WAYS TO PLAY
 • **Classic Mode (strategic)**  
   - Captured and dead big boards stay playable if there are still open spaces.  
   - You can be forced to move into already-won or dead boards, adding deeper strategy.
-
-• **Battle Mode (recapture)**  
-  - Captured boards stay playable and can be stolen back until that mini-board fills.  
-  - Forces both players to juggle offense and defense every turn.  
-  - See the dedicated Battle rulesheet for the full rundown.
 
 HOW TO WIN
 ----------

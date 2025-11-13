@@ -23,7 +23,7 @@ export class GameEngine {
   private moveCount: number = 0;
   private history: HistoryEntry[] = [];
   private lastMove: MoveInfo | null = null;
-  private ruleSet: RuleSet = "classic";
+  private ruleSet: RuleSet = "battle";
 
   constructor() {
     this.reset();

@@ -30,7 +30,7 @@ All TypeScript source lives under `src/` (split into `core`, `ai`, `ui`, and `ma
 
 - **Full Super T3 rules**: forced-board routing, captured/drawn mini-boards, free-choice fallback when a destination board is full.
 - **Solo or hot-seat play**: choose 1P to battle the built-in AI (Easy / Normal / Hard) or 2P for classic pass-and-play. Solo mode randomly decides who moves first (or you can force Human/AI).
-- **Three rule sets**: pick Classic (captured boards stay playable), Modern (captured/dead boards lock), or the new Battle Mode—where captured boards can be stolen back until that mini-board is full.
+- **Three rule sets**: pick Battle Mode (default; captured boards stay live and can be stolen), Classic (captured boards stay playable but ownership sticks), or Modern (captured/dead boards lock immediately).
 - **Visual guidance**: active board highlighting, captured/drawn states, latest move glow, and a status bar describing whose turn it is plus any board constraints.
 - **Move history**: chess-style log (e.g., `T12: P1BB3LB2 -> P2BB2LB5(F)`) with `(F)` indicating when the destination board was full and the next player could choose freely.
 - **Rules & history toggles**: collapsible panels keep the layout tidy on smaller screens.

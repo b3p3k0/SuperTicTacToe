@@ -13,7 +13,7 @@ export class OverlayManager {
         this.overlayStep = "players";
         this.pendingMode = "solo";
         this.startPreference = "random";
-        this.ruleSet = "classic";
+        this.ruleSet = "battle";
         this.initModeOverlay();
         this.initResultOverlay();
     }

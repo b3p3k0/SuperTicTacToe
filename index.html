@@ -86,8 +86,9 @@
                   data-classic="Little boards can be captured (win) or dead (draw) but are still playable if the rules send you there."
                   data-battle="Captured big boards stay live—your opponent can steal them back until that mini-board fills, so keep pressure on both attack and defense."
                 >
-                  Captured or dead big boards close and can’t be played again. If
-                  you’re sent to a closed board, pick any open one.
+                  Captured big boards stay live—your opponent can steal them back
+                  until that mini-board fills, so keep pressure on both attack and
+                  defense.
                 </li>
                 <li>
                   First to capture three big boards in a row wins the whole
@@ -175,7 +176,7 @@
             class="overlay-copy"
             data-settings-copy
             data-solo-text="Choose how spicy you want the challenge. Easy is more forgiving, Normal is balanced, and Hard thinks a few moves ahead."
-            data-local-text="Pick Classic (strategic), Modern (fast locks), or Battle (recaptures!) for this hot-seat match."
+            data-local-text="Pick Battle (default recapture tug-of-war), Classic (strategic), or Modern (fast locks) for this hot-seat match."
           >
             Choose how spicy you want the challenge. Easy is more forgiving,
             Normal is balanced, and Hard thinks a few moves ahead.
@@ -225,16 +226,16 @@
           <div class="choice-group rule-options" role="group" aria-label="Ruleset">
             <p>Rule set</p>
             <label>
-              <input type="radio" name="ruleset" value="modern" />
-              New (faster play)
-            </label>
-            <label>
-              <input type="radio" name="ruleset" value="classic" checked />
-              Old (slower, strategic)
-            </label>
-            <label>
-              <input type="radio" name="ruleset" value="battle" />
+              <input type="radio" name="ruleset" value="battle" checked />
               Battle (recapture tug-of-war)
+            </label>
+            <label>
+              <input type="radio" name="ruleset" value="modern" />
+              Modern (fast locks)
+            </label>
+            <label>
+              <input type="radio" name="ruleset" value="classic" />
+              Classic (slower, strategic)
             </label>
           </div>
           <div class="overlay-footer">

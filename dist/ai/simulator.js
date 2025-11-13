@@ -8,7 +8,7 @@ export class AiSimulator {
             isDraw: board.isDraw,
             isFull: board.isFull,
         }));
-        const ruleSet = (_a = snapshot.ruleSet) !== null && _a !== void 0 ? _a : "modern";
+        const ruleSet = (_a = snapshot.ruleSet) !== null && _a !== void 0 ? _a : "battle";
         const board = boards[move.boardIndex];
         if (!board || board.cells[move.cellIndex] !== null) {
             return null;

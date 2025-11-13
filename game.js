@@ -300,7 +300,7 @@ class GameEngine {
         this.moveCount = 0;
         this.history = [];
         this.lastMove = null;
-        this.ruleSet = "classic";
+        this.ruleSet = "battle";
         this.reset();
     }
     reset(startingPlayer = "X", ruleSet) {
@@ -765,7 +765,7 @@ class AiSimulator {
             isDraw: board.isDraw,
             isFull: board.isFull,
         }));
-        const ruleSet = (_a = snapshot.ruleSet) !== null && _a !== void 0 ? _a : "modern";
+        const ruleSet = (_a = snapshot.ruleSet) !== null && _a !== void 0 ? _a : "battle";
         const board = boards[move.boardIndex];
         if (!board || board.cells[move.cellIndex] !== null) {
             return null;
@@ -1479,7 +1479,7 @@ class OverlayManager {
         this.overlayStep = "players";
         this.pendingMode = "solo";
         this.startPreference = "random";
-        this.ruleSet = "classic";
+        this.ruleSet = "battle";
         this.initModeOverlay();
         this.initResultOverlay();
     }
