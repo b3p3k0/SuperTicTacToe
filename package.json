@@ -5,7 +5,9 @@
   "scripts": {
     "build": "tsc && node bundle.js",
     "build-modules": "tsc",
-    "watch": "tsc --watch"
+    "watch": "tsc --watch",
+    "test:ai": "node --experimental-default-type=module tests/evaluator-smoke.mjs",
+    "test:ai:regress": "node --experimental-default-type=module tests/ai-regressions.mjs"
   },
   "keywords": [],
   "author": "",

@@ -14,7 +14,9 @@ type ThemeName =
   | "sakura"
   | "sunset"
   | "twotone"
-  | "vibewave";
+  | "vibewave"
+  | "redmond"
+  | "cupertino";
 type StartPreference = "human" | "ai" | "random";
 type RuleSet = "classic" | "modern" | "battle";
 

@@ -162,6 +162,128 @@ export class AiUtils {
         }
         return score;
     }
+    static countBoardThreats(board, player) {
+        if (board.winner || board.isFull) {
+            return 0;
+        }
+        return this.countLineThreats(board.cells, player);
+    }
+    static countBoardForks(board, player) {
+        if (board.winner || board.isFull) {
+            return 0;
+        }
+        let forkCount = 0;
+        board.cells.forEach((value, cellIndex) => {
+            if (value !== null) {
+                return;
+            }
+            const threatLines = WIN_PATTERNS.filter((pattern) => {
+                if (!pattern.includes(cellIndex)) {
+                    return false;
+                }
+                let playerMarks = 0;
+                let opponentMarks = 0;
+                for (const idx of pattern) {
+                    const mark = board.cells[idx];
+                    if (mark === player) {
+                        playerMarks += 1;
+                    }
+                    else if (mark && mark !== player) {
+                        opponentMarks += 1;
+                        break;
+                    }
+                }
+                return opponentMarks === 0 && playerMarks === 1;
+            }).length;
+            if (threatLines >= 2) {
+                forkCount += 1;
+            }
+        });
+        return forkCount;
+    }
+    static countMetaThreats(boards, player) {
+        return WIN_PATTERNS.reduce((total, pattern) => {
+            var _a, _b;
+            let playerOwned = 0;
+            let opponentOwned = 0;
+            let openBoards = 0;
+            for (const idx of pattern) {
+                const winner = (_b = (_a = boards[idx]) === null || _a === void 0 ? void 0 : _a.winner) !== null && _b !== void 0 ? _b : null;
+                if (winner === player) {
+                    playerOwned += 1;
+                }
+                else if (winner && winner !== player) {
+                    opponentOwned += 1;
+                    break;
+                }
+                else {
+                    const board = boards[idx];
+                    if (board && !board.isFull) {
+                        openBoards += 1;
+                    }
+                }
+            }
+            if (opponentOwned > 0) {
+                return total;
+            }
+            if (playerOwned === 2 && openBoards > 0) {
+                return total + 1;
+            }
+            return total;
+        }, 0);
+    }
+    static countCenterControl(board, player) {
+        if (board.cells[4] === player) {
+            return 1;
+        }
+        if (board.cells[4] === this.getOpponent(player)) {
+            return -1;
+        }
+        return 0;
+    }
+    static estimateBattleStability(board, owner) {
+        if (board.winner !== owner) {
+            return 0;
+        }
+        if (board.isFull) {
+            return 2;
+        }
+        const opponent = this.getOpponent(owner);
+        const stealThreats = this.countLineThreats(board.cells, opponent);
+        if (stealThreats === 0) {
+            return 1.5;
+        }
+        if (stealThreats === 1) {
+            return 0.5;
+        }
+        return -0.5 * stealThreats;
+    }
+    static countLineThreats(cells, player) {
+        const opponent = this.getOpponent(player);
+        let total = 0;
+        for (const pattern of WIN_PATTERNS) {
+            let playerMarks = 0;
+            let opponentMarks = 0;
+            let empties = 0;
+            for (const idx of pattern) {
+                const mark = cells[idx];
+                if (mark === player) {
+                    playerMarks += 1;
+                }
+                else if (mark === opponent) {
+                    opponentMarks += 1;
+                    break;
+                }
+                else {
+                    empties += 1;
+                }
+            }
+            if (opponentMarks === 0 && playerMarks === 2 && empties === 1) {
+                total += 1;
+            }
+        }
+        return total;
+    }
     static getOpponent(player) {
         return player === "X" ? "O" : "X";
     }

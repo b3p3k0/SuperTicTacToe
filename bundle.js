@@ -7,6 +7,7 @@ const bundleOrder = [
   'dist/core/constants.js',
   'dist/core/engine.js',
   'dist/ai/utils.js',
+  'dist/ai/evaluator.js',
   'dist/ai/rule-heuristics.js',
   'dist/ai/diagnostics.js',
   'dist/ai/simulator.js',

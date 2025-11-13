@@ -1,53 +1,74 @@
-import { WIN_PATTERNS, CELL_PRIORITY, BOARD_PRIORITY } from "../../core/constants.js";
+import { CELL_PRIORITY, BOARD_PRIORITY } from "../../core/constants.js";
 import { AiUtils } from "../utils.js";
 import { AiSimulator } from "../simulator.js";
 import { RuleAwareHeuristics } from "../rule-heuristics.js";
 import { AiDiagnostics } from "../diagnostics.js";
+import { AiEvaluator } from "../evaluator.js";
 export class HardAiStrategy {
     static choose(snapshot) {
-        var _a, _b;
+        var _a, _b, _c, _d;
         const candidates = AiUtils.collectCandidates(snapshot);
         if (candidates.length === 0) {
             return null;
         }
-        const depthLimit = candidates.length <= this.HIGH_BRANCH_THRESHOLD
-            ? this.EXTENDED_DEPTH
-            : this.BASE_DEPTH;
-        let bestMove = null;
-        let bestScore = -Infinity;
+        const ordered = this.orderCandidates(snapshot, candidates, "O");
         const cache = new Map();
         const stats = { nodes: 0, cacheHits: 0 };
-        const ordered = this.orderCandidates(snapshot, candidates, "O");
-        for (const { move } of ordered) {
-            const next = AiSimulator.applyMove(snapshot, move, "O");
-            if (!next) {
-                continue;
+        const startTime = performance.now();
+        const maxTime = this.computeTimeBudget(snapshot);
+        let bestMove = (_b = (_a = ordered[0]) === null || _a === void 0 ? void 0 : _a.move) !== null && _b !== void 0 ? _b : null;
+        let bestScore = -Infinity;
+        let depthReached = this.BASE_DEPTH;
+        for (let depth = this.BASE_DEPTH; depth <= this.EXTENDED_DEPTH; depth += 1) {
+            depthReached = depth;
+            let iterationBest = null;
+            let iterationScore = -Infinity;
+            for (const { move } of ordered) {
+                if (performance.now() - startTime > maxTime) {
+                    depth = this.EXTENDED_DEPTH + 1;
+                    break;
+                }
+                const next = AiSimulator.applyMove(snapshot, move, "O");
+                if (!next) {
+                    continue;
+                }
+                const score = this.minimax(next, 1, depth, -Infinity, Infinity, cache, stats, startTime, maxTime);
+                if (score > iterationScore) {
+                    iterationScore = score;
+                    iterationBest = move;
+                }
             }
-            const score = this.minimax(next, 1, depthLimit, -Infinity, Infinity, cache, stats);
-            if (score > bestScore) {
-                bestScore = score;
-                bestMove = move;
+            if (iterationBest) {
+                bestMove = iterationBest;
+                bestScore = iterationScore;
+            }
+            if (performance.now() - startTime > maxTime) {
+                break;
             }
         }
         AiDiagnostics.logDecision({
             difficulty: "hard",
             ruleSet: snapshot.ruleSet,
             bestMove,
-            depth: depthLimit,
+            depth: depthReached,
             candidates: ordered.slice(0, 5),
             metadata: {
                 cacheEntries: cache.size,
                 nodes: stats.nodes,
                 cacheHits: stats.cacheHits,
+                timeMs: Number((performance.now() - startTime).toFixed(1)),
             },
         });
         if (bestMove) {
             return bestMove;
         }
-        return (_b = (_a = ordered[0]) === null || _a === void 0 ? void 0 : _a.move) !== null && _b !== void 0 ? _b : null;
+        return (_d = bestMove !== null && bestMove !== void 0 ? bestMove : (_c = ordered[0]) === null || _c === void 0 ? void 0 : _c.move) !== null && _d !== void 0 ? _d : null;
     }
-    static minimax(state, depth, maxDepth, alpha, beta, cache, stats) {
+    static minimax(state, depth, maxDepth, alpha, beta, cache, stats, startTime, maxTime) {
         stats.nodes += 1;
+        if (performance.now() - startTime > maxTime) {
+            return AiEvaluator.evaluate(state, "O");
+        }
         const cacheKey = this.hashState(state, depth);
         const cached = cache.get(cacheKey);
         if (cached !== undefined) {
@@ -73,7 +94,7 @@ export class HardAiStrategy {
             if (!next) {
                 continue;
             }
-            const value = this.minimax(next, depth + 1, maxDepth, alpha, beta, cache, stats);
+            const value = this.minimax(next, depth + 1, maxDepth, alpha, beta, cache, stats, startTime, maxTime);
             if (maximizing) {
                 if (value > bestScore) {
                     bestScore = value;
@@ -96,6 +117,13 @@ export class HardAiStrategy {
         cache.set(cacheKey, bestScore);
         return bestScore;
     }
+    static computeTimeBudget(snapshot) {
+        const remainingCells = snapshot.boards.reduce((total, board) => {
+            return total + board.cells.filter((cell) => cell === null).length;
+        }, 0);
+        const lateGame = remainingCells <= this.LATE_GAME_THRESHOLD;
+        return lateGame ? this.LATE_GAME_CAP_MS : this.MAX_TIME_MS;
+    }
     static evaluateTerminal(state, depth) {
         if (state.status === "won" && state.winner) {
             return state.winner === "O" ? 100 - depth * 2 : depth * 2 - 100;
@@ -106,63 +134,7 @@ export class HardAiStrategy {
         return null;
     }
     static evaluateState(state) {
-        var _a;
-        let score = 0;
-        const ruleSet = (_a = state.ruleSet) !== null && _a !== void 0 ? _a : "battle";
-        // Evaluate individual boards
-        state.boards.forEach((board) => {
-            if (board.winner === "O") {
-                score += ruleSet === "modern" ? 12 : 10;
-            }
-            else if (board.winner === "X") {
-                score -= ruleSet === "modern" ? 12 : 10;
-            }
-            else {
-                const aiWeight = ruleSet === "modern" ? 1.25 : ruleSet === "classic" ? 1.1 : 1.05;
-                const humanWeight = ruleSet === "battle" ? 0.95 : 1;
-                score += AiUtils.boardPotential(board.cells, "O") * aiWeight;
-                score -= AiUtils.boardPotential(board.cells, "X") * humanWeight;
-            }
-        });
-        // Macro-level evaluation
-        score += this.evaluateMacro(state.boards) * 6.5;
-        // Directed target evaluation
-        score += this.evaluateDirectedTargets(state, ruleSet) * 3.2;
-        // Rule-specific global bonuses
-        score += RuleAwareHeuristics.stateBonus(state, "O");
-        return score;
-    }
-    static evaluateMacro(boards) {
-        let score = 0;
-        for (const pattern of WIN_PATTERNS) {
-            const winners = pattern.map((idx) => { var _a, _b; return (_b = (_a = boards[idx]) === null || _a === void 0 ? void 0 : _a.winner) !== null && _b !== void 0 ? _b : null; });
-            const aiWins = winners.filter((mark) => mark === "O").length;
-            const humanWins = winners.filter((mark) => mark === "X").length;
-            if (humanWins === 0) {
-                score += aiWins;
-            }
-            else if (aiWins === 0) {
-                score -= humanWins;
-            }
-        }
-        return score;
-    }
-    static evaluateDirectedTargets(state, ruleSet) {
-        if (!state.lastMove) {
-            return 0;
-        }
-        const targetIndex = state.activeBoardIndex;
-        if (targetIndex === null) {
-            return 0;
-        }
-        const targetBoard = state.boards[targetIndex];
-        if (!targetBoard) {
-            return 0;
-        }
-        const aiPotential = AiUtils.boardPotential(targetBoard.cells, "O");
-        const humanPotential = AiUtils.boardPotential(targetBoard.cells, "X");
-        const weight = ruleSet === "classic" ? 0.8 : ruleSet === "modern" ? 0.7 : 0.6;
-        return (aiPotential - humanPotential) * weight;
+        return AiEvaluator.evaluate(state, "O");
     }
     static orderCandidates(snapshot, moves, player) {
         return moves
@@ -194,5 +166,8 @@ export class HardAiStrategy {
     }
 }
 HardAiStrategy.BASE_DEPTH = 4;
-HardAiStrategy.EXTENDED_DEPTH = 5;
+HardAiStrategy.EXTENDED_DEPTH = 6;
 HardAiStrategy.HIGH_BRANCH_THRESHOLD = 16;
+HardAiStrategy.MAX_TIME_MS = 1500;
+HardAiStrategy.LATE_GAME_CAP_MS = 4000;
+HardAiStrategy.LATE_GAME_THRESHOLD = 20;

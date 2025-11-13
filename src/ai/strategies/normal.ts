@@ -1,9 +1,10 @@
-import { GameSnapshot, AiMove } from "../../core/types.js";
+import { GameSnapshot, AiMove, Player } from "../../core/types.js";
 import { CELL_PRIORITY, BOARD_PRIORITY } from "../../core/constants.js";
 import { AiUtils } from "../utils.js";
 import { RuleAwareHeuristics } from "../rule-heuristics.js";
 import { AiSimulator } from "../simulator.js";
 import { AiDiagnostics } from "../diagnostics.js";
+import { AiEvaluator } from "../evaluator.js";
 
 interface ScoredCandidate {
   move: AiMove;
@@ -12,6 +13,7 @@ interface ScoredCandidate {
 
 export class NormalAiStrategy {
   private static readonly BLUNDER_RATE = 0.12;
+  private static readonly MAX_SEARCH_BRANCHES = 6;
 
   static choose(snapshot: GameSnapshot): AiMove | null {
     const candidates = AiUtils.collectCandidates(snapshot);
@@ -56,16 +58,22 @@ export class NormalAiStrategy {
       throw new Error("No candidates available");
     }
 
-    const scored = candidates.map((move) => ({
-      move,
-      score: this.scoreMove(snapshot, move),
+    const ordered = this.orderCandidates(snapshot, candidates, "O");
+    const limited = ordered.slice(0, this.MAX_SEARCH_BRANCHES);
+
+    const scored = limited.map((entry) => ({
+      move: entry.move,
+      score: this.depthTwoSearch(snapshot, entry.move),
     }));
+
+    if (scored.length === 0) {
+      scored.push({ move: ordered[0]!.move, score: -Infinity });
+    }
 
     scored.sort((a, b) => b.score - a.score);
 
     let chosenIndex = 0;
     let errorApplied = false;
-
     if (Math.random() < this.BLUNDER_RATE && scored.length > 1) {
       const maxIdx = Math.min(2, scored.length - 1);
       chosenIndex = Math.floor(Math.random() * maxIdx) + 1;
@@ -79,60 +87,60 @@ export class NormalAiStrategy {
     };
   }
 
-  private static scoreMove(snapshot: GameSnapshot, move: AiMove): number {
-    const board = snapshot.boards[move.boardIndex];
-    if (!board) {
+  private static depthTwoSearch(snapshot: GameSnapshot, move: AiMove): number {
+    const next = AiSimulator.applyMove(snapshot, move, "O");
+    if (!next) {
       return -Infinity;
     }
-
-    let score = 0;
-    const isBattle = snapshot.ruleSet === "battle";
-    const contestedBoard = Boolean(board.winner && isBattle && !board.isFull);
-
-    // Base priority scores
-    score += BOARD_PRIORITY[move.boardIndex] ?? 0;
-    score += CELL_PRIORITY[move.cellIndex] ?? 0;
-
-    // Board-level scoring
-    if (!board.winner || contestedBoard) {
-      score += AiUtils.patternOpportunityScore(board.cells, "O", move.cellIndex);
-      score += AiUtils.patternBlockScore(board.cells, "X", move.cellIndex);
-    } else if (board.winner === "X") {
-      score -= isBattle ? 0.75 : 2;
-    } else if (board.winner === "O") {
-      score -= isBattle ? 0.25 : 0.5;
+    if (next.status !== "playing") {
+      return AiEvaluator.evaluate(next, "O");
     }
 
-    // Target board evaluation
-    const targetBoardIndex = move.cellIndex;
-    const targetBoard = snapshot.boards[targetBoardIndex];
-    if (targetBoard) {
-      if (targetBoard.isFull) {
-        score += 2; // Sending opponent to full board is good
-      } else if (targetBoard.winner === "O") {
-        score += isBattle ? 0.75 : 1.5; // Still decent in battle, but riskier
-      } else if (targetBoard.winner === "X") {
-        score -= isBattle ? 0.75 : 1.5; // Smaller penalty in battle—they're vulnerable too
-      } else {
-        score += AiUtils.evaluateBoardComfort(targetBoard);
+    const opponentMoves = AiUtils.collectCandidates(next);
+    if (opponentMoves.length === 0) {
+      return AiEvaluator.evaluate(next, "O");
+    }
+
+    const orderedOpp = this.orderCandidates(next, opponentMoves, "X");
+    let bestResponse = Infinity;
+    const limit = orderedOpp.slice(0, this.MAX_SEARCH_BRANCHES);
+    for (const { move: oppMove } of limit) {
+      const afterOpp = AiSimulator.applyMove(next, oppMove, "X");
+      if (!afterOpp) {
+        continue;
       }
-    } else {
-      score += 0.5;
+      const evalScore = AiEvaluator.evaluate(afterOpp, "O");
+      if (evalScore < bestResponse) {
+        bestResponse = evalScore;
+      }
     }
 
-    // Rule-aware routing bonuses
-    score += RuleAwareHeuristics.moveBonus(snapshot, move, "O");
-
-    // Macro-level threat creation
-    if (AiUtils.createsMacroThreat(snapshot, move)) {
-      score += 2.5;
+    if (bestResponse === Infinity) {
+      return AiEvaluator.evaluate(next, "O");
     }
+    return bestResponse;
+  }
 
-    // Simulate immediate punishments (1 ply look-ahead)
-    score += this.simulateImmediatePunish(snapshot, move);
-
-    // Add tiny random factor for tie-breaking
-    return score + Math.random() * 0.001;
+  private static orderCandidates(
+    snapshot: GameSnapshot,
+    moves: AiMove[],
+    player: Player,
+  ): { move: AiMove; heuristic: number }[] {
+    return moves
+      .map((move) => {
+        const board = snapshot.boards[move.boardIndex];
+        let heuristic = 0;
+        heuristic += BOARD_PRIORITY[move.boardIndex] ?? 0;
+        heuristic += CELL_PRIORITY[move.cellIndex] ?? 0;
+        if (board) {
+          heuristic += AiUtils.patternOpportunityScore(board.cells, player, move.cellIndex);
+          const opponent = player === "O" ? "X" : "O";
+          heuristic += AiUtils.patternBlockScore(board.cells, opponent, move.cellIndex);
+        }
+        heuristic += RuleAwareHeuristics.moveBonus(snapshot, move, player);
+        return { move, heuristic };
+      })
+      .sort((a, b) => b.heuristic - a.heuristic);
   }
 
   private static simulateImmediatePunish(snapshot: GameSnapshot, move: AiMove): number {

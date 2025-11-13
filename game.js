@@ -285,6 +285,68 @@ const THEMES = {
             "--cell-hover-bg": "#381453",
         },
     },
+    redmond: {
+        label: "Redmond",
+        tokens: {
+            "--bg": "#c0c0c0",
+            "--surface": "#c0c0c0",
+            "--border": "#808080",
+            "--text": "#000000",
+            "--muted": "#000000",
+            "--accent": "#008080",
+            "--accent-strong": "#000080",
+            "--accent-shadow": "rgba(0, 128, 128, 0.4)",
+            "--p1": "#000080",
+            "--p2": "#800000",
+            "--capture-bg": "#d4d0c8",
+            "--capture-bg-p2": "#d4d0c8",
+            "--draw-bg": "#b8b8b8",
+            "--cell-bg": "#c0c0c0",
+            "--last-move-glow": "rgba(0, 0, 128, 0.6)",
+            "--active-board-border": "#008080",
+            "--active-board-glow": "rgba(0, 128, 128, 0.4)",
+            "--active-board-glow-strong": "rgba(0, 128, 128, 0.6)",
+            "--macro-line": "rgba(0, 0, 0, 0.6)",
+            "--overlay-scrim": "rgba(128, 128, 128, 0.85)",
+            "--font-body": `"MS Sans Serif", "Trebuchet MS", Arial, sans-serif`,
+            "--font-heading": `"MS Sans Serif", "Trebuchet MS", Arial, sans-serif`,
+            "--bg-pattern": "none",
+            "--panel-shadow": "2px 2px 0px #808080, 4px 4px 0px #404040",
+            "--cell-hover-shadow": "inset -1px -1px 0px #808080, inset 1px 1px 0px #ffffff",
+            "--cell-hover-bg": "#e0e0e0",
+        },
+    },
+    cupertino: {
+        label: "Cupertino",
+        tokens: {
+            "--bg": "#e6e6e6",
+            "--surface": "#f0f0f0",
+            "--border": "#999999",
+            "--text": "#000000",
+            "--muted": "#666666",
+            "--accent": "#4169e1",
+            "--accent-strong": "#0000cd",
+            "--accent-shadow": "rgba(65, 105, 225, 0.3)",
+            "--p1": "#000000",
+            "--p2": "#333333",
+            "--capture-bg": "#d0d0d0",
+            "--capture-bg-p2": "#d0d0d0",
+            "--draw-bg": "#cccccc",
+            "--cell-bg": "#ffffff",
+            "--last-move-glow": "rgba(0, 0, 0, 0.3)",
+            "--active-board-border": "#4169e1",
+            "--active-board-glow": "rgba(65, 105, 225, 0.2)",
+            "--active-board-glow-strong": "rgba(65, 105, 225, 0.4)",
+            "--macro-line": "rgba(0, 0, 0, 0.4)",
+            "--overlay-scrim": "rgba(102, 102, 102, 0.85)",
+            "--font-body": `"Chicago", "Charcoal", "Geneva", "Helvetica", sans-serif`,
+            "--font-heading": `"Chicago", "Charcoal", "Geneva", "Helvetica", sans-serif`,
+            "--bg-pattern": "repeating-linear-gradient(45deg, rgba(0,0,0,0.02) 0px, rgba(0,0,0,0.02) 1px, transparent 1px, transparent 2px)",
+            "--panel-shadow": "0 1px 3px rgba(0, 0, 0, 0.2)",
+            "--cell-hover-shadow": "0 0 0 1px rgba(65, 105, 225, 0.3)",
+            "--cell-hover-bg": "#f8f8f8",
+        },
+    },
 };
 
 
@@ -713,6 +775,128 @@ class AiUtils {
         }
         return score;
     }
+    static countBoardThreats(board, player) {
+        if (board.winner || board.isFull) {
+            return 0;
+        }
+        return this.countLineThreats(board.cells, player);
+    }
+    static countBoardForks(board, player) {
+        if (board.winner || board.isFull) {
+            return 0;
+        }
+        let forkCount = 0;
+        board.cells.forEach((value, cellIndex) => {
+            if (value !== null) {
+                return;
+            }
+            const threatLines = WIN_PATTERNS.filter((pattern) => {
+                if (!pattern.includes(cellIndex)) {
+                    return false;
+                }
+                let playerMarks = 0;
+                let opponentMarks = 0;
+                for (const idx of pattern) {
+                    const mark = board.cells[idx];
+                    if (mark === player) {
+                        playerMarks += 1;
+                    }
+                    else if (mark && mark !== player) {
+                        opponentMarks += 1;
+                        break;
+                    }
+                }
+                return opponentMarks === 0 && playerMarks === 1;
+            }).length;
+            if (threatLines >= 2) {
+                forkCount += 1;
+            }
+        });
+        return forkCount;
+    }
+    static countMetaThreats(boards, player) {
+        return WIN_PATTERNS.reduce((total, pattern) => {
+            var _a, _b;
+            let playerOwned = 0;
+            let opponentOwned = 0;
+            let openBoards = 0;
+            for (const idx of pattern) {
+                const winner = (_b = (_a = boards[idx]) === null || _a === void 0 ? void 0 : _a.winner) !== null && _b !== void 0 ? _b : null;
+                if (winner === player) {
+                    playerOwned += 1;
+                }
+                else if (winner && winner !== player) {
+                    opponentOwned += 1;
+                    break;
+                }
+                else {
+                    const board = boards[idx];
+                    if (board && !board.isFull) {
+                        openBoards += 1;
+                    }
+                }
+            }
+            if (opponentOwned > 0) {
+                return total;
+            }
+            if (playerOwned === 2 && openBoards > 0) {
+                return total + 1;
+            }
+            return total;
+        }, 0);
+    }
+    static countCenterControl(board, player) {
+        if (board.cells[4] === player) {
+            return 1;
+        }
+        if (board.cells[4] === this.getOpponent(player)) {
+            return -1;
+        }
+        return 0;
+    }
+    static estimateBattleStability(board, owner) {
+        if (board.winner !== owner) {
+            return 0;
+        }
+        if (board.isFull) {
+            return 2;
+        }
+        const opponent = this.getOpponent(owner);
+        const stealThreats = this.countLineThreats(board.cells, opponent);
+        if (stealThreats === 0) {
+            return 1.5;
+        }
+        if (stealThreats === 1) {
+            return 0.5;
+        }
+        return -0.5 * stealThreats;
+    }
+    static countLineThreats(cells, player) {
+        const opponent = this.getOpponent(player);
+        let total = 0;
+        for (const pattern of WIN_PATTERNS) {
+            let playerMarks = 0;
+            let opponentMarks = 0;
+            let empties = 0;
+            for (const idx of pattern) {
+                const mark = cells[idx];
+                if (mark === player) {
+                    playerMarks += 1;
+                }
+                else if (mark === opponent) {
+                    opponentMarks += 1;
+                    break;
+                }
+                else {
+                    empties += 1;
+                }
+            }
+            if (opponentMarks === 0 && playerMarks === 2 && empties === 1) {
+                total += 1;
+            }
+        }
+        return total;
+    }
     static getOpponent(player) {
         return player === "X" ? "O" : "X";
     }
@@ -750,6 +934,120 @@ class AiUtils {
         return WIN_PATTERNS.some(([a, b, c]) => {
             return cells[a] === player && cells[b] === player && cells[c] === player;
         });
+    }
+}
+
+
+// === dist/ai/evaluator.js ===
+
+const BASE_WEIGHTS = {
+    battle: {
+        terminalWin: 10000,
+        terminalLoss: -10000,
+        boardCaptured: 140,
+        boardThreat: 18,
+        boardFork: 26,
+        boardCenter: 8,
+        metaThreat: 120,
+        activeBoardFocus: 24,
+        battleStability: 30,
+    },
+    classic: {
+        terminalWin: 10000,
+        terminalLoss: -10000,
+        boardCaptured: 150,
+        boardThreat: 16,
+        boardFork: 22,
+        boardCenter: 8,
+        metaThreat: 110,
+        activeBoardFocus: 28,
+        battleStability: 0,
+    },
+    modern: {
+        terminalWin: 10000,
+        terminalLoss: -10000,
+        boardCaptured: 165,
+        boardThreat: 14,
+        boardFork: 18,
+        boardCenter: 6,
+        metaThreat: 130,
+        activeBoardFocus: 26,
+        battleStability: 0,
+    },
+};
+class AiEvaluator {
+    static evaluate(snapshot, player, overrides) {
+        var _a;
+        const ruleSet = (_a = snapshot.ruleSet) !== null && _a !== void 0 ? _a : "battle";
+        const weights = { ...BASE_WEIGHTS[ruleSet], ...overrides };
+        const opponent = AiUtils.getOpponent(player);
+        if (snapshot.status === "won") {
+            return snapshot.winner === player
+                ? weights.terminalWin
+                : weights.terminalLoss;
+        }
+        if (snapshot.status === "draw") {
+            return 0;
+        }
+        let score = 0;
+        score += this.evaluateBoardOwnership(snapshot, player, opponent, weights);
+        score += this.evaluateBoardThreats(snapshot, player, opponent, weights);
+        score += this.evaluateMetaThreats(snapshot, player, opponent, weights);
+        score += this.evaluateActiveBoard(snapshot, player, opponent, weights);
+        if (ruleSet === "battle") {
+            score += this.evaluateBattleStability(snapshot, player, opponent, weights);
+        }
+        return score;
+    }
+    static evaluateBoardOwnership(snapshot, player, opponent, weights) {
+        const owned = snapshot.boards.filter((board) => board.winner === player).length;
+        const oppOwned = snapshot.boards.filter((board) => board.winner === opponent).length;
+        return (owned - oppOwned) * weights.boardCaptured;
+    }
+    static evaluateBoardThreats(snapshot, player, opponent, weights) {
+        let playerThreats = 0;
+        let opponentThreats = 0;
+        let playerForks = 0;
+        let opponentForks = 0;
+        let centerControl = 0;
+        snapshot.boards.forEach((board) => {
+            playerThreats += AiUtils.countBoardThreats(board, player);
+            opponentThreats += AiUtils.countBoardThreats(board, opponent);
+            playerForks += AiUtils.countBoardForks(board, player);
+            opponentForks += AiUtils.countBoardForks(board, opponent);
+            centerControl += AiUtils.countCenterControl(board, player);
+        });
+        const threatScore = (playerThreats - opponentThreats) * weights.boardThreat;
+        const forkScore = (playerForks - opponentForks) * weights.boardFork;
+        const centerScore = centerControl * weights.boardCenter;
+        return threatScore + forkScore + centerScore;
+    }
+    static evaluateMetaThreats(snapshot, player, opponent, weights) {
+        const playerMeta = AiUtils.countMetaThreats(snapshot.boards, player);
+        const opponentMeta = AiUtils.countMetaThreats(snapshot.boards, opponent);
+        return (playerMeta - opponentMeta) * weights.metaThreat;
+    }
+    static evaluateActiveBoard(snapshot, player, opponent, weights) {
+        const targetIndex = snapshot.activeBoardIndex;
+        if (targetIndex === null) {
+            return 0;
+        }
+        const board = snapshot.boards[targetIndex];
+        if (!board) {
+            return 0;
+        }
+        const playerPotential = AiUtils.boardPotential(board.cells, player);
+        const opponentPotential = AiUtils.boardPotential(board.cells, opponent);
+        return (playerPotential - opponentPotential) * weights.activeBoardFocus;
+    }
+    static evaluateBattleStability(snapshot, player, opponent, weights) {
+        let playerStability = 0;
+        let opponentStability = 0;
+        snapshot.boards.forEach((board) => {
+            playerStability += AiUtils.estimateBattleStability(board, player);
+            opponentStability += AiUtils.estimateBattleStability(board, opponent);
+        });
+        return (playerStability - opponentStability) * weights.battleStability;
     }
 }
 
@@ -1120,6 +1418,7 @@ class EasyAiStrategy {
 
 
 
+
 class NormalAiStrategy {
     static choose(snapshot) {
         const candidates = AiUtils.collectCandidates(snapshot);
@@ -1154,10 +1453,15 @@ class NormalAiStrategy {
         if (candidates.length === 0) {
             throw new Error("No candidates available");
         }
-        const scored = candidates.map((move) => ({
-            move,
-            score: this.scoreMove(snapshot, move),
+        const ordered = this.orderCandidates(snapshot, candidates, "O");
+        const limited = ordered.slice(0, this.MAX_SEARCH_BRANCHES);
+        const scored = limited.map((entry) => ({
+            move: entry.move,
+            score: this.depthTwoSearch(snapshot, entry.move),
         }));
+        if (scored.length === 0) {
+            scored.push({ move: ordered[0].move, score: -Infinity });
+        }
         scored.sort((a, b) => b.score - a.score);
         let chosenIndex = 0;
         let errorApplied = false;
@@ -1172,59 +1476,53 @@ class NormalAiStrategy {
             errorApplied,
         };
     }
-    static scoreMove(snapshot, move) {
-        var _a, _b;
-        const board = snapshot.boards[move.boardIndex];
-        if (!board) {
+    static depthTwoSearch(snapshot, move) {
+        const next = AiSimulator.applyMove(snapshot, move, "O");
+        if (!next) {
             return -Infinity;
         }
-        let score = 0;
-        const isBattle = snapshot.ruleSet === "battle";
-        const contestedBoard = Boolean(board.winner && isBattle && !board.isFull);
-        // Base priority scores
-        score += (_a = BOARD_PRIORITY[move.boardIndex]) !== null && _a !== void 0 ? _a : 0;
-        score += (_b = CELL_PRIORITY[move.cellIndex]) !== null && _b !== void 0 ? _b : 0;
-        // Board-level scoring
-        if (!board.winner || contestedBoard) {
-            score += AiUtils.patternOpportunityScore(board.cells, "O", move.cellIndex);
-            score += AiUtils.patternBlockScore(board.cells, "X", move.cellIndex);
+        if (next.status !== "playing") {
+            return AiEvaluator.evaluate(next, "O");
         }
-        else if (board.winner === "X") {
-            score -= isBattle ? 0.75 : 2;
+        const opponentMoves = AiUtils.collectCandidates(next);
+        if (opponentMoves.length === 0) {
+            return AiEvaluator.evaluate(next, "O");
         }
-        else if (board.winner === "O") {
-            score -= isBattle ? 0.25 : 0.5;
-        }
-        // Target board evaluation
-        const targetBoardIndex = move.cellIndex;
-        const targetBoard = snapshot.boards[targetBoardIndex];
-        if (targetBoard) {
-            if (targetBoard.isFull) {
-                score += 2; // Sending opponent to full board is good
+        const orderedOpp = this.orderCandidates(next, opponentMoves, "X");
+        let bestResponse = Infinity;
+        const limit = orderedOpp.slice(0, this.MAX_SEARCH_BRANCHES);
+        for (const { move: oppMove } of limit) {
+            const afterOpp = AiSimulator.applyMove(next, oppMove, "X");
+            if (!afterOpp) {
+                continue;
             }
-            else if (targetBoard.winner === "O") {
-                score += isBattle ? 0.75 : 1.5; // Still decent in battle, but riskier
-            }
-            else if (targetBoard.winner === "X") {
-                score -= isBattle ? 0.75 : 1.5; // Smaller penalty in battle—they're vulnerable too
-            }
-            else {
-                score += AiUtils.evaluateBoardComfort(targetBoard);
+            const evalScore = AiEvaluator.evaluate(afterOpp, "O");
+            if (evalScore < bestResponse) {
+                bestResponse = evalScore;
             }
         }
-        else {
-            score += 0.5;
+        if (bestResponse === Infinity) {
+            return AiEvaluator.evaluate(next, "O");
         }
-        // Rule-aware routing bonuses
-        score += RuleAwareHeuristics.moveBonus(snapshot, move, "O");
-        // Macro-level threat creation
-        if (AiUtils.createsMacroThreat(snapshot, move)) {
-            score += 2.5;
-        }
-        // Simulate immediate punishments (1 ply look-ahead)
-        score += this.simulateImmediatePunish(snapshot, move);
-        // Add tiny random factor for tie-breaking
-        return score + Math.random() * 0.001;
+        return bestResponse;
+    }
+    static orderCandidates(snapshot, moves, player) {
+        return moves
+            .map((move) => {
+            var _a, _b;
+            const board = snapshot.boards[move.boardIndex];
+            let heuristic = 0;
+            heuristic += (_a = BOARD_PRIORITY[move.boardIndex]) !== null && _a !== void 0 ? _a : 0;
+            heuristic += (_b = CELL_PRIORITY[move.cellIndex]) !== null && _b !== void 0 ? _b : 0;
+            if (board) {
+                heuristic += AiUtils.patternOpportunityScore(board.cells, player, move.cellIndex);
+                const opponent = player === "O" ? "X" : "O";
+                heuristic += AiUtils.patternBlockScore(board.cells, opponent, move.cellIndex);
+            }
+            heuristic += RuleAwareHeuristics.moveBonus(snapshot, move, player);
+            return { move, heuristic };
+        })
+            .sort((a, b) => b.heuristic - a.heuristic);
     }
     static simulateImmediatePunish(snapshot, move) {
         const next = AiSimulator.applyMove(snapshot, move, "O");
@@ -1255,6 +1553,7 @@ class NormalAiStrategy {
     }
 }
 NormalAiStrategy.BLUNDER_RATE = 0.12;
+NormalAiStrategy.MAX_SEARCH_BRANCHES = 6;
 
 
 // === dist/ai/strategies/hard.js ===
@@ -1263,51 +1562,72 @@ NormalAiStrategy.BLUNDER_RATE = 0.12;
 
 
 
+
 class HardAiStrategy {
     static choose(snapshot) {
-        var _a, _b;
+        var _a, _b, _c, _d;
         const candidates = AiUtils.collectCandidates(snapshot);
         if (candidates.length === 0) {
             return null;
         }
-        const depthLimit = candidates.length <= this.HIGH_BRANCH_THRESHOLD
-            ? this.EXTENDED_DEPTH
-            : this.BASE_DEPTH;
-        let bestMove = null;
-        let bestScore = -Infinity;
+        const ordered = this.orderCandidates(snapshot, candidates, "O");
         const cache = new Map();
         const stats = { nodes: 0, cacheHits: 0 };
-        const ordered = this.orderCandidates(snapshot, candidates, "O");
-        for (const { move } of ordered) {
-            const next = AiSimulator.applyMove(snapshot, move, "O");
-            if (!next) {
-                continue;
+        const startTime = performance.now();
+        const maxTime = this.computeTimeBudget(snapshot);
+        let bestMove = (_b = (_a = ordered[0]) === null || _a === void 0 ? void 0 : _a.move) !== null && _b !== void 0 ? _b : null;
+        let bestScore = -Infinity;
+        let depthReached = this.BASE_DEPTH;
+        for (let depth = this.BASE_DEPTH; depth <= this.EXTENDED_DEPTH; depth += 1) {
+            depthReached = depth;
+            let iterationBest = null;
+            let iterationScore = -Infinity;
+            for (const { move } of ordered) {
+                if (performance.now() - startTime > maxTime) {
+                    depth = this.EXTENDED_DEPTH + 1;
+                    break;
+                }
+                const next = AiSimulator.applyMove(snapshot, move, "O");
+                if (!next) {
+                    continue;
+                }
+                const score = this.minimax(next, 1, depth, -Infinity, Infinity, cache, stats, startTime, maxTime);
+                if (score > iterationScore) {
+                    iterationScore = score;
+                    iterationBest = move;
+                }
             }
-            const score = this.minimax(next, 1, depthLimit, -Infinity, Infinity, cache, stats);
-            if (score > bestScore) {
-                bestScore = score;
-                bestMove = move;
+            if (iterationBest) {
+                bestMove = iterationBest;
+                bestScore = iterationScore;
+            }
+            if (performance.now() - startTime > maxTime) {
+                break;
             }
         }
         AiDiagnostics.logDecision({
             difficulty: "hard",
             ruleSet: snapshot.ruleSet,
             bestMove,
-            depth: depthLimit,
+            depth: depthReached,
             candidates: ordered.slice(0, 5),
             metadata: {
                 cacheEntries: cache.size,
                 nodes: stats.nodes,
                 cacheHits: stats.cacheHits,
+                timeMs: Number((performance.now() - startTime).toFixed(1)),
             },
         });
         if (bestMove) {
             return bestMove;
         }
-        return (_b = (_a = ordered[0]) === null || _a === void 0 ? void 0 : _a.move) !== null && _b !== void 0 ? _b : null;
+        return (_d = bestMove !== null && bestMove !== void 0 ? bestMove : (_c = ordered[0]) === null || _c === void 0 ? void 0 : _c.move) !== null && _d !== void 0 ? _d : null;
     }
-    static minimax(state, depth, maxDepth, alpha, beta, cache, stats) {
+    static minimax(state, depth, maxDepth, alpha, beta, cache, stats, startTime, maxTime) {
         stats.nodes += 1;
+        if (performance.now() - startTime > maxTime) {
+            return AiEvaluator.evaluate(state, "O");
+        }
         const cacheKey = this.hashState(state, depth);
         const cached = cache.get(cacheKey);
         if (cached !== undefined) {
@@ -1333,7 +1653,7 @@ class HardAiStrategy {
             if (!next) {
                 continue;
             }
-            const value = this.minimax(next, depth + 1, maxDepth, alpha, beta, cache, stats);
+            const value = this.minimax(next, depth + 1, maxDepth, alpha, beta, cache, stats, startTime, maxTime);
             if (maximizing) {
                 if (value > bestScore) {
                     bestScore = value;
@@ -1356,6 +1676,13 @@ class HardAiStrategy {
         cache.set(cacheKey, bestScore);
         return bestScore;
     }
+    static computeTimeBudget(snapshot) {
+        const remainingCells = snapshot.boards.reduce((total, board) => {
+            return total + board.cells.filter((cell) => cell === null).length;
+        }, 0);
+        const lateGame = remainingCells <= this.LATE_GAME_THRESHOLD;
+        return lateGame ? this.LATE_GAME_CAP_MS : this.MAX_TIME_MS;
+    }
     static evaluateTerminal(state, depth) {
         if (state.status === "won" && state.winner) {
             return state.winner === "O" ? 100 - depth * 2 : depth * 2 - 100;
@@ -1366,63 +1693,7 @@ class HardAiStrategy {
         return null;
     }
     static evaluateState(state) {
-        var _a;
-        let score = 0;
-        const ruleSet = (_a = state.ruleSet) !== null && _a !== void 0 ? _a : "battle";
-        // Evaluate individual boards
-        state.boards.forEach((board) => {
-            if (board.winner === "O") {
-                score += ruleSet === "modern" ? 12 : 10;
-            }
-            else if (board.winner === "X") {
-                score -= ruleSet === "modern" ? 12 : 10;
-            }
-            else {
-                const aiWeight = ruleSet === "modern" ? 1.25 : ruleSet === "classic" ? 1.1 : 1.05;
-                const humanWeight = ruleSet === "battle" ? 0.95 : 1;
-                score += AiUtils.boardPotential(board.cells, "O") * aiWeight;
-                score -= AiUtils.boardPotential(board.cells, "X") * humanWeight;
-            }
-        });
-        // Macro-level evaluation
-        score += this.evaluateMacro(state.boards) * 6.5;
-        // Directed target evaluation
-        score += this.evaluateDirectedTargets(state, ruleSet) * 3.2;
-        // Rule-specific global bonuses
-        score += RuleAwareHeuristics.stateBonus(state, "O");
-        return score;
-    }
-    static evaluateMacro(boards) {
-        let score = 0;
-        for (const pattern of WIN_PATTERNS) {
-            const winners = pattern.map((idx) => { var _a, _b; return (_b = (_a = boards[idx]) === null || _a === void 0 ? void 0 : _a.winner) !== null && _b !== void 0 ? _b : null; });
-            const aiWins = winners.filter((mark) => mark === "O").length;
-            const humanWins = winners.filter((mark) => mark === "X").length;
-            if (humanWins === 0) {
-                score += aiWins;
-            }
-            else if (aiWins === 0) {
-                score -= humanWins;
-            }
-        }
-        return score;
-    }
-    static evaluateDirectedTargets(state, ruleSet) {
-        if (!state.lastMove) {
-            return 0;
-        }
-        const targetIndex = state.activeBoardIndex;
-        if (targetIndex === null) {
-            return 0;
-        }
-        const targetBoard = state.boards[targetIndex];
-        if (!targetBoard) {
-            return 0;
-        }
-        const aiPotential = AiUtils.boardPotential(targetBoard.cells, "O");
-        const humanPotential = AiUtils.boardPotential(targetBoard.cells, "X");
-        const weight = ruleSet === "classic" ? 0.8 : ruleSet === "modern" ? 0.7 : 0.6;
-        return (aiPotential - humanPotential) * weight;
+        return AiEvaluator.evaluate(state, "O");
     }
     static orderCandidates(snapshot, moves, player) {
         return moves
@@ -1454,8 +1725,11 @@ class HardAiStrategy {
     }
 }
 HardAiStrategy.BASE_DEPTH = 4;
-HardAiStrategy.EXTENDED_DEPTH = 5;
+HardAiStrategy.EXTENDED_DEPTH = 6;
 HardAiStrategy.HIGH_BRANCH_THRESHOLD = 16;
+HardAiStrategy.MAX_TIME_MS = 1500;
+HardAiStrategy.LATE_GAME_CAP_MS = 4000;
+HardAiStrategy.LATE_GAME_THRESHOLD = 20;
 
 
 // === dist/ai/controller.js ===
