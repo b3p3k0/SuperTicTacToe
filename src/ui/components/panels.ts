@@ -18,6 +18,7 @@ export class PanelManager {
 
     this.initPanelToggles();
     this.initIllegalDialog();
+    this.syncHistoryLimits();
   }
 
   private initPanelToggles(): void {
@@ -34,6 +35,9 @@ export class PanelManager {
         panel.dataset.expanded = (!expanded).toString();
         button.textContent = expanded ? "Show" : "Hide";
         button.setAttribute("aria-expanded", (!expanded).toString());
+        if (targetId === "rules-panel") {
+          this.syncHistoryLimits();
+        }
       });
     });
   }
@@ -63,6 +67,8 @@ export class PanelManager {
       item.textContent = this.formatHistoryEntry(entry);
       this.historyList.appendChild(item);
     });
+
+    this.historyList.scrollTop = this.historyList.scrollHeight;
   }
 
   private formatHistoryEntry(entry: HistoryEntry): string {
@@ -127,5 +133,11 @@ export class PanelManager {
     if (this.illegalDialog?.open) {
       this.illegalDialog.close();
     }
+  }
+
+  private syncHistoryLimits(): void {
+    const rulesPanel = document.getElementById("rules-panel");
+    const expanded = rulesPanel?.dataset.expanded === "true";
+    this.historyList.classList.toggle("compact-history", expanded);
   }
 }

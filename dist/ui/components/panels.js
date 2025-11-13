@@ -12,6 +12,7 @@ export class PanelManager {
         this.illegalMessage = document.getElementById("illegal-move-message");
         this.initPanelToggles();
         this.initIllegalDialog();
+        this.syncHistoryLimits();
     }
     initPanelToggles() {
         const panelButtons = document.querySelectorAll(".panel-toggle");
@@ -27,6 +28,9 @@ export class PanelManager {
                 panel.dataset.expanded = (!expanded).toString();
                 button.textContent = expanded ? "Show" : "Hide";
                 button.setAttribute("aria-expanded", (!expanded).toString());
+                if (targetId === "rules-panel") {
+                    this.syncHistoryLimits();
+                }
             });
         });
     }
@@ -53,6 +57,7 @@ export class PanelManager {
             item.textContent = this.formatHistoryEntry(entry);
             this.historyList.appendChild(item);
         });
+        this.historyList.scrollTop = this.historyList.scrollHeight;
     }
     formatHistoryEntry(entry) {
         const left = entry.p1Move ? this.describeMove(entry.p1Move) : "";
@@ -110,5 +115,10 @@ export class PanelManager {
         if ((_a = this.illegalDialog) === null || _a === void 0 ? void 0 : _a.open) {
             this.illegalDialog.close();
         }
+    }
+    syncHistoryLimits() {
+        const rulesPanel = document.getElementById("rules-panel");
+        const expanded = (rulesPanel === null || rulesPanel === void 0 ? void 0 : rulesPanel.dataset.expanded) === "true";
+        this.historyList.classList.toggle("compact-history", expanded);
     }
 }
