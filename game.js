@@ -375,8 +375,11 @@ class GameEngine {
         board.cells[cellIndex] = this.currentPlayer;
         this.moveCount += 1;
         const beforeWinner = board.winner;
-        this.evaluateBoardState(boardIndex);
-        const capturedBoard = !beforeWinner && board.winner === this.currentPlayer;
+        this.evaluateBoardState(boardIndex, this.currentPlayer);
+        const afterWinner = board.winner;
+        const ownershipChanged = afterWinner !== beforeWinner && afterWinner === this.currentPlayer;
+        const capturedBoard = ownershipChanged;
+        const recapturedBoard = capturedBoard && !!beforeWinner;
         const deadBoard = !capturedBoard && board.isDraw;
         this.updateMacroState();
         const forcedBoardIndex = cellIndex;
@@ -388,6 +391,7 @@ class GameEngine {
             cellIndex,
             forcedBoardFull,
             capturedBoard,
+            recapturedBoard,
             deadBoard,
         };
         this.recordMove(moveInfo);
@@ -428,15 +432,15 @@ class GameEngine {
         }
         return false;
     }
-    evaluateBoardState(boardIndex) {
+    evaluateBoardState(boardIndex, priorityPlayer) {
         const board = this.boardAt(boardIndex);
-        if (!board.winner) {
-            const winner = this.findWinner(board.cells);
-            if (winner) {
-                board.winner = winner;
-            }
+        const boardNowFull = board.cells.every((cell) => cell !== null);
+        const preferredPlayer = this.ruleSet === "battle" ? priorityPlayer : undefined;
+        const winner = this.findWinner(board.cells, preferredPlayer);
+        if (winner && (!board.winner || this.ruleSet === "battle")) {
+            board.winner = winner;
         }
-        board.isFull = board.cells.every((cell) => cell !== null);
+        board.isFull = boardNowFull;
         board.isDraw = !board.winner && board.isFull;
     }
     updateMacroState() {
@@ -467,7 +471,17 @@ class GameEngine {
         }
         return null;
     }
-    findWinner(cells) {
+    findWinner(cells, priorityPlayer) {
+        if (priorityPlayer) {
+            if (this.hasLine(cells, priorityPlayer)) {
+                return priorityPlayer;
+            }
+            const opponent = priorityPlayer === "X" ? "O" : "X";
+            if (this.hasLine(cells, opponent)) {
+                return opponent;
+            }
+            return null;
+        }
         for (const [a, b, c] of WIN_PATTERNS) {
             const mark = cells[a];
             if (mark && mark === cells[b] && mark === cells[c]) {
@@ -475,6 +489,11 @@ class GameEngine {
             }
         }
         return null;
+    }
+    hasLine(cells, player) {
+        return WIN_PATTERNS.some(([a, b, c]) => {
+            return cells[a] === player && cells[b] === player && cells[c] === player;
+        });
     }
     getAllowedBoards() {
         if (this.status !== "playing") {
@@ -556,9 +575,11 @@ class AiUtils {
         return candidates;
     }
     static findImmediateWin(snapshot, candidates, player) {
+        const isBattle = snapshot.ruleSet === "battle";
         for (const move of candidates) {
             const board = snapshot.boards[move.boardIndex];
-            if (!board || board.winner) {
+            const boardLocked = (board === null || board === void 0 ? void 0 : board.winner) && (!isBattle || board.isFull);
+            if (!board || boardLocked) {
                 continue;
             }
             if (this.completesLine(board.cells, move.cellIndex, player)) {
@@ -625,7 +646,9 @@ class AiUtils {
     }
     static createsMacroThreat(snapshot, move) {
         const board = snapshot.boards[move.boardIndex];
-        if (!board || board.winner) {
+        const isBattle = snapshot.ruleSet === "battle";
+        const boardLocked = (board === null || board === void 0 ? void 0 : board.winner) && (!isBattle || board.isFull);
+        if (!board || boardLocked) {
             return false;
         }
         if (!this.completesLine(board.cells, move.cellIndex, "O")) {
@@ -693,7 +716,17 @@ class AiUtils {
     static getOpponent(player) {
         return player === "X" ? "O" : "X";
     }
-    static findWinner(cells) {
+    static findWinner(cells, priorityPlayer) {
+        if (priorityPlayer) {
+            if (this.hasLine(cells, priorityPlayer)) {
+                return priorityPlayer;
+            }
+            const opponent = this.getOpponent(priorityPlayer);
+            if (this.hasLine(cells, opponent)) {
+                return opponent;
+            }
+            return null;
+        }
         for (const [a, b, c] of WIN_PATTERNS) {
             const mark = cells[a];
             if (mark && mark === cells[b] && mark === cells[c]) {
@@ -713,6 +746,11 @@ class AiUtils {
         }
         return null;
     }
+    static hasLine(cells, player) {
+        return WIN_PATTERNS.some(([a, b, c]) => {
+            return cells[a] === player && cells[b] === player && cells[c] === player;
+        });
+    }
 }
 
 
@@ -727,21 +765,20 @@ class AiSimulator {
             isDraw: board.isDraw,
             isFull: board.isFull,
         }));
+        const ruleSet = (_a = snapshot.ruleSet) !== null && _a !== void 0 ? _a : "modern";
         const board = boards[move.boardIndex];
         if (!board || board.cells[move.cellIndex] !== null) {
             return null;
         }
         const beforeWinner = board.winner;
         board.cells[move.cellIndex] = player;
-        if (!board.winner) {
-            const winner = AiUtils.findWinner(board.cells);
-            if (winner) {
-                board.winner = winner;
-            }
+        const preferredPlayer = ruleSet === "battle" ? player : undefined;
+        const winner = AiUtils.findWinner(board.cells, preferredPlayer);
+        if (winner && (!board.winner || ruleSet === "battle")) {
+            board.winner = winner;
         }
         board.isFull = board.cells.every((cell) => cell !== null);
         board.isDraw = !board.winner && board.isFull;
-        const ruleSet = (_a = snapshot.ruleSet) !== null && _a !== void 0 ? _a : "modern";
         const isClosed = (mini) => {
             if (!mini) {
                 return true;
@@ -754,6 +791,10 @@ class AiSimulator {
             }
             return false;
         };
+        const afterWinner = board.winner;
+        const ownershipChanged = afterWinner === player && beforeWinner !== afterWinner;
+        const recaptured = ownershipChanged && !!beforeWinner;
+        const deadBoard = !ownershipChanged && board.isDraw;
         const result = {
             boards,
             currentPlayer: AiUtils.getOpponent(player),
@@ -768,8 +809,9 @@ class AiSimulator {
                 boardIndex: move.boardIndex,
                 cellIndex: move.cellIndex,
                 forcedBoardFull: false,
-                capturedBoard: !beforeWinner && board.winner === player,
-                deadBoard: !beforeWinner && !board.winner && board.isDraw,
+                capturedBoard: ownershipChanged,
+                recapturedBoard: recaptured,
+                deadBoard,
             },
             ruleSet,
         };
@@ -888,19 +930,21 @@ class NormalAiStrategy {
             return -Infinity;
         }
         let score = 0;
+        const isBattle = snapshot.ruleSet === "battle";
+        const contestedBoard = Boolean(board.winner && isBattle && !board.isFull);
         // Base priority scores
         score += (_a = BOARD_PRIORITY[move.boardIndex]) !== null && _a !== void 0 ? _a : 0;
         score += (_b = CELL_PRIORITY[move.cellIndex]) !== null && _b !== void 0 ? _b : 0;
         // Board-level scoring
-        if (!board.winner) {
+        if (!board.winner || contestedBoard) {
             score += AiUtils.patternOpportunityScore(board.cells, "O", move.cellIndex);
             score += AiUtils.patternBlockScore(board.cells, "X", move.cellIndex);
         }
         else if (board.winner === "X") {
-            score -= 2;
+            score -= isBattle ? 0.75 : 2;
         }
         else if (board.winner === "O") {
-            score -= 0.5;
+            score -= isBattle ? 0.25 : 0.5;
         }
         // Target board evaluation
         const targetBoardIndex = move.cellIndex;
@@ -910,10 +954,10 @@ class NormalAiStrategy {
                 score += 2; // Sending opponent to full board is good
             }
             else if (targetBoard.winner === "O") {
-                score += 1.5; // Sending to our captured board is good
+                score += isBattle ? 0.75 : 1.5; // Still decent in battle, but riskier
             }
             else if (targetBoard.winner === "X") {
-                score -= 1.5; // Sending to their captured board is bad
+                score -= isBattle ? 0.75 : 1.5; // Smaller penalty in battle—they're vulnerable too
             }
             else {
                 score += AiUtils.evaluateBoardComfort(targetBoard);
@@ -1265,6 +1309,9 @@ class PanelManager {
         }
         if (move.capturedBoard) {
             tags.push("C");
+            if (move.recapturedBoard) {
+                tags.push("R");
+            }
         }
         else if (move.deadBoard) {
             tags.push("D");
@@ -1656,7 +1703,13 @@ class OverlayManager {
         if (!this.rulesDescription) {
             return;
         }
-        const modeKey = this.ruleSet === "classic" ? "classic" : "modern";
+        let modeKey = "classic";
+        if (this.ruleSet === "modern") {
+            modeKey = "modern";
+        }
+        else if (this.ruleSet === "battle") {
+            modeKey = "battle";
+        }
         const text = (_b = (_a = this.rulesDescription.dataset[modeKey]) !== null && _a !== void 0 ? _a : this.rulesDescription.textContent) !== null && _b !== void 0 ? _b : "";
         this.rulesDescription.textContent = text;
     }

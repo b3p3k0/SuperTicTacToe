@@ -7,7 +7,7 @@ A zero-dependency, browser-ready take on the 3×3 mega tic-tac-toe grid. Clone i
 ## Quick Play
 
 1. Download or clone this repo.
-2. Open `index.html` in any modern browser (double-click works via `file://`), hit **New Game**, and pick **1 Player** or **2 Players** when the overlay pops up. Choose Old (Classic) or New (Modern) rules, and if you’re in solo mode also pick Easy/Normal/Hard plus who starts (Human / AI / Random) before the board appears.
+2. Open `index.html` in any modern browser (double-click works via `file://`), hit **New Game**, and pick **1 Player** or **2 Players** when the overlay pops up. Choose Classic, Modern, or Battle rules, and if you’re in solo mode also pick Easy/Normal/Hard plus who starts (Human / AI / Random) before the board appears.
 
 That’s it—`game.js`, `style.css`, and all other assets are already bundled, so you can drop the folder onto any static host with zero build steps.
 
@@ -22,7 +22,7 @@ npm run build    # compiles game.ts → game.js
 npm run watch    # auto-recompile while editing
 ```
 
-`game.ts` holds all logic + DOM wiring. Running the build rewrites `dist/*` plus `game.js`, which is what the browser loads. We keep those outputs in the repo for players, but contributors should re-run the build anytime they change the TypeScript.
+All TypeScript source lives under `src/` (split into `core`, `ai`, `ui`, and `main` modules). Running the build rewrites `dist/*` plus `game.js`, which is what the browser loads. We keep those outputs in the repo for players, but contributors should re-run the build anytime they change the TypeScript.
 
 ---
 
@@ -30,7 +30,7 @@ npm run watch    # auto-recompile while editing
 
 - **Full Super T3 rules**: forced-board routing, captured/drawn mini-boards, free-choice fallback when a destination board is full.
 - **Solo or hot-seat play**: choose 1P to battle the built-in AI (Easy / Normal / Hard) or 2P for classic pass-and-play. Solo mode randomly decides who moves first (or you can force Human/AI).
-- **Classic vs. Modern rules**: at the start of every match pick Old (slower, strategic) or New (faster) rules. Modern mode closes captured/dead boards; Classic keeps them playable.
+- **Three rule sets**: pick Classic (captured boards stay playable), Modern (captured/dead boards lock), or the new Battle Mode—where captured boards can be stolen back until that mini-board is full.
 - **Visual guidance**: active board highlighting, captured/drawn states, latest move glow, and a status bar describing whose turn it is plus any board constraints.
 - **Move history**: chess-style log (e.g., `T12: P1BB3LB2 -> P2BB2LB5(F)`) with `(F)` indicating when the destination board was full and the next player could choose freely.
 - **Rules & history toggles**: collapsible panels keep the layout tidy on smaller screens.
@@ -44,7 +44,10 @@ npm run watch    # auto-recompile while editing
 | ------------------------------------ | ------------------------------------------------------------------- |
 | `index.html`                         | Shell markup and dialog scaffolding                                 |
 | `style.css`                          | Responsive layout + color tokens (easy to reskin for future themes) |
-| `game.ts`                            | TypeScript source for the rules engine and UI controller            |
+| `src/core/*`                         | Pure game logic, rule definitions, types, and constants             |
+| `src/ai/*`                           | AI controller, simulator, and difficulty strategies                 |
+| `src/ui/*`                           | UI orchestration, overlays, panels, and theme manager               |
+| `src/main.ts`                        | Entry point that wires the engine/UI/theme manager                  |
 | `game.js`                            | Compiled bundle that ships with the repo (rebuilt via `npm run build`) |
 | `package.json` / `package-lock.json` | Tooling metadata (`typescript` dev dependency, build scripts)       |
 | `tsconfig.json`                      | Compiler settings targeting ES2018/browser-friendly output          |

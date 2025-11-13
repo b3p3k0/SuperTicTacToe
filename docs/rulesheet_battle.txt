@@ -1,0 +1,63 @@
+SUPER TIC-TAC-TOE: BATTLE MODE
+------------------------------
+A new twist where capturing a square is only half the battle — can you keep it?
+
+WHAT YOU NEED
+-------------
+• Paper and pencil (or dry-erase board)
+• Draw one big 3×3 grid.  
+  Inside each big square, draw another 3×3 tic-tac-toe board.  
+  That makes 9 little boards total.
+
+GOAL
+----
+Win by controlling three big boards in a row (across, down, or diagonal).
+But remember — captured boards can be stolen back!
+
+HOW TO PLAY
+------------
+1. The first player (X) can start anywhere on any little board.
+2. The space chosen (1–9) tells the opponent which big board they must play in next.
+
+   Example:
+   - X plays in Big Box 1, Little Box 3 → O must play in Big Box 3.
+   - O plays in Big Box 3, Little Box 6 → X must play in Big Box 6.
+
+3. If the next big board is **full**, you can choose **any open** big board.
+
+4. Each big board is its own small tic-tac-toe game:
+   - Win three in a row to **capture** that big board.
+   - If a board fills with no winner, it is **dead** (no one owns it).
+
+5. **Battle Rule:**  
+   - Captured boards are *not safe!*  
+   - Your opponent can **recapture** a big board by winning a new three-in-a-row
+     on that same board, even if you already owned it.
+   - Each capture overwrites the previous one — ownership changes instantly.
+
+6. You can always play in any big board that is **not full**, even if it is currently captured.
+
+WINNING THE WHOLE GAME
+-----------------------
+• The first player to control **three big boards in a row** wins!  
+• If every big board is full and no one has three in a row, it’s a draw.
+
+TIPS
+----
+• Capturing fast isn’t enough — you have to defend what you’ve taken.  
+• Watch for boards where the opponent can flip ownership back in one turn.  
+• Keeping multiple partial wins alive across different boards makes it harder for them to counterattack.  
+• Every move affects both local and global strategy — think ahead!
+
+GAME LOGIC CHECK
+----------------
+✓ Players alternate turns; the forced-board rule still applies.  
+✓ Recapturing does not reset the small board; marks remain until it fills.  
+✓ Each big board can change ownership many times until it is full.  
+✓ Game always ends when all big boards are full or a player holds three in a row.  
+✓ No logical deadlocks — only added layers of competition.  
+
+BATTLE MODE SUMMARY
+-------------------
+This version plays faster, meaner, and more tactical.  
+You must balance **attack**, **defense**, and **timing** — every square you win can be taken right back!

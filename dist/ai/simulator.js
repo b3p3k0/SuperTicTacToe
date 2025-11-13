@@ -8,21 +8,20 @@ export class AiSimulator {
             isDraw: board.isDraw,
             isFull: board.isFull,
         }));
+        const ruleSet = (_a = snapshot.ruleSet) !== null && _a !== void 0 ? _a : "modern";
         const board = boards[move.boardIndex];
         if (!board || board.cells[move.cellIndex] !== null) {
             return null;
         }
         const beforeWinner = board.winner;
         board.cells[move.cellIndex] = player;
-        if (!board.winner) {
-            const winner = AiUtils.findWinner(board.cells);
-            if (winner) {
-                board.winner = winner;
-            }
+        const preferredPlayer = ruleSet === "battle" ? player : undefined;
+        const winner = AiUtils.findWinner(board.cells, preferredPlayer);
+        if (winner && (!board.winner || ruleSet === "battle")) {
+            board.winner = winner;
         }
         board.isFull = board.cells.every((cell) => cell !== null);
         board.isDraw = !board.winner && board.isFull;
-        const ruleSet = (_a = snapshot.ruleSet) !== null && _a !== void 0 ? _a : "modern";
         const isClosed = (mini) => {
             if (!mini) {
                 return true;
@@ -35,6 +34,10 @@ export class AiSimulator {
             }
             return false;
         };
+        const afterWinner = board.winner;
+        const ownershipChanged = afterWinner === player && beforeWinner !== afterWinner;
+        const recaptured = ownershipChanged && !!beforeWinner;
+        const deadBoard = !ownershipChanged && board.isDraw;
         const result = {
             boards,
             currentPlayer: AiUtils.getOpponent(player),
@@ -49,8 +52,9 @@ export class AiSimulator {
                 boardIndex: move.boardIndex,
                 cellIndex: move.cellIndex,
                 forcedBoardFull: false,
-                capturedBoard: !beforeWinner && board.winner === player,
-                deadBoard: !beforeWinner && !board.winner && board.isDraw,
+                capturedBoard: ownershipChanged,
+                recapturedBoard: recaptured,
+                deadBoard,
             },
             ruleSet,
         };

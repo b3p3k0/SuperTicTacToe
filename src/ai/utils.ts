@@ -35,9 +35,11 @@ export class AiUtils {
     candidates: AiMove[],
     player: Player
   ): AiMove | null {
+    const isBattle = snapshot.ruleSet === "battle";
     for (const move of candidates) {
       const board = snapshot.boards[move.boardIndex];
-      if (!board || board.winner) {
+      const boardLocked = board?.winner && (!isBattle || board.isFull);
+      if (!board || boardLocked) {
         continue;
       }
 
@@ -128,7 +130,9 @@ export class AiUtils {
 
   static createsMacroThreat(snapshot: GameSnapshot, move: AiMove): boolean {
     const board = snapshot.boards[move.boardIndex];
-    if (!board || board.winner) {
+    const isBattle = snapshot.ruleSet === "battle";
+    const boardLocked = board?.winner && (!isBattle || board.isFull);
+    if (!board || boardLocked) {
       return false;
     }
 
@@ -206,7 +210,18 @@ export class AiUtils {
     return player === "X" ? "O" : "X";
   }
 
-  static findWinner(cells: CellValue[]): Player | null {
+  static findWinner(cells: CellValue[], priorityPlayer?: Player): Player | null {
+    if (priorityPlayer) {
+      if (this.hasLine(cells, priorityPlayer)) {
+        return priorityPlayer;
+      }
+      const opponent = this.getOpponent(priorityPlayer);
+      if (this.hasLine(cells, opponent)) {
+        return opponent;
+      }
+      return null;
+    }
+
     for (const [a, b, c] of WIN_PATTERNS) {
       const mark = cells[a];
       if (mark && mark === cells[b] && mark === cells[c]) {
@@ -225,5 +240,11 @@ export class AiUtils {
       }
     }
     return null;
+  }
+
+  private static hasLine(cells: CellValue[], player: Player): boolean {
+    return WIN_PATTERNS.some(([a, b, c]) => {
+      return cells[a] === player && cells[b] === player && cells[c] === player;
+    });
   }
 }

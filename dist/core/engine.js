@@ -84,8 +84,11 @@ export class GameEngine {
         board.cells[cellIndex] = this.currentPlayer;
         this.moveCount += 1;
         const beforeWinner = board.winner;
-        this.evaluateBoardState(boardIndex);
-        const capturedBoard = !beforeWinner && board.winner === this.currentPlayer;
+        this.evaluateBoardState(boardIndex, this.currentPlayer);
+        const afterWinner = board.winner;
+        const ownershipChanged = afterWinner !== beforeWinner && afterWinner === this.currentPlayer;
+        const capturedBoard = ownershipChanged;
+        const recapturedBoard = capturedBoard && !!beforeWinner;
         const deadBoard = !capturedBoard && board.isDraw;
         this.updateMacroState();
         const forcedBoardIndex = cellIndex;
@@ -97,6 +100,7 @@ export class GameEngine {
             cellIndex,
             forcedBoardFull,
             capturedBoard,
+            recapturedBoard,
             deadBoard,
         };
         this.recordMove(moveInfo);
@@ -137,15 +141,15 @@ export class GameEngine {
         }
         return false;
     }
-    evaluateBoardState(boardIndex) {
+    evaluateBoardState(boardIndex, priorityPlayer) {
         const board = this.boardAt(boardIndex);
-        if (!board.winner) {
-            const winner = this.findWinner(board.cells);
-            if (winner) {
-                board.winner = winner;
-            }
+        const boardNowFull = board.cells.every((cell) => cell !== null);
+        const preferredPlayer = this.ruleSet === "battle" ? priorityPlayer : undefined;
+        const winner = this.findWinner(board.cells, preferredPlayer);
+        if (winner && (!board.winner || this.ruleSet === "battle")) {
+            board.winner = winner;
         }
-        board.isFull = board.cells.every((cell) => cell !== null);
+        board.isFull = boardNowFull;
         board.isDraw = !board.winner && board.isFull;
     }
     updateMacroState() {
@@ -176,7 +180,17 @@ export class GameEngine {
         }
         return null;
     }
-    findWinner(cells) {
+    findWinner(cells, priorityPlayer) {
+        if (priorityPlayer) {
+            if (this.hasLine(cells, priorityPlayer)) {
+                return priorityPlayer;
+            }
+            const opponent = priorityPlayer === "X" ? "O" : "X";
+            if (this.hasLine(cells, opponent)) {
+                return opponent;
+            }
+            return null;
+        }
         for (const [a, b, c] of WIN_PATTERNS) {
             const mark = cells[a];
             if (mark && mark === cells[b] && mark === cells[c]) {
@@ -184,6 +198,11 @@ export class GameEngine {
             }
         }
         return null;
+    }
+    hasLine(cells, player) {
+        return WIN_PATTERNS.some(([a, b, c]) => {
+            return cells[a] === player && cells[b] === player && cells[c] === player;
+        });
     }
     getAllowedBoards() {
         if (this.status !== "playing") {

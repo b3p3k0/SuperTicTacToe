@@ -237,7 +237,13 @@ export class OverlayManager {
         if (!this.rulesDescription) {
             return;
         }
-        const modeKey = this.ruleSet === "classic" ? "classic" : "modern";
+        let modeKey = "classic";
+        if (this.ruleSet === "modern") {
+            modeKey = "modern";
+        }
+        else if (this.ruleSet === "battle") {
+            modeKey = "battle";
+        }
         const text = (_b = (_a = this.rulesDescription.dataset[modeKey]) !== null && _a !== void 0 ? _a : this.rulesDescription.textContent) !== null && _b !== void 0 ? _b : "";
         this.rulesDescription.textContent = text;
     }

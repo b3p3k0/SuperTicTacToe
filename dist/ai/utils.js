@@ -24,9 +24,11 @@ export class AiUtils {
         return candidates;
     }
     static findImmediateWin(snapshot, candidates, player) {
+        const isBattle = snapshot.ruleSet === "battle";
         for (const move of candidates) {
             const board = snapshot.boards[move.boardIndex];
-            if (!board || board.winner) {
+            const boardLocked = (board === null || board === void 0 ? void 0 : board.winner) && (!isBattle || board.isFull);
+            if (!board || boardLocked) {
                 continue;
             }
             if (this.completesLine(board.cells, move.cellIndex, player)) {
@@ -93,7 +95,9 @@ export class AiUtils {
     }
     static createsMacroThreat(snapshot, move) {
         const board = snapshot.boards[move.boardIndex];
-        if (!board || board.winner) {
+        const isBattle = snapshot.ruleSet === "battle";
+        const boardLocked = (board === null || board === void 0 ? void 0 : board.winner) && (!isBattle || board.isFull);
+        if (!board || boardLocked) {
             return false;
         }
         if (!this.completesLine(board.cells, move.cellIndex, "O")) {
@@ -161,7 +165,17 @@ export class AiUtils {
     static getOpponent(player) {
         return player === "X" ? "O" : "X";
     }
-    static findWinner(cells) {
+    static findWinner(cells, priorityPlayer) {
+        if (priorityPlayer) {
+            if (this.hasLine(cells, priorityPlayer)) {
+                return priorityPlayer;
+            }
+            const opponent = this.getOpponent(priorityPlayer);
+            if (this.hasLine(cells, opponent)) {
+                return opponent;
+            }
+            return null;
+        }
         for (const [a, b, c] of WIN_PATTERNS) {
             const mark = cells[a];
             if (mark && mark === cells[b] && mark === cells[c]) {
@@ -180,5 +194,10 @@ export class AiUtils {
             }
         }
         return null;
+    }
+    static hasLine(cells, player) {
+        return WIN_PATTERNS.some(([a, b, c]) => {
+            return cells[a] === player && cells[b] === player && cells[c] === player;
+        });
     }
 }

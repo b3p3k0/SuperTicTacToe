@@ -91,6 +91,9 @@ export class PanelManager {
     }
     if (move.capturedBoard) {
       tags.push("C");
+      if (move.recapturedBoard) {
+        tags.push("R");
+      }
     } else if (move.deadBoard) {
       tags.push("D");
     }

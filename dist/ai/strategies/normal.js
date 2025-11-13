@@ -41,19 +41,21 @@ export class NormalAiStrategy {
             return -Infinity;
         }
         let score = 0;
+        const isBattle = snapshot.ruleSet === "battle";
+        const contestedBoard = Boolean(board.winner && isBattle && !board.isFull);
         // Base priority scores
         score += (_a = BOARD_PRIORITY[move.boardIndex]) !== null && _a !== void 0 ? _a : 0;
         score += (_b = CELL_PRIORITY[move.cellIndex]) !== null && _b !== void 0 ? _b : 0;
         // Board-level scoring
-        if (!board.winner) {
+        if (!board.winner || contestedBoard) {
             score += AiUtils.patternOpportunityScore(board.cells, "O", move.cellIndex);
             score += AiUtils.patternBlockScore(board.cells, "X", move.cellIndex);
         }
         else if (board.winner === "X") {
-            score -= 2;
+            score -= isBattle ? 0.75 : 2;
         }
         else if (board.winner === "O") {
-            score -= 0.5;
+            score -= isBattle ? 0.25 : 0.5;
         }
         // Target board evaluation
         const targetBoardIndex = move.cellIndex;
@@ -63,10 +65,10 @@ export class NormalAiStrategy {
                 score += 2; // Sending opponent to full board is good
             }
             else if (targetBoard.winner === "O") {
-                score += 1.5; // Sending to our captured board is good
+                score += isBattle ? 0.75 : 1.5; // Still decent in battle, but riskier
             }
             else if (targetBoard.winner === "X") {
-                score -= 1.5; // Sending to their captured board is bad
+                score -= isBattle ? 0.75 : 1.5; // Smaller penalty in battle—they're vulnerable too
             }
             else {
                 score += AiUtils.evaluateBoardComfort(targetBoard);

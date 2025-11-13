@@ -285,7 +285,12 @@ export class OverlayManager {
       return;
     }
 
-    const modeKey = this.ruleSet === "classic" ? "classic" : "modern";
+    let modeKey: "classic" | "modern" | "battle" = "classic";
+    if (this.ruleSet === "modern") {
+      modeKey = "modern";
+    } else if (this.ruleSet === "battle") {
+      modeKey = "battle";
+    }
     const text = (this.rulesDescription as any).dataset[modeKey] ?? this.rulesDescription.textContent ?? "";
     this.rulesDescription.textContent = text;
   }

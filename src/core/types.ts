@@ -16,7 +16,7 @@ type ThemeName =
   | "twotone"
   | "vibewave";
 type StartPreference = "human" | "ai" | "random";
-type RuleSet = "classic" | "modern";
+type RuleSet = "classic" | "modern" | "battle";
 
 interface ThemeConfig {
   label: string;
@@ -36,6 +36,7 @@ interface MoveInfo {
   cellIndex: number;
   forcedBoardFull: boolean;
   capturedBoard?: boolean;
+  recapturedBoard?: boolean;
   deadBoard?: boolean;
 }
 

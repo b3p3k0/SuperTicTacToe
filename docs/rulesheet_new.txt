@@ -1,7 +1,7 @@
 ```
 SUPER TIC-TAC-TOE (NEW RULES)
 -----------------------------
-A big, fun version of tic-tac-toe played across nine smaller boards — now with two game styles you can choose from.
+A big, fun version of tic-tac-toe played across nine smaller boards — now with three game styles you can choose from.
 
 WHAT YOU NEED
 -------------
@@ -33,8 +33,8 @@ HOW TO PLAY
 
 6. If a move would send a player to a **closed** board, they may instead choose **any open** big board.
 
-TWO WAYS TO PLAY
-----------------
+THREE WAYS TO PLAY
+------------------
 • **Modern Mode (default)**  
   - Captured and dead big boards are closed and cannot be played on.  
   - If a move points to a closed board, the next player can choose any open board.  
@@ -43,6 +43,11 @@ TWO WAYS TO PLAY
 • **Classic Mode (strategic)**  
   - Captured and dead big boards stay playable if there are still open spaces.  
   - You can be forced to move into already-won or dead boards, adding deeper strategy.
+
+• **Battle Mode (recapture)**  
+  - Captured boards stay playable and can be stolen back until that mini-board fills.  
+  - Forces both players to juggle offense and defense every turn.  
+  - See the dedicated Battle rulesheet for the full rundown.
 
 HOW TO WIN
 ----------

@@ -10,6 +10,7 @@ export class AiSimulator {
       isFull: board.isFull,
     }));
 
+    const ruleSet = snapshot.ruleSet ?? "modern";
     const board = boards[move.boardIndex];
     if (!board || board.cells[move.cellIndex] !== null) {
       return null;
@@ -18,17 +19,15 @@ export class AiSimulator {
     const beforeWinner = board.winner;
     board.cells[move.cellIndex] = player;
 
-    if (!board.winner) {
-      const winner = AiUtils.findWinner(board.cells);
-      if (winner) {
-        board.winner = winner;
-      }
+    const preferredPlayer = ruleSet === "battle" ? player : undefined;
+    const winner = AiUtils.findWinner(board.cells, preferredPlayer);
+    if (winner && (!board.winner || ruleSet === "battle")) {
+      board.winner = winner;
     }
 
     board.isFull = board.cells.every((cell) => cell !== null);
     board.isDraw = !board.winner && board.isFull;
 
-    const ruleSet = snapshot.ruleSet ?? "modern";
     const isClosed = (mini: MiniBoardState | undefined): boolean => {
       if (!mini) {
         return true;
@@ -41,6 +40,12 @@ export class AiSimulator {
       }
       return false;
     };
+
+    const afterWinner = board.winner;
+    const ownershipChanged =
+      afterWinner === player && beforeWinner !== afterWinner;
+    const recaptured = ownershipChanged && !!beforeWinner;
+    const deadBoard = !ownershipChanged && board.isDraw;
 
     const result: GameSnapshot = {
       boards,
@@ -56,8 +61,9 @@ export class AiSimulator {
         boardIndex: move.boardIndex,
         cellIndex: move.cellIndex,
         forcedBoardFull: false,
-        capturedBoard: !beforeWinner && board.winner === player,
-        deadBoard: !beforeWinner && !board.winner && board.isDraw,
+        capturedBoard: ownershipChanged,
+        recapturedBoard: recaptured,
+        deadBoard,
       },
       ruleSet,
     };

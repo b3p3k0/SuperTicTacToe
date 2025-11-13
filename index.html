@@ -84,6 +84,7 @@
                   id="rules-mode-description"
                   data-modern="Captured or dead big boards close and can’t be played again. If you’re sent to a closed board, pick any open one."
                   data-classic="Little boards can be captured (win) or dead (draw) but are still playable if the rules send you there."
+                  data-battle="Captured big boards stay live—your opponent can steal them back until that mini-board fills, so keep pressure on both attack and defense."
                 >
                   Captured or dead big boards close and can’t be played again. If
                   you’re sent to a closed board, pick any open one.
@@ -174,7 +175,7 @@
             class="overlay-copy"
             data-settings-copy
             data-solo-text="Choose how spicy you want the challenge. Easy is more forgiving, Normal is balanced, and Hard thinks a few moves ahead."
-            data-local-text="Pick Old (strategic) or New (fast) rules for this hot-seat match."
+            data-local-text="Pick Classic (strategic), Modern (fast locks), or Battle (recaptures!) for this hot-seat match."
           >
             Choose how spicy you want the challenge. Easy is more forgiving,
             Normal is balanced, and Hard thinks a few moves ahead.
@@ -230,6 +231,10 @@
             <label>
               <input type="radio" name="ruleset" value="classic" checked />
               Old (slower, strategic)
+            </label>
+            <label>
+              <input type="radio" name="ruleset" value="battle" />
+              Battle (recapture tug-of-war)
             </label>
           </div>
           <div class="overlay-footer">
