@@ -4,13 +4,13 @@ type CellValue = Player | null;
 type GameStatus = "playing" | "won" | "draw";
 
 type GameMode = "local" | "solo";
-type Difficulty = "easy" | "normal" | "hard";
+type Difficulty = "easy" | "normal" | "hard" | "expert";
 type ModeStep = "players" | "difficulty";
 type ThemeName =
   | "default"
   | "insomniac"
   | "krayon"
-  | "retro"
+  | "wopr"
   | "sakura"
   | "sunset"
   | "twotone"

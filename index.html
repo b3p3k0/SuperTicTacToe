@@ -22,15 +22,15 @@
             <span>Theme</span>
             <select id="theme-select" aria-label="Theme selector">
               <option value="default">Default</option>
+              <option value="cupertino">Cupertino</option>
               <option value="insomniac">Insomniac</option>
               <option value="krayon">Krayon</option>
-              <option value="retro">Retro Term</option>
+              <option value="redmond">Redmond</option>
               <option value="sakura">Sakura Neon</option>
               <option value="sunset">Sunset Arcade</option>
               <option value="twotone">Two Tone</option>
               <option value="vibewave">VibeWave</option>
-              <option value="redmond">Redmond</option>
-              <option value="cupertino">Cupertino</option>
+              <option value="wopr">WOPR</option>
             </select>
           </label>
           <button id="new-game" class="btn accent">New Game</button>
@@ -186,13 +186,14 @@
           <p
             class="overlay-copy"
             data-settings-copy
-            data-solo-text="Choose how spicy you want the challenge. Easy is more forgiving, Normal is balanced, and Hard thinks a few moves ahead."
+            data-solo-text="Choose how spicy you want the challenge. Easy is more forgiving, Normal is balanced, Hard keeps you guessing, and Expert never blinks."
             data-local-text="Pick Battle (default recapture tug-of-war), Classic (strategic), or Modern (fast locks) for this hot-seat match."
           >
             Choose how spicy you want the challenge. Easy is more forgiving,
-            Normal is balanced, and Hard thinks a few moves ahead.
+            Normal is balanced, Hard keeps you guessing, and Expert never
+            blinks.
           </p>
-          <div class="overlay-actions solo-only">
+          <div class="overlay-actions solo-only difficulty-grid">
             <button
               type="button"
               class="btn overlay-choice"
@@ -213,6 +214,13 @@
               data-difficulty-choice="hard"
             >
               Hard
+            </button>
+            <button
+              type="button"
+              class="btn overlay-choice"
+              data-difficulty-choice="expert"
+            >
+              Expert
             </button>
           </div>
           <div

@@ -34,6 +34,7 @@ const DIFFICULTY_LABELS = {
     easy: "Easy",
     normal: "Normal",
     hard: "Hard",
+    expert: "Expert",
 };
 const THEME_STORAGE_KEY = "st3.theme";
 const THEMES = {
@@ -130,35 +131,35 @@ const THEMES = {
             "--cell-hover-bg": "#d6ffe2",
         },
     },
-    retro: {
-        label: "Retro Term",
+    wopr: {
+        label: "WOPR",
         tokens: {
-            "--bg": "#030b04",
-            "--surface": "#0f1f12",
-            "--border": "#1f3b23",
-            "--text": "#dfffd8",
-            "--muted": "#7abb8d",
-            "--accent": "#6bff8e",
-            "--accent-strong": "#b8ff5a",
-            "--accent-shadow": "rgba(107, 255, 142, 0.4)",
-            "--p1": "#6bff8e",
-            "--p2": "#ffca58",
-            "--capture-bg": "#122b18",
-            "--capture-bg-p2": "#2c230f",
-            "--draw-bg": "#101b13",
-            "--cell-bg": "#08140a",
-            "--last-move-glow": "rgba(107, 255, 142, 0.4)",
-            "--active-board-border": "#6bff8e",
-            "--active-board-glow": "rgba(107, 255, 142, 0.35)",
-            "--active-board-glow-strong": "rgba(107, 255, 142, 0.55)",
-            "--macro-line": "rgba(255, 202, 88, 0.15)",
-            "--overlay-scrim": "rgba(1, 5, 3, 0.9)",
-            "--font-body": `"Source Code Pro", "Courier New", monospace`,
-            "--font-heading": `"VT323", "Source Code Pro", monospace`,
-            "--bg-pattern": "radial-gradient(circle at 50% -20%, rgba(107, 255, 142, 0.2) 0, transparent 50%)",
-            "--panel-shadow": "0 25px 55px rgba(0, 0, 0, 0.65)",
-            "--cell-hover-shadow": "0 0 25px rgba(107, 255, 142, 0.45)",
-            "--cell-hover-bg": "rgba(10, 20, 12, 0.95)",
+            "--bg": "#cbc6a9",
+            "--surface": "#e6d8b5",
+            "--border": "#8b7355",
+            "--text": "#2f2f2f",
+            "--muted": "#5a5a5a",
+            "--accent": "#ff4500",
+            "--accent-strong": "#cc3300",
+            "--accent-shadow": "rgba(255, 69, 0, 0.4)",
+            "--p1": "#41ff00",
+            "--p2": "#00ff88",
+            "--capture-bg": "#001100",
+            "--capture-bg-p2": "#001100",
+            "--draw-bg": "#002200",
+            "--cell-bg": "#000000",
+            "--last-move-glow": "rgba(65, 255, 0, 0.6)",
+            "--active-board-border": "#41ff00",
+            "--active-board-glow": "rgba(65, 255, 0, 0.4)",
+            "--active-board-glow-strong": "rgba(65, 255, 0, 0.6)",
+            "--macro-line": "rgba(65, 255, 0, 0.3)",
+            "--overlay-scrim": "rgba(0, 0, 0, 0.85)",
+            "--font-body": `"VT323", "IBM Plex Mono", "Courier New", monospace`,
+            "--font-heading": `"VT323", "IBM Plex Mono", "Courier New", monospace`,
+            "--bg-pattern": "repeating-linear-gradient(90deg, rgba(139, 115, 85, 0.03) 0px, rgba(139, 115, 85, 0.03) 1px, transparent 1px, transparent 3px)",
+            "--panel-shadow": "inset 0 2px 4px rgba(139, 115, 85, 0.2), 0 1px 3px rgba(139, 115, 85, 0.3)",
+            "--cell-hover-shadow": "0 0 8px rgba(65, 255, 0, 0.5)",
+            "--cell-hover-bg": "#001a00",
         },
     },
     sakura: {
@@ -288,24 +289,24 @@ const THEMES = {
     redmond: {
         label: "Redmond",
         tokens: {
-            "--bg": "#c0c0c0",
+            "--bg": "#018281",
             "--surface": "#c0c0c0",
             "--border": "#808080",
             "--text": "#000000",
             "--muted": "#000000",
-            "--accent": "#008080",
+            "--accent": "#0000ff",
             "--accent-strong": "#000080",
-            "--accent-shadow": "rgba(0, 128, 128, 0.4)",
+            "--accent-shadow": "rgba(0, 0, 255, 0.4)",
             "--p1": "#000080",
-            "--p2": "#800000",
+            "--p2": "#800080",
             "--capture-bg": "#d4d0c8",
             "--capture-bg-p2": "#d4d0c8",
             "--draw-bg": "#b8b8b8",
             "--cell-bg": "#c0c0c0",
             "--last-move-glow": "rgba(0, 0, 128, 0.6)",
-            "--active-board-border": "#008080",
-            "--active-board-glow": "rgba(0, 128, 128, 0.4)",
-            "--active-board-glow-strong": "rgba(0, 128, 128, 0.6)",
+            "--active-board-border": "#0000ff",
+            "--active-board-glow": "rgba(0, 0, 255, 0.4)",
+            "--active-board-glow-strong": "rgba(0, 0, 255, 0.6)",
             "--macro-line": "rgba(0, 0, 0, 0.6)",
             "--overlay-scrim": "rgba(128, 128, 128, 0.85)",
             "--font-body": `"MS Sans Serif", "Trebuchet MS", Arial, sans-serif`,
@@ -319,32 +320,32 @@ const THEMES = {
     cupertino: {
         label: "Cupertino",
         tokens: {
-            "--bg": "#e6e6e6",
-            "--surface": "#f0f0f0",
-            "--border": "#999999",
+            "--bg": "#ddd9d5",
+            "--surface": "#e8e5e1",
+            "--border": "#8e8e8e",
             "--text": "#000000",
-            "--muted": "#666666",
-            "--accent": "#4169e1",
-            "--accent-strong": "#0000cd",
-            "--accent-shadow": "rgba(65, 105, 225, 0.3)",
+            "--muted": "#5a5a5a",
+            "--accent": "#0066cc",
+            "--accent-strong": "#003d7a",
+            "--accent-shadow": "rgba(0, 102, 204, 0.3)",
             "--p1": "#000000",
             "--p2": "#333333",
-            "--capture-bg": "#d0d0d0",
-            "--capture-bg-p2": "#d0d0d0",
-            "--draw-bg": "#cccccc",
-            "--cell-bg": "#ffffff",
-            "--last-move-glow": "rgba(0, 0, 0, 0.3)",
-            "--active-board-border": "#4169e1",
-            "--active-board-glow": "rgba(65, 105, 225, 0.2)",
-            "--active-board-glow-strong": "rgba(65, 105, 225, 0.4)",
-            "--macro-line": "rgba(0, 0, 0, 0.4)",
-            "--overlay-scrim": "rgba(102, 102, 102, 0.85)",
-            "--font-body": `"Chicago", "Charcoal", "Geneva", "Helvetica", sans-serif`,
-            "--font-heading": `"Chicago", "Charcoal", "Geneva", "Helvetica", sans-serif`,
-            "--bg-pattern": "repeating-linear-gradient(45deg, rgba(0,0,0,0.02) 0px, rgba(0,0,0,0.02) 1px, transparent 1px, transparent 2px)",
-            "--panel-shadow": "0 1px 3px rgba(0, 0, 0, 0.2)",
-            "--cell-hover-shadow": "0 0 0 1px rgba(65, 105, 225, 0.3)",
-            "--cell-hover-bg": "#f8f8f8",
+            "--capture-bg": "#d0cdc9",
+            "--capture-bg-p2": "#ccc9c5",
+            "--draw-bg": "#c6c3bf",
+            "--cell-bg": "#f0ede9",
+            "--last-move-glow": "rgba(0, 0, 0, 0.25)",
+            "--active-board-border": "#0066cc",
+            "--active-board-glow": "rgba(0, 102, 204, 0.15)",
+            "--active-board-glow-strong": "rgba(0, 102, 204, 0.25)",
+            "--macro-line": "rgba(0, 0, 0, 0.3)",
+            "--overlay-scrim": "rgba(90, 90, 90, 0.85)",
+            "--font-body": `"Charcoal", "Chicago", "Geneva", "Lucida Grande", sans-serif`,
+            "--font-heading": `"Charcoal", "Chicago", "Geneva", "Lucida Grande", sans-serif`,
+            "--bg-pattern": "radial-gradient(circle at 25% 25%, rgba(255,255,255,0.4) 0px, transparent 1px), radial-gradient(circle at 75% 75%, rgba(255,255,255,0.3) 0px, transparent 1px)",
+            "--panel-shadow": "0 1px 2px rgba(0, 0, 0, 0.15)",
+            "--cell-hover-shadow": "inset 0 1px 0 rgba(255,255,255,0.6), 0 0 0 1px rgba(0, 102, 204, 0.3)",
+            "--cell-hover-bg": "#faf7f3",
         },
     },
 };
@@ -1564,8 +1565,9 @@ NormalAiStrategy.MAX_SEARCH_BRANCHES = 6;
 
 
 class HardAiStrategy {
-    static choose(snapshot) {
-        var _a, _b, _c, _d;
+    static choose(snapshot, options) {
+        var _a, _b, _c, _d, _e;
+        const allowJitter = (_a = options === null || options === void 0 ? void 0 : options.allowJitter) !== null && _a !== void 0 ? _a : false;
         const candidates = AiUtils.collectCandidates(snapshot);
         if (candidates.length === 0) {
             return null;
@@ -1575,13 +1577,15 @@ class HardAiStrategy {
         const stats = { nodes: 0, cacheHits: 0 };
         const startTime = performance.now();
         const maxTime = this.computeTimeBudget(snapshot);
-        let bestMove = (_b = (_a = ordered[0]) === null || _a === void 0 ? void 0 : _a.move) !== null && _b !== void 0 ? _b : null;
+        let bestMove = (_c = (_b = ordered[0]) === null || _b === void 0 ? void 0 : _b.move) !== null && _c !== void 0 ? _c : null;
         let bestScore = -Infinity;
         let depthReached = this.BASE_DEPTH;
+        let lastIterationScores = [];
         for (let depth = this.BASE_DEPTH; depth <= this.EXTENDED_DEPTH; depth += 1) {
             depthReached = depth;
             let iterationBest = null;
             let iterationScore = -Infinity;
+            const layerScores = [];
             for (const { move } of ordered) {
                 if (performance.now() - startTime > maxTime) {
                     depth = this.EXTENDED_DEPTH + 1;
@@ -1592,10 +1596,14 @@ class HardAiStrategy {
                     continue;
                 }
                 const score = this.minimax(next, 1, depth, -Infinity, Infinity, cache, stats, startTime, maxTime);
+                layerScores.push({ move, score });
                 if (score > iterationScore) {
                     iterationScore = score;
                     iterationBest = move;
                 }
+            }
+            if (layerScores.length > 0) {
+                lastIterationScores = layerScores;
             }
             if (iterationBest) {
                 bestMove = iterationBest;
@@ -1603,6 +1611,16 @@ class HardAiStrategy {
             }
             if (performance.now() - startTime > maxTime) {
                 break;
+            }
+        }
+        if (allowJitter && lastIterationScores.length > 1) {
+            const topScore = Math.max(...lastIterationScores.map((entry) => entry.score));
+            const tolerance = 0.4;
+            const contenders = lastIterationScores.filter((entry) => topScore - entry.score <= tolerance);
+            if (contenders.length > 1) {
+                const choice = contenders[Math.floor(Math.random() * contenders.length)];
+                bestMove = choice.move;
+                bestScore = choice.score;
             }
         }
         AiDiagnostics.logDecision({
@@ -1615,13 +1633,14 @@ class HardAiStrategy {
                 cacheEntries: cache.size,
                 nodes: stats.nodes,
                 cacheHits: stats.cacheHits,
+                jitter: allowJitter,
                 timeMs: Number((performance.now() - startTime).toFixed(1)),
             },
         });
         if (bestMove) {
             return bestMove;
         }
-        return (_d = bestMove !== null && bestMove !== void 0 ? bestMove : (_c = ordered[0]) === null || _c === void 0 ? void 0 : _c.move) !== null && _d !== void 0 ? _d : null;
+        return (_e = bestMove !== null && bestMove !== void 0 ? bestMove : (_d = ordered[0]) === null || _d === void 0 ? void 0 : _d.move) !== null && _e !== void 0 ? _e : null;
     }
     static minimax(state, depth, maxDepth, alpha, beta, cache, stats, startTime, maxTime) {
         stats.nodes += 1;
@@ -1736,15 +1755,22 @@ HardAiStrategy.LATE_GAME_THRESHOLD = 20;
 
 
 
+
 class AiController {
     constructor(difficulty) {
         this.difficulty = difficulty;
     }
     chooseMove(snapshot) {
+        const bookMove = OpeningBook.lookup(snapshot, this.difficulty);
+        if (bookMove) {
+            return bookMove;
+        }
         switch (this.difficulty) {
             case "easy":
                 return EasyAiStrategy.choose(snapshot);
             case "hard":
+                return HardAiStrategy.choose(snapshot, { allowJitter: true });
+            case "expert":
                 return HardAiStrategy.choose(snapshot);
             case "normal":
             default:
@@ -1757,7 +1783,7 @@ class AiController {
 // === dist/analytics/solo-tracker.js ===
 const STORAGE_KEY = "st3.soloStats";
 const RULE_SET_KEYS = ["classic", "modern", "battle"];
-const DIFFICULTY_KEYS = ["easy", "normal", "hard"];
+const DIFFICULTY_KEYS = ["easy", "normal", "hard", "expert"];
 class SoloStatsTracker {
     static record(ruleSet, difficulty, outcome) {
         const stats = this.load();
@@ -1796,6 +1822,7 @@ class SoloStatsTracker {
             easy: this.createEmptyBucket(),
             normal: this.createEmptyBucket(),
             hard: this.createEmptyBucket(),
+            expert: this.createEmptyBucket(),
         };
         return {
             totals,
