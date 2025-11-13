@@ -33,6 +33,7 @@ All TypeScript source lives under `src/` (split into `core`, `ai`, `ui`, and `ma
 - **Three rule sets**: pick Battle Mode (default; captured boards stay live and can be stolen), Classic (captured boards stay playable but ownership sticks), or Modern (captured/dead boards lock immediately).
 - **Visual guidance**: active board highlighting, captured/drawn states, latest move glow, and a status bar describing whose turn it is plus any board constraints.
 - **Move history**: chess-style log (e.g., `T12: P1BB3LB2 -> P2BB2LB5(F)`) with `(F)` indicating when the destination board was full and the next player could choose freely.
+- **Solo analytics & debugging**: every 1P game updates browser-side win/draw counters by rule set + difficulty (rendered in the bar beneath the board), and you can flip on AI diagnostic logs via DevTools when tuning.
 - **Rules & history toggles**: collapsible panels keep the layout tidy on smaller screens.
 - **Friendly guardrails**: illegal moves trigger a modal (“Oops! can’t move there because …”) with a single “got it!” button so players know what went wrong.
 
@@ -71,5 +72,12 @@ Optional polish: if you want special fonts or effects for that theme, add a CSS 
 - To self-host, copy the entire folder into your web server’s document root (Apache, Nginx, GitHub Pages, etc.). No backend required.
 - For kiosks/classrooms, keep the repo synced and just launch `index.html` locally; it runs offline.
 - Want multiple visual themes later? Override the CSS custom properties at the top of `style.css` or wire up a selector that swaps them on the fly—everything else already references those tokens.
+
+---
+
+## AI Telemetry & Stats
+
+- **Solo outcome log**: peek at `localStorage.st3.soloStats` to see aggregate Human / AI / Draw counts for each rule set and difficulty (reset with `localStorage.removeItem("st3.soloStats")`).
+- **Diagnostics toggle**: run `localStorage.setItem("st3.aiDebug", "1")` in DevTools and refresh to see per-move candidate tables for Normal/Hard. Disable with `"0"` (or remove the key) when you’re done profiling.
 
 Enjoy the grid warfare! If you add features (AI, saved games, themes), re-run `npm run build` so `game.js` stays in sync.\*\*\*

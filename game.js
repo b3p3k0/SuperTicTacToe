@@ -754,6 +754,234 @@ class AiUtils {
 }
 
 
+// === dist/ai/rule-heuristics.js ===
+
+class RuleAwareHeuristics {
+    static moveBonus(snapshot, move, player) {
+        var _a;
+        const ruleSet = (_a = snapshot.ruleSet) !== null && _a !== void 0 ? _a : "battle";
+        switch (ruleSet) {
+            case "battle":
+                return this.battleMoveBonus({ snapshot, move, player });
+            case "classic":
+                return this.classicMoveBonus({ snapshot, move, player });
+            case "modern":
+                return this.modernMoveBonus({ snapshot, move, player });
+            default:
+                return 0;
+        }
+    }
+    static stateBonus(snapshot, player) {
+        var _a;
+        const ruleSet = (_a = snapshot.ruleSet) !== null && _a !== void 0 ? _a : "battle";
+        switch (ruleSet) {
+            case "battle":
+                return this.battleStateBonus(snapshot, player);
+            case "classic":
+                return this.classicStateBonus(snapshot, player);
+            case "modern":
+                return this.modernStateBonus(snapshot, player);
+            default:
+                return 0;
+        }
+    }
+    static battleMoveBonus({ snapshot, move, player }) {
+        const opponent = AiUtils.getOpponent(player);
+        let score = 0;
+        const board = snapshot.boards[move.boardIndex];
+        if (board && !board.isFull && board.winner) {
+            if (board.winner === opponent) {
+                if (AiUtils.completesLine(board.cells, move.cellIndex, player)) {
+                    score += 4.5; // Immediate recapture
+                }
+                else {
+                    score += AiUtils.patternOpportunityScore(board.cells, player, move.cellIndex) * 0.6;
+                }
+            }
+            else if (board.winner === player) {
+                // Reinforce a contested board we already own
+                score += AiUtils.patternBlockScore(board.cells, opponent, move.cellIndex) * 0.8;
+            }
+        }
+        const targetBoardIndex = move.cellIndex;
+        const targetBoard = snapshot.boards[targetBoardIndex];
+        if (targetBoard && !targetBoard.isFull && targetBoard.winner) {
+            const aiPotential = AiUtils.boardPotential(targetBoard.cells, player);
+            const opponentPotential = AiUtils.boardPotential(targetBoard.cells, opponent);
+            const margin = aiPotential - opponentPotential;
+            if (targetBoard.winner === player) {
+                score += Math.max(margin, 0) * 0.45; // Bait opponent into a board we still dominate
+            }
+            else if (targetBoard.winner === opponent) {
+                score -= Math.max(-margin, 0) * 0.5; // Avoid steering into their stronghold
+            }
+        }
+        return score;
+    }
+    static classicMoveBonus({ snapshot, move, player }) {
+        const opponent = AiUtils.getOpponent(player);
+        let score = 0;
+        const board = snapshot.boards[move.boardIndex];
+        if (board && !board.winner) {
+            // Completing a capture in Classic permanently claims the board
+            if (AiUtils.completesLine(board.cells, move.cellIndex, player)) {
+                score += 2.25;
+            }
+        }
+        const targetBoard = snapshot.boards[move.cellIndex];
+        if (targetBoard) {
+            if (targetBoard.winner === player && !targetBoard.isFull) {
+                score += 1.4; // Force opponent to waste moves in a locked victory
+            }
+            else if (targetBoard.winner === opponent && !targetBoard.isFull) {
+                score -= 1.2;
+            }
+            else if (!targetBoard.winner && targetBoard.isFull) {
+                score += 0.6; // Directing into an exhausted board frees our next choice
+            }
+        }
+        return score;
+    }
+    static modernMoveBonus({ snapshot, move, player }) {
+        const opponent = AiUtils.getOpponent(player);
+        let score = 0;
+        const board = snapshot.boards[move.boardIndex];
+        if (board && !board.winner) {
+            if (AiUtils.completesLine(board.cells, move.cellIndex, player)) {
+                score += 3; // Captures immediately lock the board
+            }
+        }
+        const targetBoard = snapshot.boards[move.cellIndex];
+        if (targetBoard) {
+            if (targetBoard.isFull || targetBoard.isDraw || targetBoard.winner) {
+                score += 0.9; // Sending opponent into a closed board grants us flexibility
+            }
+            else {
+                const aiPotential = AiUtils.boardPotential(targetBoard.cells, player);
+                const opponentPotential = AiUtils.boardPotential(targetBoard.cells, opponent);
+                score += (aiPotential - opponentPotential) * 0.2;
+            }
+        }
+        return score;
+    }
+    static battleStateBonus(snapshot, player) {
+        const opponent = AiUtils.getOpponent(player);
+        let score = 0;
+        snapshot.boards.forEach((board) => {
+            if (!board || !board.winner || board.isFull) {
+                return;
+            }
+            if (board.winner === player) {
+                const margin = AiUtils.boardPotential(board.cells, player) -
+                    AiUtils.boardPotential(board.cells, opponent);
+                score += 3 + Math.max(margin, 0) * 0.35;
+            }
+            else if (board.winner === opponent) {
+                score -= 3;
+            }
+        });
+        return score;
+    }
+    static classicStateBonus(snapshot, player) {
+        const opponent = AiUtils.getOpponent(player);
+        let score = 0;
+        snapshot.boards.forEach((board) => {
+            if (!board || !board.winner) {
+                return;
+            }
+            if (board.winner === player) {
+                score += board.isFull ? 9 : 7;
+            }
+            else if (board.winner === opponent) {
+                score -= board.isFull ? 9 : 7;
+            }
+        });
+        return score;
+    }
+    static modernStateBonus(snapshot, player) {
+        let openBoards = 0;
+        let score = 0;
+        snapshot.boards.forEach((board) => {
+            if (!board) {
+                return;
+            }
+            const closed = board.isFull || board.isDraw || !!board.winner;
+            if (!closed) {
+                openBoards += 1;
+            }
+            if (board.winner === player) {
+                score += 10;
+            }
+            else if (board.winner === AiUtils.getOpponent(player)) {
+                score -= 10;
+            }
+        });
+        const totalBoards = snapshot.boards.length || 1;
+        const flexibility = 1 - openBoards / totalBoards;
+        score += flexibility * 4; // Fewer open boards favors whoever is ahead
+        return score;
+    }
+}
+
+
+// === dist/ai/diagnostics.js ===
+class AiDiagnostics {
+    static isEnabled() {
+        if (typeof window === "undefined" || !window.localStorage) {
+            return false;
+        }
+        try {
+            const flag = window.localStorage.getItem(this.FLAG_KEY);
+            return flag === "1" || flag === "true";
+        }
+        catch (_a) {
+            return false;
+        }
+    }
+    static logDecision(payload) {
+        var _a, _b, _c, _d;
+        if (!this.isEnabled()) {
+            return;
+        }
+        const groupLabel = `[AI][${payload.ruleSet}] ${payload.difficulty.toUpperCase()}`;
+        const logger = console;
+        if (!logger) {
+            return;
+        }
+        const candidates = (_b = (_a = payload.candidates) === null || _a === void 0 ? void 0 : _a.slice(0, 5)) !== null && _b !== void 0 ? _b : [];
+        (_c = logger.groupCollapsed) === null || _c === void 0 ? void 0 : _c.call(logger, groupLabel);
+        logger.log("Chosen move:", payload.bestMove);
+        if (payload.depth !== undefined) {
+            logger.log("Depth limit:", payload.depth);
+        }
+        if (payload.metadata) {
+            logger.log("Extra metadata:", payload.metadata);
+        }
+        if (candidates.length > 0 && logger.table) {
+            logger.table(candidates.map((entry, index) => ({
+                rank: index + 1,
+                board: entry.move.boardIndex + 1,
+                cell: entry.move.cellIndex + 1,
+                score: entry.score.toFixed(3),
+            })));
+        }
+        (_d = logger.groupEnd) === null || _d === void 0 ? void 0 : _d.call(logger);
+    }
+    static setEnabled(value) {
+        if (typeof window === "undefined" || !window.localStorage) {
+            return;
+        }
+        try {
+            window.localStorage.setItem(this.FLAG_KEY, value ? "1" : "0");
+        }
+        catch (_a) {
+            // no-op
+        }
+    }
+}
+AiDiagnostics.FLAG_KEY = "st3.aiDebug";
+
+
 // === dist/ai/simulator.js ===
 
 class AiSimulator {
@@ -889,6 +1117,9 @@ class EasyAiStrategy {
 // === dist/ai/strategies/normal.js ===
 
 
+
+
+
 class NormalAiStrategy {
     static choose(snapshot) {
         const candidates = AiUtils.collectCandidates(snapshot);
@@ -906,22 +1137,40 @@ class NormalAiStrategy {
             return blockingMove;
         }
         // Use scoring heuristics for other moves
-        return this.scoreAndPick(snapshot, candidates);
+        const { move, scored, errorApplied } = this.scoreAndPick(snapshot, candidates);
+        AiDiagnostics.logDecision({
+            difficulty: "normal",
+            ruleSet: snapshot.ruleSet,
+            bestMove: move,
+            candidates: scored.slice(0, 5),
+            metadata: {
+                errorApplied,
+                candidateCount: scored.length,
+            },
+        });
+        return move;
     }
     static scoreAndPick(snapshot, candidates) {
         if (candidates.length === 0) {
             throw new Error("No candidates available");
         }
-        let bestMove = candidates[0];
-        let bestScore = -Infinity;
-        for (const move of candidates) {
-            const score = this.scoreMove(snapshot, move);
-            if (score > bestScore) {
-                bestScore = score;
-                bestMove = move;
-            }
+        const scored = candidates.map((move) => ({
+            move,
+            score: this.scoreMove(snapshot, move),
+        }));
+        scored.sort((a, b) => b.score - a.score);
+        let chosenIndex = 0;
+        let errorApplied = false;
+        if (Math.random() < this.BLUNDER_RATE && scored.length > 1) {
+            const maxIdx = Math.min(2, scored.length - 1);
+            chosenIndex = Math.floor(Math.random() * maxIdx) + 1;
+            errorApplied = chosenIndex !== 0;
         }
-        return bestMove;
+        return {
+            move: scored[chosenIndex].move,
+            scored,
+            errorApplied,
+        };
     }
     static scoreMove(snapshot, move) {
         var _a, _b;
@@ -966,22 +1215,57 @@ class NormalAiStrategy {
         else {
             score += 0.5;
         }
+        // Rule-aware routing bonuses
+        score += RuleAwareHeuristics.moveBonus(snapshot, move, "O");
         // Macro-level threat creation
         if (AiUtils.createsMacroThreat(snapshot, move)) {
             score += 2.5;
         }
+        // Simulate immediate punishments (1 ply look-ahead)
+        score += this.simulateImmediatePunish(snapshot, move);
         // Add tiny random factor for tie-breaking
         return score + Math.random() * 0.001;
     }
+    static simulateImmediatePunish(snapshot, move) {
+        const next = AiSimulator.applyMove(snapshot, move, "O");
+        if (!next) {
+            return 0;
+        }
+        const opponentCandidates = AiUtils.collectCandidates(next);
+        if (opponentCandidates.length === 0) {
+            return 0;
+        }
+        let penalty = 0;
+        const immediateLoss = AiUtils.findImmediateWin(next, opponentCandidates, "X");
+        if (immediateLoss) {
+            penalty -= 6;
+        }
+        if (snapshot.ruleSet === "battle") {
+            const contestedIndex = move.boardIndex;
+            const contestedBoard = next.boards[contestedIndex];
+            if (contestedBoard && contestedBoard.winner === "O" && !contestedBoard.isFull) {
+                const recaptureCandidates = opponentCandidates.filter((candidate) => candidate.boardIndex === contestedIndex);
+                const recaptureThreat = recaptureCandidates.some((candidate) => AiUtils.completesLine(contestedBoard.cells, candidate.cellIndex, "X"));
+                if (recaptureThreat) {
+                    penalty -= 4.5;
+                }
+            }
+        }
+        return penalty;
+    }
 }
+NormalAiStrategy.BLUNDER_RATE = 0.12;
 
 
 // === dist/ai/strategies/hard.js ===
 
 
 
+
+
 class HardAiStrategy {
     static choose(snapshot) {
+        var _a, _b;
         const candidates = AiUtils.collectCandidates(snapshot);
         if (candidates.length === 0) {
             return null;
@@ -991,21 +1275,45 @@ class HardAiStrategy {
             : this.BASE_DEPTH;
         let bestMove = null;
         let bestScore = -Infinity;
+        const cache = new Map();
+        const stats = { nodes: 0, cacheHits: 0 };
         const ordered = this.orderCandidates(snapshot, candidates, "O");
         for (const { move } of ordered) {
             const next = AiSimulator.applyMove(snapshot, move, "O");
             if (!next) {
                 continue;
             }
-            const score = this.minimax(next, 1, depthLimit, -Infinity, Infinity);
+            const score = this.minimax(next, 1, depthLimit, -Infinity, Infinity, cache, stats);
             if (score > bestScore) {
                 bestScore = score;
                 bestMove = move;
             }
         }
-        return bestMove || null;
+        AiDiagnostics.logDecision({
+            difficulty: "hard",
+            ruleSet: snapshot.ruleSet,
+            bestMove,
+            depth: depthLimit,
+            candidates: ordered.slice(0, 5),
+            metadata: {
+                cacheEntries: cache.size,
+                nodes: stats.nodes,
+                cacheHits: stats.cacheHits,
+            },
+        });
+        if (bestMove) {
+            return bestMove;
+        }
+        return (_b = (_a = ordered[0]) === null || _a === void 0 ? void 0 : _a.move) !== null && _b !== void 0 ? _b : null;
     }
-    static minimax(state, depth, maxDepth, alpha, beta) {
+    static minimax(state, depth, maxDepth, alpha, beta, cache, stats) {
+        stats.nodes += 1;
+        const cacheKey = this.hashState(state, depth);
+        const cached = cache.get(cacheKey);
+        if (cached !== undefined) {
+            stats.cacheHits += 1;
+            return cached;
+        }
         const terminal = this.evaluateTerminal(state, depth);
         if (terminal !== null) {
             return terminal;
@@ -1025,7 +1333,7 @@ class HardAiStrategy {
             if (!next) {
                 continue;
             }
-            const value = this.minimax(next, depth + 1, maxDepth, alpha, beta);
+            const value = this.minimax(next, depth + 1, maxDepth, alpha, beta, cache, stats);
             if (maximizing) {
                 if (value > bestScore) {
                     bestScore = value;
@@ -1045,6 +1353,7 @@ class HardAiStrategy {
                 }
             }
         }
+        cache.set(cacheKey, bestScore);
         return bestScore;
     }
     static evaluateTerminal(state, depth) {
@@ -1057,24 +1366,30 @@ class HardAiStrategy {
         return null;
     }
     static evaluateState(state) {
+        var _a;
         let score = 0;
+        const ruleSet = (_a = state.ruleSet) !== null && _a !== void 0 ? _a : "battle";
         // Evaluate individual boards
         state.boards.forEach((board) => {
             if (board.winner === "O") {
-                score += 9;
+                score += ruleSet === "modern" ? 12 : 10;
             }
             else if (board.winner === "X") {
-                score -= 9;
+                score -= ruleSet === "modern" ? 12 : 10;
             }
             else {
-                score += AiUtils.boardPotential(board.cells, "O") * 1.1;
-                score -= AiUtils.boardPotential(board.cells, "X") * 0.9;
+                const aiWeight = ruleSet === "modern" ? 1.25 : ruleSet === "classic" ? 1.1 : 1.05;
+                const humanWeight = ruleSet === "battle" ? 0.95 : 1;
+                score += AiUtils.boardPotential(board.cells, "O") * aiWeight;
+                score -= AiUtils.boardPotential(board.cells, "X") * humanWeight;
             }
         });
         // Macro-level evaluation
-        score += this.evaluateMacro(state.boards) * 6;
+        score += this.evaluateMacro(state.boards) * 6.5;
         // Directed target evaluation
-        score += this.evaluateDirectedTargets(state) * 3;
+        score += this.evaluateDirectedTargets(state, ruleSet) * 3.2;
+        // Rule-specific global bonuses
+        score += RuleAwareHeuristics.stateBonus(state, "O");
         return score;
     }
     static evaluateMacro(boards) {
@@ -1092,7 +1407,7 @@ class HardAiStrategy {
         }
         return score;
     }
-    static evaluateDirectedTargets(state) {
+    static evaluateDirectedTargets(state, ruleSet) {
         if (!state.lastMove) {
             return 0;
         }
@@ -1106,7 +1421,8 @@ class HardAiStrategy {
         }
         const aiPotential = AiUtils.boardPotential(targetBoard.cells, "O");
         const humanPotential = AiUtils.boardPotential(targetBoard.cells, "X");
-        return (aiPotential - humanPotential) * 0.6;
+        const weight = ruleSet === "classic" ? 0.8 : ruleSet === "modern" ? 0.7 : 0.6;
+        return (aiPotential - humanPotential) * weight;
     }
     static orderCandidates(snapshot, moves, player) {
         return moves
@@ -1121,15 +1437,25 @@ class HardAiStrategy {
             const block = board
                 ? AiUtils.patternBlockScore(board.cells, player === "O" ? "X" : "O", move.cellIndex)
                 : 0;
-            const heuristic = cellScore + potential * 1.5 + block;
+            const ruleAware = RuleAwareHeuristics.moveBonus(snapshot, move, player);
+            const heuristic = cellScore + potential * 1.5 + block + ruleAware;
             return { move, score: heuristic };
         })
             .sort((a, b) => b.score - a.score);
     }
+    static hashState(state, depth) {
+        var _a;
+        const boardKey = state.boards
+            .map((board) => board.cells.map((cell) => cell !== null && cell !== void 0 ? cell : "_").join(""))
+            .join("|");
+        const winners = state.boards.map((board) => { var _a; return (_a = board.winner) !== null && _a !== void 0 ? _a : "_"; }).join("");
+        const active = (_a = state.activeBoardIndex) !== null && _a !== void 0 ? _a : "a";
+        return `${state.ruleSet}|${state.currentPlayer}|${active}|${depth}|${winners}|${boardKey}`;
+    }
 }
-HardAiStrategy.BASE_DEPTH = 3;
-HardAiStrategy.EXTENDED_DEPTH = 4;
-HardAiStrategy.HIGH_BRANCH_THRESHOLD = 18;
+HardAiStrategy.BASE_DEPTH = 4;
+HardAiStrategy.EXTENDED_DEPTH = 5;
+HardAiStrategy.HIGH_BRANCH_THRESHOLD = 16;
 
 
 // === dist/ai/controller.js ===
@@ -1150,6 +1476,138 @@ class AiController {
             default:
                 return NormalAiStrategy.choose(snapshot);
         }
+    }
+}
+
+
+// === dist/analytics/solo-tracker.js ===
+const STORAGE_KEY = "st3.soloStats";
+const RULE_SET_KEYS = ["classic", "modern", "battle"];
+const DIFFICULTY_KEYS = ["easy", "normal", "hard"];
+class SoloStatsTracker {
+    static record(ruleSet, difficulty, outcome) {
+        const stats = this.load();
+        this.increment(stats.totals, outcome);
+        this.increment(stats.byRule[ruleSet], outcome);
+        this.increment(stats.byDifficulty[difficulty], outcome);
+        stats.lastUpdated = Date.now();
+        this.save(stats);
+        this.logToConsole(ruleSet, difficulty, outcome, stats);
+    }
+    static getStats() {
+        if (!this.hasStorage()) {
+            return null;
+        }
+        return this.load();
+    }
+    static increment(bucket, outcome) {
+        if (outcome === "human") {
+            bucket.human += 1;
+        }
+        else if (outcome === "ai") {
+            bucket.ai += 1;
+        }
+        else {
+            bucket.draw += 1;
+        }
+    }
+    static createEmptySnapshot() {
+        const totals = this.createEmptyBucket();
+        const byRule = {
+            classic: this.createEmptyBucket(),
+            modern: this.createEmptyBucket(),
+            battle: this.createEmptyBucket(),
+        };
+        const byDifficulty = {
+            easy: this.createEmptyBucket(),
+            normal: this.createEmptyBucket(),
+            hard: this.createEmptyBucket(),
+        };
+        return {
+            totals,
+            byRule,
+            byDifficulty,
+            lastUpdated: Date.now(),
+        };
+    }
+    static createEmptyBucket() {
+        return { human: 0, ai: 0, draw: 0 };
+    }
+    static load() {
+        const defaults = this.createEmptySnapshot();
+        if (!this.hasStorage()) {
+            return defaults;
+        }
+        try {
+            const raw = window.localStorage.getItem(STORAGE_KEY);
+            if (!raw) {
+                return defaults;
+            }
+            const parsed = JSON.parse(raw);
+            return this.mergeSnapshots(defaults, parsed);
+        }
+        catch (_a) {
+            return defaults;
+        }
+    }
+    static mergeSnapshots(base, patch) {
+        if (patch.totals) {
+            base.totals = this.mergeBuckets(base.totals, patch.totals);
+        }
+        if (patch.byRule) {
+            RULE_SET_KEYS.forEach((key) => {
+                var _a;
+                if ((_a = patch.byRule) === null || _a === void 0 ? void 0 : _a[key]) {
+                    base.byRule[key] = this.mergeBuckets(base.byRule[key], patch.byRule[key]);
+                }
+            });
+        }
+        if (patch.byDifficulty) {
+            DIFFICULTY_KEYS.forEach((key) => {
+                var _a;
+                if ((_a = patch.byDifficulty) === null || _a === void 0 ? void 0 : _a[key]) {
+                    base.byDifficulty[key] = this.mergeBuckets(base.byDifficulty[key], patch.byDifficulty[key]);
+                }
+            });
+        }
+        if (typeof patch.lastUpdated === "number") {
+            base.lastUpdated = patch.lastUpdated;
+        }
+        return base;
+    }
+    static mergeBuckets(base, patch) {
+        var _a, _b, _c;
+        if (!patch) {
+            return base;
+        }
+        return {
+            human: (_a = patch.human) !== null && _a !== void 0 ? _a : base.human,
+            ai: (_b = patch.ai) !== null && _b !== void 0 ? _b : base.ai,
+            draw: (_c = patch.draw) !== null && _c !== void 0 ? _c : base.draw,
+        };
+    }
+    static save(stats) {
+        if (!this.hasStorage()) {
+            return;
+        }
+        try {
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+        }
+        catch (_a) {
+            // Ignore quota errors
+        }
+    }
+    static logToConsole(ruleSet, difficulty, outcome, stats) {
+        var _a;
+        if (typeof console === "undefined") {
+            return;
+        }
+        const label = `[ST3] Solo stats update (${ruleSet} · ${difficulty}) → ${outcome.toUpperCase()}`;
+        console.info(label);
+        (_a = console.table) === null || _a === void 0 ? void 0 : _a.call(console, stats.totals);
+    }
+    static hasStorage() {
+        return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
     }
 }
 
@@ -1722,6 +2180,7 @@ class OverlayManager {
 
 
 
+
 class GameUI {
     constructor(engine) {
         // Game state
@@ -1731,6 +2190,9 @@ class GameUI {
         this.humanInputLocked = true;
         this.awaitingAiMove = false;
         this.aiMoveTimer = null;
+        this.lastRecordedOutcomeSignature = null;
+        this.soloStatsBar = null;
+        this.soloStatsText = null;
         this.engine = engine;
         // Get required DOM elements
         const boardContainer = document.getElementById("super-board");
@@ -1747,6 +2209,8 @@ class GameUI {
         this.boardRenderer = new BoardRenderer(boardContainer);
         this.overlayManager = new OverlayManager();
         this.panelManager = new PanelManager();
+        this.soloStatsBar = document.getElementById("solo-stats-bar");
+        this.soloStatsText = document.getElementById("solo-stats-text");
         this.setupEventHandlers();
     }
     init() {
@@ -1824,6 +2288,8 @@ class GameUI {
         this.updateStatus(snapshot);
         this.boardRenderer.updateBoards(snapshot, this.humanInputLocked);
         this.panelManager.updateHistory(snapshot.history);
+        this.trackSoloOutcome(snapshot);
+        this.updateSoloStatsBar();
     }
     updateStatus(snapshot) {
         var _a;
@@ -1948,6 +2414,40 @@ class GameUI {
     setHumanInputLocked(locked) {
         this.humanInputLocked = locked;
         this.boardRenderer.setBoardLocked(locked);
+    }
+    trackSoloOutcome(snapshot) {
+        var _a, _b;
+        if (this.mode !== "solo") {
+            this.lastRecordedOutcomeSignature = null;
+            return;
+        }
+        if (snapshot.status === "playing") {
+            this.lastRecordedOutcomeSignature = null;
+            return;
+        }
+        const signature = `${snapshot.status}-${snapshot.moveCount}`;
+        if (this.lastRecordedOutcomeSignature === signature) {
+            return;
+        }
+        this.lastRecordedOutcomeSignature = signature;
+        const difficulty = (_b = (_a = this.aiProfile) === null || _a === void 0 ? void 0 : _a.difficulty) !== null && _b !== void 0 ? _b : "normal";
+        let outcome = "draw";
+        if (snapshot.status === "won" && snapshot.winner) {
+            outcome = snapshot.winner === "X" ? "human" : "ai";
+        }
+        SoloStatsTracker.record(snapshot.ruleSet, difficulty, outcome);
+    }
+    updateSoloStatsBar() {
+        var _a;
+        if (!this.soloStatsBar || !this.soloStatsText) {
+            return;
+        }
+        const stats = SoloStatsTracker.getStats();
+        const totals = (_a = stats === null || stats === void 0 ? void 0 : stats.totals) !== null && _a !== void 0 ? _a : { human: 0, ai: 0, draw: 0 };
+        const totalGames = totals.human + totals.ai + totals.draw;
+        this.soloStatsText.textContent = `Human wins ${totals.human} · AI wins ${totals.ai} · Draws ${totals.draw} · Total games ${totalGames}`;
+        const isEmpty = totalGames === 0;
+        this.soloStatsBar.classList.toggle("solo-stats-empty", isEmpty);
     }
 }
 

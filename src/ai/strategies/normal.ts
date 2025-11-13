@@ -1,8 +1,18 @@
 import { GameSnapshot, AiMove } from "../../core/types.js";
 import { CELL_PRIORITY, BOARD_PRIORITY } from "../../core/constants.js";
 import { AiUtils } from "../utils.js";
+import { RuleAwareHeuristics } from "../rule-heuristics.js";
+import { AiSimulator } from "../simulator.js";
+import { AiDiagnostics } from "../diagnostics.js";
+
+interface ScoredCandidate {
+  move: AiMove;
+  score: number;
+}
 
 export class NormalAiStrategy {
+  private static readonly BLUNDER_RATE = 0.12;
+
   static choose(snapshot: GameSnapshot): AiMove | null {
     const candidates = AiUtils.collectCandidates(snapshot);
     if (candidates.length === 0) {
@@ -22,26 +32,51 @@ export class NormalAiStrategy {
     }
 
     // Use scoring heuristics for other moves
-    return this.scoreAndPick(snapshot, candidates);
+    const { move, scored, errorApplied } = this.scoreAndPick(snapshot, candidates);
+
+    AiDiagnostics.logDecision({
+      difficulty: "normal",
+      ruleSet: snapshot.ruleSet,
+      bestMove: move,
+      candidates: scored.slice(0, 5),
+      metadata: {
+        errorApplied,
+        candidateCount: scored.length,
+      },
+    });
+
+    return move;
   }
 
-  private static scoreAndPick(snapshot: GameSnapshot, candidates: AiMove[]): AiMove {
+  private static scoreAndPick(
+    snapshot: GameSnapshot,
+    candidates: AiMove[],
+  ): { move: AiMove; scored: ScoredCandidate[]; errorApplied: boolean } {
     if (candidates.length === 0) {
       throw new Error("No candidates available");
     }
 
-    let bestMove = candidates[0]!;
-    let bestScore = -Infinity;
+    const scored = candidates.map((move) => ({
+      move,
+      score: this.scoreMove(snapshot, move),
+    }));
 
-    for (const move of candidates) {
-      const score = this.scoreMove(snapshot, move);
-      if (score > bestScore) {
-        bestScore = score;
-        bestMove = move;
-      }
+    scored.sort((a, b) => b.score - a.score);
+
+    let chosenIndex = 0;
+    let errorApplied = false;
+
+    if (Math.random() < this.BLUNDER_RATE && scored.length > 1) {
+      const maxIdx = Math.min(2, scored.length - 1);
+      chosenIndex = Math.floor(Math.random() * maxIdx) + 1;
+      errorApplied = chosenIndex !== 0;
     }
 
-    return bestMove;
+    return {
+      move: scored[chosenIndex]!.move,
+      scored,
+      errorApplied,
+    };
   }
 
   private static scoreMove(snapshot: GameSnapshot, move: AiMove): number {
@@ -85,12 +120,55 @@ export class NormalAiStrategy {
       score += 0.5;
     }
 
+    // Rule-aware routing bonuses
+    score += RuleAwareHeuristics.moveBonus(snapshot, move, "O");
+
     // Macro-level threat creation
     if (AiUtils.createsMacroThreat(snapshot, move)) {
       score += 2.5;
     }
 
+    // Simulate immediate punishments (1 ply look-ahead)
+    score += this.simulateImmediatePunish(snapshot, move);
+
     // Add tiny random factor for tie-breaking
     return score + Math.random() * 0.001;
+  }
+
+  private static simulateImmediatePunish(snapshot: GameSnapshot, move: AiMove): number {
+    const next = AiSimulator.applyMove(snapshot, move, "O");
+    if (!next) {
+      return 0;
+    }
+
+    const opponentCandidates = AiUtils.collectCandidates(next);
+    if (opponentCandidates.length === 0) {
+      return 0;
+    }
+
+    let penalty = 0;
+
+    const immediateLoss = AiUtils.findImmediateWin(next, opponentCandidates, "X");
+    if (immediateLoss) {
+      penalty -= 6;
+    }
+
+    if (snapshot.ruleSet === "battle") {
+      const contestedIndex = move.boardIndex;
+      const contestedBoard = next.boards[contestedIndex];
+      if (contestedBoard && contestedBoard.winner === "O" && !contestedBoard.isFull) {
+        const recaptureCandidates = opponentCandidates.filter(
+          (candidate) => candidate.boardIndex === contestedIndex,
+        );
+        const recaptureThreat = recaptureCandidates.some((candidate) =>
+          AiUtils.completesLine(contestedBoard.cells, candidate.cellIndex, "X"),
+        );
+        if (recaptureThreat) {
+          penalty -= 4.5;
+        }
+      }
+    }
+
+    return penalty;
   }
 }

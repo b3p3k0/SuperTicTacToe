@@ -181,6 +181,30 @@ body::before {
   font-weight: 600;
 }
 
+.solo-stats-bar {
+  margin: 1rem 0 2rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--panel-shadow, none);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  text-align: center;
+}
+
+.solo-stats-bar p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.solo-stats-bar.solo-stats-empty {
+  opacity: 0.75;
+  font-weight: 500;
+}
+
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);

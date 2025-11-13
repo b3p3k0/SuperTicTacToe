@@ -15,6 +15,7 @@ import { AiController } from "../ai/controller.js";
 import { BoardRenderer } from "./components/board.js";
 import { OverlayManager } from "./components/overlays.js";
 import { PanelManager } from "./components/panels.js";
+import { SoloStatsTracker, SoloOutcome } from "../analytics/solo-tracker.js";
 
 export class GameUI {
   private engine: GameEngine;
@@ -33,6 +34,9 @@ export class GameUI {
   private humanInputLocked: boolean = true;
   private awaitingAiMove: boolean = false;
   private aiMoveTimer: number | null = null;
+  private lastRecordedOutcomeSignature: string | null = null;
+  private soloStatsBar: HTMLElement | null = null;
+  private soloStatsText: HTMLElement | null = null;
 
   constructor(engine: GameEngine) {
     this.engine = engine;
@@ -55,6 +59,8 @@ export class GameUI {
     this.boardRenderer = new BoardRenderer(boardContainer);
     this.overlayManager = new OverlayManager();
     this.panelManager = new PanelManager();
+    this.soloStatsBar = document.getElementById("solo-stats-bar");
+    this.soloStatsText = document.getElementById("solo-stats-text");
 
     this.setupEventHandlers();
   }
@@ -146,6 +152,8 @@ export class GameUI {
     this.updateStatus(snapshot);
     this.boardRenderer.updateBoards(snapshot, this.humanInputLocked);
     this.panelManager.updateHistory(snapshot.history);
+    this.trackSoloOutcome(snapshot);
+    this.updateSoloStatsBar();
   }
 
   private updateStatus(snapshot: GameSnapshot): void {
@@ -303,5 +311,47 @@ export class GameUI {
   private setHumanInputLocked(locked: boolean): void {
     this.humanInputLocked = locked;
     this.boardRenderer.setBoardLocked(locked);
+  }
+
+  private trackSoloOutcome(snapshot: GameSnapshot): void {
+    if (this.mode !== "solo") {
+      this.lastRecordedOutcomeSignature = null;
+      return;
+    }
+
+    if (snapshot.status === "playing") {
+      this.lastRecordedOutcomeSignature = null;
+      return;
+    }
+
+    const signature = `${snapshot.status}-${snapshot.moveCount}`;
+    if (this.lastRecordedOutcomeSignature === signature) {
+      return;
+    }
+    this.lastRecordedOutcomeSignature = signature;
+
+    const difficulty = this.aiProfile?.difficulty ?? "normal";
+    let outcome: SoloOutcome = "draw";
+
+    if (snapshot.status === "won" && snapshot.winner) {
+      outcome = snapshot.winner === "X" ? "human" : "ai";
+    }
+
+    SoloStatsTracker.record(snapshot.ruleSet, difficulty, outcome);
+  }
+
+  private updateSoloStatsBar(): void {
+    if (!this.soloStatsBar || !this.soloStatsText) {
+      return;
+    }
+
+    const stats = SoloStatsTracker.getStats();
+    const totals = stats?.totals ?? { human: 0, ai: 0, draw: 0 };
+    const totalGames = totals.human + totals.ai + totals.draw;
+
+    this.soloStatsText.textContent = `Human wins ${totals.human} · AI wins ${totals.ai} · Draws ${totals.draw} · Total games ${totalGames}`;
+
+    const isEmpty = totalGames === 0;
+    this.soloStatsBar.classList.toggle("solo-stats-empty", isEmpty);
   }
 }

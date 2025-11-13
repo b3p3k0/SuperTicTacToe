@@ -3,6 +3,7 @@ import { AiController } from "../ai/controller.js";
 import { BoardRenderer } from "./components/board.js";
 import { OverlayManager } from "./components/overlays.js";
 import { PanelManager } from "./components/panels.js";
+import { SoloStatsTracker } from "../analytics/solo-tracker.js";
 export class GameUI {
     constructor(engine) {
         // Game state
@@ -12,6 +13,9 @@ export class GameUI {
         this.humanInputLocked = true;
         this.awaitingAiMove = false;
         this.aiMoveTimer = null;
+        this.lastRecordedOutcomeSignature = null;
+        this.soloStatsBar = null;
+        this.soloStatsText = null;
         this.engine = engine;
         // Get required DOM elements
         const boardContainer = document.getElementById("super-board");
@@ -28,6 +32,8 @@ export class GameUI {
         this.boardRenderer = new BoardRenderer(boardContainer);
         this.overlayManager = new OverlayManager();
         this.panelManager = new PanelManager();
+        this.soloStatsBar = document.getElementById("solo-stats-bar");
+        this.soloStatsText = document.getElementById("solo-stats-text");
         this.setupEventHandlers();
     }
     init() {
@@ -105,6 +111,8 @@ export class GameUI {
         this.updateStatus(snapshot);
         this.boardRenderer.updateBoards(snapshot, this.humanInputLocked);
         this.panelManager.updateHistory(snapshot.history);
+        this.trackSoloOutcome(snapshot);
+        this.updateSoloStatsBar();
     }
     updateStatus(snapshot) {
         var _a;
@@ -229,5 +237,39 @@ export class GameUI {
     setHumanInputLocked(locked) {
         this.humanInputLocked = locked;
         this.boardRenderer.setBoardLocked(locked);
+    }
+    trackSoloOutcome(snapshot) {
+        var _a, _b;
+        if (this.mode !== "solo") {
+            this.lastRecordedOutcomeSignature = null;
+            return;
+        }
+        if (snapshot.status === "playing") {
+            this.lastRecordedOutcomeSignature = null;
+            return;
+        }
+        const signature = `${snapshot.status}-${snapshot.moveCount}`;
+        if (this.lastRecordedOutcomeSignature === signature) {
+            return;
+        }
+        this.lastRecordedOutcomeSignature = signature;
+        const difficulty = (_b = (_a = this.aiProfile) === null || _a === void 0 ? void 0 : _a.difficulty) !== null && _b !== void 0 ? _b : "normal";
+        let outcome = "draw";
+        if (snapshot.status === "won" && snapshot.winner) {
+            outcome = snapshot.winner === "X" ? "human" : "ai";
+        }
+        SoloStatsTracker.record(snapshot.ruleSet, difficulty, outcome);
+    }
+    updateSoloStatsBar() {
+        var _a;
+        if (!this.soloStatsBar || !this.soloStatsText) {
+            return;
+        }
+        const stats = SoloStatsTracker.getStats();
+        const totals = (_a = stats === null || stats === void 0 ? void 0 : stats.totals) !== null && _a !== void 0 ? _a : { human: 0, ai: 0, draw: 0 };
+        const totalGames = totals.human + totals.ai + totals.draw;
+        this.soloStatsText.textContent = `Human wins ${totals.human} · AI wins ${totals.ai} · Draws ${totals.draw} · Total games ${totalGames}`;
+        const isEmpty = totalGames === 0;
+        this.soloStatsBar.classList.toggle("solo-stats-empty", isEmpty);
     }
 }

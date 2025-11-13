@@ -1,17 +1,24 @@
-import { GameSnapshot, AiMove, Player } from "../../core/types.js";
+import { GameSnapshot, AiMove, Player, RuleSet } from "../../core/types.js";
 import { WIN_PATTERNS, CELL_PRIORITY, BOARD_PRIORITY } from "../../core/constants.js";
 import { AiUtils } from "../utils.js";
 import { AiSimulator } from "../simulator.js";
+import { RuleAwareHeuristics } from "../rule-heuristics.js";
+import { AiDiagnostics } from "../diagnostics.js";
 
 interface ScoredMove {
   move: AiMove;
   score: number;
 }
 
+interface SearchStats {
+  nodes: number;
+  cacheHits: number;
+}
+
 export class HardAiStrategy {
-  private static readonly BASE_DEPTH = 3;
-  private static readonly EXTENDED_DEPTH = 4;
-  private static readonly HIGH_BRANCH_THRESHOLD = 18;
+  private static readonly BASE_DEPTH = 4;
+  private static readonly EXTENDED_DEPTH = 5;
+  private static readonly HIGH_BRANCH_THRESHOLD = 16;
 
   static choose(snapshot: GameSnapshot): AiMove | null {
     const candidates = AiUtils.collectCandidates(snapshot);
@@ -26,6 +33,8 @@ export class HardAiStrategy {
     let bestMove: AiMove | null = null;
     let bestScore = -Infinity;
 
+    const cache = new Map<string, number>();
+    const stats: SearchStats = { nodes: 0, cacheHits: 0 };
     const ordered = this.orderCandidates(snapshot, candidates, "O");
 
     for (const { move } of ordered) {
@@ -34,14 +43,31 @@ export class HardAiStrategy {
         continue;
       }
 
-      const score = this.minimax(next, 1, depthLimit, -Infinity, Infinity);
+      const score = this.minimax(next, 1, depthLimit, -Infinity, Infinity, cache, stats);
       if (score > bestScore) {
         bestScore = score;
         bestMove = move;
       }
     }
 
-    return bestMove || null;
+    AiDiagnostics.logDecision({
+      difficulty: "hard",
+      ruleSet: snapshot.ruleSet,
+      bestMove,
+      depth: depthLimit,
+      candidates: ordered.slice(0, 5),
+      metadata: {
+        cacheEntries: cache.size,
+        nodes: stats.nodes,
+        cacheHits: stats.cacheHits,
+      },
+    });
+
+    if (bestMove) {
+      return bestMove;
+    }
+
+    return ordered[0]?.move ?? null;
   }
 
   private static minimax(
@@ -49,8 +75,19 @@ export class HardAiStrategy {
     depth: number,
     maxDepth: number,
     alpha: number,
-    beta: number
+    beta: number,
+    cache: Map<string, number>,
+    stats: SearchStats
   ): number {
+    stats.nodes += 1;
+
+    const cacheKey = this.hashState(state, depth);
+    const cached = cache.get(cacheKey);
+    if (cached !== undefined) {
+      stats.cacheHits += 1;
+      return cached;
+    }
+
     const terminal = this.evaluateTerminal(state, depth);
     if (terminal !== null) {
       return terminal;
@@ -76,7 +113,7 @@ export class HardAiStrategy {
         continue;
       }
 
-      const value = this.minimax(next, depth + 1, maxDepth, alpha, beta);
+      const value = this.minimax(next, depth + 1, maxDepth, alpha, beta, cache, stats);
 
       if (maximizing) {
         if (value > bestScore) {
@@ -97,6 +134,7 @@ export class HardAiStrategy {
       }
     }
 
+    cache.set(cacheKey, bestScore);
     return bestScore;
   }
 
@@ -114,24 +152,30 @@ export class HardAiStrategy {
 
   private static evaluateState(state: GameSnapshot): number {
     let score = 0;
+    const ruleSet = state.ruleSet ?? "battle";
 
     // Evaluate individual boards
     state.boards.forEach((board) => {
       if (board.winner === "O") {
-        score += 9;
+        score += ruleSet === "modern" ? 12 : 10;
       } else if (board.winner === "X") {
-        score -= 9;
+        score -= ruleSet === "modern" ? 12 : 10;
       } else {
-        score += AiUtils.boardPotential(board.cells, "O") * 1.1;
-        score -= AiUtils.boardPotential(board.cells, "X") * 0.9;
+        const aiWeight = ruleSet === "modern" ? 1.25 : ruleSet === "classic" ? 1.1 : 1.05;
+        const humanWeight = ruleSet === "battle" ? 0.95 : 1;
+        score += AiUtils.boardPotential(board.cells, "O") * aiWeight;
+        score -= AiUtils.boardPotential(board.cells, "X") * humanWeight;
       }
     });
 
     // Macro-level evaluation
-    score += this.evaluateMacro(state.boards) * 6;
+    score += this.evaluateMacro(state.boards) * 6.5;
 
     // Directed target evaluation
-    score += this.evaluateDirectedTargets(state) * 3;
+    score += this.evaluateDirectedTargets(state, ruleSet) * 3.2;
+
+    // Rule-specific global bonuses
+    score += RuleAwareHeuristics.stateBonus(state, "O");
 
     return score;
   }
@@ -154,7 +198,7 @@ export class HardAiStrategy {
     return score;
   }
 
-  private static evaluateDirectedTargets(state: GameSnapshot): number {
+  private static evaluateDirectedTargets(state: GameSnapshot, ruleSet: RuleSet): number {
     if (!state.lastMove) {
       return 0;
     }
@@ -172,7 +216,8 @@ export class HardAiStrategy {
     const aiPotential = AiUtils.boardPotential(targetBoard.cells, "O");
     const humanPotential = AiUtils.boardPotential(targetBoard.cells, "X");
 
-    return (aiPotential - humanPotential) * 0.6;
+    const weight = ruleSet === "classic" ? 0.8 : ruleSet === "modern" ? 0.7 : 0.6;
+    return (aiPotential - humanPotential) * weight;
   }
 
   private static orderCandidates(
@@ -194,10 +239,20 @@ export class HardAiStrategy {
           ? AiUtils.patternBlockScore(board.cells, player === "O" ? "X" : "O", move.cellIndex)
           : 0;
 
-        const heuristic = cellScore + potential * 1.5 + block;
+        const ruleAware = RuleAwareHeuristics.moveBonus(snapshot, move, player);
+        const heuristic = cellScore + potential * 1.5 + block + ruleAware;
 
         return { move, score: heuristic };
       })
       .sort((a, b) => b.score - a.score);
+  }
+
+  private static hashState(state: GameSnapshot, depth: number): string {
+    const boardKey = state.boards
+      .map((board) => board.cells.map((cell) => cell ?? "_").join(""))
+      .join("|");
+    const winners = state.boards.map((board) => board.winner ?? "_").join("");
+    const active = state.activeBoardIndex ?? "a";
+    return `${state.ruleSet}|${state.currentPlayer}|${active}|${depth}|${winners}|${boardKey}`;
   }
 }
