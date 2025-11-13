@@ -2,6 +2,7 @@ import { Difficulty, GameSnapshot, AiMove } from "../core/types.js";
 import { EasyAiStrategy } from "./strategies/easy.js";
 import { NormalAiStrategy } from "./strategies/normal.js";
 import { HardAiStrategy } from "./strategies/hard.js";
+import { OpeningBook } from "./opening-book.js";
 
 export class AiController {
   private difficulty: Difficulty;
@@ -11,10 +12,16 @@ export class AiController {
   }
 
   chooseMove(snapshot: GameSnapshot): AiMove | null {
+    const bookMove = OpeningBook.lookup(snapshot, this.difficulty);
+    if (bookMove) {
+      return bookMove;
+    }
     switch (this.difficulty) {
       case "easy":
         return EasyAiStrategy.choose(snapshot);
       case "hard":
+        return HardAiStrategy.choose(snapshot, { allowJitter: true });
+      case "expert":
         return HardAiStrategy.choose(snapshot);
       case "normal":
       default:

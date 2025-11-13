@@ -39,6 +39,7 @@
    - Persist transposition table across iterative passes.
    - Honour a max think time (e.g., 500ms) to keep UX snappy.
    - Use evaluator for leaf scores; add quiescence-like check for imminent forks before cutting off.
+   - Split “Hard” (same search with light randomness for variety) from “Expert” (deterministic perfect play) so veterans can opt into the stricter mode without losing variety at Hard.
 
 3. **Diagnostics Enhancements**
    - Expand `AiDiagnostics` payload with evaluator breakdown (meta vs micro vs routing).

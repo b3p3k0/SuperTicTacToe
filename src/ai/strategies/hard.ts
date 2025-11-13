@@ -16,6 +16,10 @@ interface SearchStats {
   cacheHits: number;
 }
 
+interface HardStrategyOptions {
+  allowJitter?: boolean;
+}
+
 export class HardAiStrategy {
   private static readonly BASE_DEPTH = 4;
   private static readonly EXTENDED_DEPTH = 6;
@@ -24,7 +28,8 @@ export class HardAiStrategy {
   private static readonly LATE_GAME_CAP_MS = 4000;
   private static readonly LATE_GAME_THRESHOLD = 20;
 
-  static choose(snapshot: GameSnapshot): AiMove | null {
+  static choose(snapshot: GameSnapshot, options?: HardStrategyOptions): AiMove | null {
+    const allowJitter = options?.allowJitter ?? false;
     const candidates = AiUtils.collectCandidates(snapshot);
     if (candidates.length === 0) {
       return null;
@@ -39,11 +44,13 @@ export class HardAiStrategy {
     let bestMove: AiMove | null = ordered[0]?.move ?? null;
     let bestScore = -Infinity;
     let depthReached = this.BASE_DEPTH;
+    let lastIterationScores: ScoredMove[] = [];
 
     for (let depth = this.BASE_DEPTH; depth <= this.EXTENDED_DEPTH; depth += 1) {
       depthReached = depth;
       let iterationBest: AiMove | null = null;
       let iterationScore = -Infinity;
+      const layerScores: ScoredMove[] = [];
       for (const { move } of ordered) {
         if (performance.now() - startTime > maxTime) {
           depth = this.EXTENDED_DEPTH + 1;
@@ -54,10 +61,14 @@ export class HardAiStrategy {
           continue;
         }
         const score = this.minimax(next, 1, depth, -Infinity, Infinity, cache, stats, startTime, maxTime);
+        layerScores.push({ move, score });
         if (score > iterationScore) {
           iterationScore = score;
           iterationBest = move;
         }
+      }
+      if (layerScores.length > 0) {
+        lastIterationScores = layerScores;
       }
       if (iterationBest) {
         bestMove = iterationBest;
@@ -65,6 +76,20 @@ export class HardAiStrategy {
       }
       if (performance.now() - startTime > maxTime) {
         break;
+      }
+    }
+
+    if (allowJitter && lastIterationScores.length > 1) {
+      const topScore = Math.max(...lastIterationScores.map((entry) => entry.score));
+      const tolerance = 0.4;
+      const contenders = lastIterationScores.filter(
+        (entry) => topScore - entry.score <= tolerance,
+      );
+      if (contenders.length > 1) {
+        const choice =
+          contenders[Math.floor(Math.random() * contenders.length)]!;
+        bestMove = choice.move;
+        bestScore = choice.score;
       }
     }
 
@@ -78,6 +103,7 @@ export class HardAiStrategy {
         cacheEntries: cache.size,
         nodes: stats.nodes,
         cacheHits: stats.cacheHits,
+        jitter: allowJitter,
         timeMs: Number((performance.now() - startTime).toFixed(1)),
       },
     });

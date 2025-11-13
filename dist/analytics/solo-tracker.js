@@ -1,6 +1,6 @@
 const STORAGE_KEY = "st3.soloStats";
 const RULE_SET_KEYS = ["classic", "modern", "battle"];
-const DIFFICULTY_KEYS = ["easy", "normal", "hard"];
+const DIFFICULTY_KEYS = ["easy", "normal", "hard", "expert"];
 export class SoloStatsTracker {
     static record(ruleSet, difficulty, outcome) {
         const stats = this.load();
@@ -39,6 +39,7 @@ export class SoloStatsTracker {
             easy: this.createEmptyBucket(),
             normal: this.createEmptyBucket(),
             hard: this.createEmptyBucket(),
+            expert: this.createEmptyBucket(),
         };
         return {
             totals,

@@ -14,6 +14,7 @@ const bundleOrder = [
   'dist/ai/strategies/easy.js',
   'dist/ai/strategies/normal.js',
   'dist/ai/strategies/hard.js',
+  'dist/ai/opening-book.js',
   'dist/ai/controller.js',
   'dist/analytics/solo-tracker.js',
   'dist/ui/theme-manager.js',

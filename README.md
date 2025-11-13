@@ -7,7 +7,7 @@ A zero-dependency, browser-ready take on the 3×3 mega tic-tac-toe grid. Clone i
 ## Quick Play
 
 1. Clone this repo or [download the latest release](https://github.com/b3p3k0/SuperTicTacToe/releases/latest).
-2. Open `index.html` in any modern browser (double-click works via `file:///), hit **New Game**, and pick **1 Player** or **2 Players** when the overlay pops up. Choose Classic, Modern, or Battle rules, and if you’re in solo mode also pick Easy/Normal/Hard plus who starts (Human / AI / Random) before the board appears.
+2. Open `index.html` in any modern browser (double-click works via `file:///`), hit **New Game**, and pick **1 Player** or **2 Players** when the overlay pops up. Choose Classic, Modern, or Battle rules, and if you’re in solo mode also pick Easy / Normal / Hard / Expert plus who starts (Human / AI / Random) before the board appears.
 
 That’s it—`game.js`, `style.css`, and all other assets are already bundled, so you can drop the folder onto any static host with zero build steps.
 
@@ -29,7 +29,7 @@ All TypeScript source lives under `src/` (split into `core`, `ai`, `ui`, and `ma
 ## What’s Included
 
 - **Full Super T3 rules**: forced-board routing, captured/drawn mini-boards, free-choice fallback when a destination board is full.
-- **Solo or hot-seat play**: choose 1P to battle the built-in AI (Easy / Normal / Hard) or 2P for classic pass-and-play. Solo mode randomly decides who moves first (or you can force Human/AI).
+- **Solo or hot-seat play**: choose 1P to battle the built-in AI (Easy / Normal / Hard / Expert) or 2P for classic pass-and-play. Solo mode randomly decides who moves first (or you can force Human/AI).
 - **Three rule sets**: pick Battle Mode (default; captured boards stay live and can be stolen), Classic (captured boards stay playable but ownership sticks), or Modern (captured/dead boards lock immediately).
 - **Visual guidance**: active board highlighting, captured/drawn states, latest move glow, and a status bar describing whose turn it is plus any board constraints.
 - **Move history**: chess-style log (e.g., `T12: P1BB3LB2 -> P2BB2LB5(F)`) with `(F)` indicating when the destination board was full and the next player could choose freely.

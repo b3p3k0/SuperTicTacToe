@@ -498,6 +498,11 @@ body::before {
   gap: 0.75rem;
 }
 
+.difficulty-grid .overlay-choice {
+  flex: unset;
+  width: 100%;
+}
+
 .overlay-choice {
   flex: 1 1 120px;
   justify-content: center;

@@ -17,7 +17,7 @@ interface SoloStatsSnapshot {
 
 const STORAGE_KEY = "st3.soloStats";
 const RULE_SET_KEYS: RuleSet[] = ["classic", "modern", "battle"];
-const DIFFICULTY_KEYS: Difficulty[] = ["easy", "normal", "hard"];
+const DIFFICULTY_KEYS: Difficulty[] = ["easy", "normal", "hard", "expert"];
 
 export class SoloStatsTracker {
   static record(ruleSet: RuleSet, difficulty: Difficulty, outcome: SoloOutcome): void {
@@ -59,6 +59,7 @@ export class SoloStatsTracker {
       easy: this.createEmptyBucket(),
       normal: this.createEmptyBucket(),
       hard: this.createEmptyBucket(),
+      expert: this.createEmptyBucket(),
     };
 
     return {

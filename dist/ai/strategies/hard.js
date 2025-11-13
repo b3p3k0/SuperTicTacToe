@@ -5,8 +5,9 @@ import { RuleAwareHeuristics } from "../rule-heuristics.js";
 import { AiDiagnostics } from "../diagnostics.js";
 import { AiEvaluator } from "../evaluator.js";
 export class HardAiStrategy {
-    static choose(snapshot) {
-        var _a, _b, _c, _d;
+    static choose(snapshot, options) {
+        var _a, _b, _c, _d, _e;
+        const allowJitter = (_a = options === null || options === void 0 ? void 0 : options.allowJitter) !== null && _a !== void 0 ? _a : false;
         const candidates = AiUtils.collectCandidates(snapshot);
         if (candidates.length === 0) {
             return null;
@@ -16,13 +17,15 @@ export class HardAiStrategy {
         const stats = { nodes: 0, cacheHits: 0 };
         const startTime = performance.now();
         const maxTime = this.computeTimeBudget(snapshot);
-        let bestMove = (_b = (_a = ordered[0]) === null || _a === void 0 ? void 0 : _a.move) !== null && _b !== void 0 ? _b : null;
+        let bestMove = (_c = (_b = ordered[0]) === null || _b === void 0 ? void 0 : _b.move) !== null && _c !== void 0 ? _c : null;
         let bestScore = -Infinity;
         let depthReached = this.BASE_DEPTH;
+        let lastIterationScores = [];
         for (let depth = this.BASE_DEPTH; depth <= this.EXTENDED_DEPTH; depth += 1) {
             depthReached = depth;
             let iterationBest = null;
             let iterationScore = -Infinity;
+            const layerScores = [];
             for (const { move } of ordered) {
                 if (performance.now() - startTime > maxTime) {
                     depth = this.EXTENDED_DEPTH + 1;
@@ -33,10 +36,14 @@ export class HardAiStrategy {
                     continue;
                 }
                 const score = this.minimax(next, 1, depth, -Infinity, Infinity, cache, stats, startTime, maxTime);
+                layerScores.push({ move, score });
                 if (score > iterationScore) {
                     iterationScore = score;
                     iterationBest = move;
                 }
+            }
+            if (layerScores.length > 0) {
+                lastIterationScores = layerScores;
             }
             if (iterationBest) {
                 bestMove = iterationBest;
@@ -44,6 +51,16 @@ export class HardAiStrategy {
             }
             if (performance.now() - startTime > maxTime) {
                 break;
+            }
+        }
+        if (allowJitter && lastIterationScores.length > 1) {
+            const topScore = Math.max(...lastIterationScores.map((entry) => entry.score));
+            const tolerance = 0.4;
+            const contenders = lastIterationScores.filter((entry) => topScore - entry.score <= tolerance);
+            if (contenders.length > 1) {
+                const choice = contenders[Math.floor(Math.random() * contenders.length)];
+                bestMove = choice.move;
+                bestScore = choice.score;
             }
         }
         AiDiagnostics.logDecision({
@@ -56,13 +73,14 @@ export class HardAiStrategy {
                 cacheEntries: cache.size,
                 nodes: stats.nodes,
                 cacheHits: stats.cacheHits,
+                jitter: allowJitter,
                 timeMs: Number((performance.now() - startTime).toFixed(1)),
             },
         });
         if (bestMove) {
             return bestMove;
         }
-        return (_d = bestMove !== null && bestMove !== void 0 ? bestMove : (_c = ordered[0]) === null || _c === void 0 ? void 0 : _c.move) !== null && _d !== void 0 ? _d : null;
+        return (_e = bestMove !== null && bestMove !== void 0 ? bestMove : (_d = ordered[0]) === null || _d === void 0 ? void 0 : _d.move) !== null && _e !== void 0 ? _e : null;
     }
     static minimax(state, depth, maxDepth, alpha, beta, cache, stats, startTime, maxTime) {
         stats.nodes += 1;
