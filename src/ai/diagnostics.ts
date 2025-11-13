@@ -1,4 +1,5 @@
 import { AiMove, Difficulty, RuleSet } from "../core/types.js";
+import type { EvaluationBreakdown } from "./evaluator.js";
 
 interface CandidateLogEntry {
   move: AiMove;
@@ -12,6 +13,7 @@ interface DecisionLogPayload {
   candidates?: CandidateLogEntry[];
   depth?: number;
   metadata?: Record<string, unknown>;
+  breakdown?: EvaluationBreakdown;
 }
 
 export class AiDiagnostics {
@@ -51,6 +53,19 @@ export class AiDiagnostics {
     }
     if (payload.metadata) {
       logger.log("Extra metadata:", payload.metadata);
+    }
+
+    if (payload.breakdown) {
+      const b = payload.breakdown;
+      logger.log("Evaluator breakdown:", {
+        terminal: b.terminal.toFixed(2),
+        ownership: b.ownership.toFixed(2),
+        threats: b.threats.toFixed(2),
+        meta: b.meta.toFixed(2),
+        routing: b.routing.toFixed(2),
+        battle: b.battle.toFixed(2),
+        total: b.total.toFixed(2),
+      });
     }
 
     if (candidates.length > 0 && logger.table) {

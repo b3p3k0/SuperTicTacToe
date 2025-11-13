@@ -36,6 +36,16 @@ function assertGreater(label, a, b) {
 (function run() {
   const base = createSnapshot("battle");
   const baseScore = AiEvaluator.evaluate(base, "O");
+  const detailed = AiEvaluator.evaluateDetailed(base, "O");
+  if (detailed.score !== baseScore) {
+    throw new Error("evaluateDetailed() score must match evaluate()");
+  }
+  const sum = detailed.breakdown.terminal + detailed.breakdown.ownership +
+    detailed.breakdown.threats + detailed.breakdown.meta +
+    detailed.breakdown.routing + detailed.breakdown.battle;
+  if (Number(sum.toFixed(6)) !== Number(detailed.breakdown.total.toFixed(6))) {
+    throw new Error("Breakdown total should match summed components");
+  }
 
   const owned = cloneSnapshot(base);
   owned.boards[4].winner = "O";

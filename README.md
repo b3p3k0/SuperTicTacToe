@@ -7,7 +7,7 @@ A zero-dependency, browser-ready take on the 3×3 mega tic-tac-toe grid. Clone i
 ## Quick Play
 
 1. Clone this repo or [download the latest release](https://github.com/b3p3k0/SuperTicTacToe/releases/latest).
-2. Open `index.html` in any modern browser (double-click works via `file:///`), hit **New Game**, and pick **1 Player** or **2 Players** when the overlay pops up. Choose Classic, Modern, or Battle rules, and if you’re in solo mode also pick Easy / Normal / Hard / Expert plus who starts (Human / AI / Random) before the board appears.
+2. Open `index.html` in any modern browser (double-click works via `file:///`), hit **New Game**, and pick **1 Player** or **2 Players** when the overlay pops up. Choose Classic, Modern, or Battle rules, and if you’re in solo mode also pick Easy / Normal / Hard / Expert plus who starts (Human / AI / Random) before the board appears. Flip on **Adaptive difficulty (beta)** if you want the client-side AI to nudge its strength based on how the current set is going.
 
 That’s it—`game.js`, `style.css`, and all other assets are already bundled, so you can drop the folder onto any static host with zero build steps.
 
@@ -34,6 +34,7 @@ All TypeScript source lives under `src/` (split into `core`, `ai`, `ui`, and `ma
 - **Visual guidance**: active board highlighting, captured/drawn states, latest move glow, and a status bar describing whose turn it is plus any board constraints.
 - **Move history**: chess-style log (e.g., `T12: P1BB3LB2 -> P2BB2LB5(F)`) with `(F)` indicating when the destination board was full and the next player could choose freely.
 - **Solo analytics & debugging**: every 1P game updates browser-side win/draw counters by rule set + difficulty (rendered in the bar beneath the board), and you can flip on AI diagnostic logs via DevTools when tuning.
+- **Adaptive solo mode (beta)**: optional toggle in the solo settings trims or boosts AI aggression on the fly using only local telemetry, keeping experienced players challenged while helping new players stay in the flow—all data stays on the device.
 - **Rules & history toggles**: collapsible panels keep the layout tidy on smaller screens.
 
 ---
