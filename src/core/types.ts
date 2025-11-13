@@ -19,6 +19,7 @@ type ThemeName =
   | "cupertino";
 type StartPreference = "human" | "ai" | "random";
 type RuleSet = "classic" | "modern" | "battle";
+type AdaptiveBand = "struggle" | "flow" | "coast";
 
 interface ThemeConfig {
   label: string;
@@ -68,6 +69,7 @@ interface MoveAttemptResult {
 
 interface AiProfile {
   difficulty: Difficulty;
+  adaptiveBand?: AdaptiveBand | null;
 }
 
 interface AiMove {
@@ -85,6 +87,7 @@ export type {
   ThemeName,
   StartPreference,
   RuleSet,
+  AdaptiveBand,
   ThemeConfig,
   MiniBoardState,
   MoveInfo,

@@ -486,6 +486,29 @@ body::before {
   color: var(--muted);
 }
 
+.adaptive-toggle-group {
+  margin-top: 0.5rem;
+}
+
+.adaptive-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+}
+
+.adaptive-toggle input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent);
+}
+
+.overlay-footnote {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin: 0.35rem 0 0;
+}
+
 .overlay-actions {
   display: flex;
   flex-wrap: wrap;

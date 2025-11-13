@@ -36,27 +36,50 @@ const BASE_WEIGHTS = {
 };
 export class AiEvaluator {
     static evaluate(snapshot, player, overrides) {
+        return this.computeScore(snapshot, player, overrides).score;
+    }
+    static evaluateDetailed(snapshot, player, overrides) {
+        return this.computeScore(snapshot, player, overrides);
+    }
+    static computeScore(snapshot, player, overrides) {
         var _a;
         const ruleSet = (_a = snapshot.ruleSet) !== null && _a !== void 0 ? _a : "battle";
         const weights = { ...BASE_WEIGHTS[ruleSet], ...overrides };
         const opponent = AiUtils.getOpponent(player);
+        const breakdown = {
+            terminal: 0,
+            ownership: 0,
+            threats: 0,
+            meta: 0,
+            routing: 0,
+            battle: 0,
+            total: 0,
+        };
         if (snapshot.status === "won") {
-            return snapshot.winner === player
+            breakdown.terminal = snapshot.winner === player
                 ? weights.terminalWin
                 : weights.terminalLoss;
+            breakdown.total = breakdown.terminal;
+            return { score: breakdown.total, breakdown };
         }
         if (snapshot.status === "draw") {
-            return 0;
+            return { score: 0, breakdown };
         }
-        let score = 0;
-        score += this.evaluateBoardOwnership(snapshot, player, opponent, weights);
-        score += this.evaluateBoardThreats(snapshot, player, opponent, weights);
-        score += this.evaluateMetaThreats(snapshot, player, opponent, weights);
-        score += this.evaluateActiveBoard(snapshot, player, opponent, weights);
-        if (ruleSet === "battle") {
-            score += this.evaluateBattleStability(snapshot, player, opponent, weights);
-        }
-        return score;
+        breakdown.ownership = this.evaluateBoardOwnership(snapshot, player, opponent, weights);
+        breakdown.threats = this.evaluateBoardThreats(snapshot, player, opponent, weights);
+        breakdown.meta = this.evaluateMetaThreats(snapshot, player, opponent, weights);
+        breakdown.routing = this.evaluateActiveBoard(snapshot, player, opponent, weights);
+        breakdown.battle = ruleSet === "battle"
+            ? this.evaluateBattleStability(snapshot, player, opponent, weights)
+            : 0;
+        breakdown.total =
+            breakdown.terminal +
+                breakdown.ownership +
+                breakdown.threats +
+                breakdown.meta +
+                breakdown.routing +
+                breakdown.battle;
+        return { score: breakdown.total, breakdown };
     }
     static evaluateBoardOwnership(snapshot, player, opponent, weights) {
         const owned = snapshot.boards.filter((board) => board.winner === player).length;

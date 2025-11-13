@@ -4,6 +4,7 @@ import { BoardRenderer } from "./components/board.js";
 import { OverlayManager } from "./components/overlays.js";
 import { PanelManager } from "./components/panels.js";
 import { SoloStatsTracker } from "../analytics/solo-tracker.js";
+import { AdaptiveLoop } from "../analytics/adaptive-loop.js";
 export class GameUI {
     constructor(engine) {
         // Game state
@@ -16,6 +17,9 @@ export class GameUI {
         this.lastRecordedOutcomeSignature = null;
         this.soloStatsBar = null;
         this.soloStatsText = null;
+        this.adaptiveTurnStart = null;
+        this.adaptiveIllegalAttempts = 0;
+        this.adaptiveTurnMoveCount = -1;
         this.engine = engine;
         // Get required DOM elements
         const boardContainer = document.getElementById("super-board");
@@ -68,20 +72,24 @@ export class GameUI {
         if (!result.success) {
             const reason = (_a = result.reason) !== null && _a !== void 0 ? _a : "that move breaks the rules.";
             console.log("🖱️ CELL CLICK FAILED:", reason);
+            this.noteIllegalAdaptiveAttempt();
             this.panelManager.showIllegalMove(reason);
             return;
         }
+        this.commitAdaptiveSample();
         console.log("🖱️ CELL CLICK SUCCESS - calling render");
         this.render();
     }
     beginGame(mode, difficulty) {
         this.mode = mode;
         this.cancelPendingAiMove();
+        this.resetAdaptiveTracking();
         let startingPlayer = "X";
         if (mode === "solo") {
             const selected = difficulty !== null && difficulty !== void 0 ? difficulty : "normal";
-            this.aiProfile = { difficulty: selected };
-            this.aiController = new AiController(selected);
+            const adaptiveBand = this.resolveAdaptiveBand(selected);
+            this.aiProfile = { difficulty: selected, adaptiveBand };
+            this.aiController = new AiController(selected, adaptiveBand);
             startingPlayer = this.pickStartingPlayer();
         }
         else {
@@ -108,6 +116,7 @@ export class GameUI {
     render() {
         const snapshot = this.engine.getSnapshot();
         this.handleAiFlow(snapshot);
+        this.refreshAdaptiveTracking(snapshot);
         this.updateStatus(snapshot);
         this.boardRenderer.updateBoards(snapshot, this.humanInputLocked);
         this.panelManager.updateHistory(snapshot.history);
@@ -259,6 +268,9 @@ export class GameUI {
             outcome = snapshot.winner === "X" ? "human" : "ai";
         }
         SoloStatsTracker.record(snapshot.ruleSet, difficulty, outcome);
+        if (this.isAdaptiveActive()) {
+            AdaptiveLoop.recordOutcome(snapshot.ruleSet, difficulty, outcome);
+        }
     }
     updateSoloStatsBar() {
         var _a;
@@ -271,5 +283,66 @@ export class GameUI {
         this.soloStatsText.textContent = `Human wins ${totals.human} · AI wins ${totals.ai} · Draws ${totals.draw} · Total games ${totalGames}`;
         const isEmpty = totalGames === 0;
         this.soloStatsBar.classList.toggle("solo-stats-empty", isEmpty);
+    }
+    shouldTrackAdaptive() {
+        return this.mode === "solo" && !!this.aiProfile && this.isAdaptiveActive();
+    }
+    refreshAdaptiveTracking(snapshot) {
+        if (!this.shouldTrackAdaptive() || snapshot.status !== "playing") {
+            this.resetAdaptiveTracking();
+            return;
+        }
+        const expectingHuman = snapshot.currentPlayer === "X" && !this.humanInputLocked;
+        if (!expectingHuman) {
+            return;
+        }
+        if (snapshot.moveCount !== this.adaptiveTurnMoveCount) {
+            this.adaptiveTurnStart = this.getTimestamp();
+            this.adaptiveIllegalAttempts = 0;
+            this.adaptiveTurnMoveCount = snapshot.moveCount;
+        }
+    }
+    noteIllegalAdaptiveAttempt() {
+        if (!this.shouldTrackAdaptive()) {
+            return;
+        }
+        if (this.adaptiveTurnStart === null) {
+            this.adaptiveTurnStart = this.getTimestamp();
+        }
+        this.adaptiveIllegalAttempts += 1;
+    }
+    commitAdaptiveSample() {
+        if (!this.shouldTrackAdaptive() || this.adaptiveTurnStart === null || !this.aiProfile) {
+            return;
+        }
+        const duration = Math.max(0, this.getTimestamp() - this.adaptiveTurnStart);
+        if (this.isAdaptiveActive()) {
+            AdaptiveLoop.recordHumanMove(this.overlayManager.ruleSet, this.aiProfile.difficulty, {
+                durationMs: duration,
+                illegalAttempts: this.adaptiveIllegalAttempts,
+            });
+        }
+        this.adaptiveTurnStart = null;
+        this.adaptiveIllegalAttempts = 0;
+    }
+    resetAdaptiveTracking() {
+        this.adaptiveTurnStart = null;
+        this.adaptiveIllegalAttempts = 0;
+        this.adaptiveTurnMoveCount = -1;
+    }
+    getTimestamp() {
+        if (typeof performance !== "undefined" && typeof performance.now === "function") {
+            return performance.now();
+        }
+        return Date.now();
+    }
+    resolveAdaptiveBand(difficulty) {
+        if (!this.isAdaptiveActive()) {
+            return null;
+        }
+        return AdaptiveLoop.getSkillBucket(this.overlayManager.ruleSet, difficulty);
+    }
+    isAdaptiveActive() {
+        return this.overlayManager.adaptiveEnabled && AdaptiveLoop.isEnabled();
     }
 }

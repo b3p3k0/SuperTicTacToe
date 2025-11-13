@@ -1,3 +1,4 @@
+import { AdaptiveLoop } from "../../analytics/adaptive-loop.js";
 export class OverlayManager {
     constructor() {
         this.modeOverlay = null;
@@ -9,11 +10,13 @@ export class OverlayManager {
         this.settingsStartButton = null;
         this.rulesDescription = null;
         this.soloOnlyBlocks = [];
+        this.adaptiveToggle = null;
         this.overlayVisible = false;
         this.overlayStep = "players";
         this.pendingMode = "solo";
         this.startPreference = "random";
         this.ruleSet = "battle";
+        this.adaptiveEnabled = AdaptiveLoop.isEnabled();
         this.initModeOverlay();
         this.initResultOverlay();
     }
@@ -102,6 +105,17 @@ export class OverlayManager {
                 this.updateRulesDescription();
             }
         });
+        // Adaptive difficulty toggle
+        this.adaptiveToggle = document.getElementById("adaptive-difficulty-toggle");
+        if (this.adaptiveToggle) {
+            this.adaptiveToggle.checked = this.adaptiveEnabled;
+            this.adaptiveToggle.addEventListener("change", () => {
+                var _a, _b;
+                const enabled = (_b = (_a = this.adaptiveToggle) === null || _a === void 0 ? void 0 : _a.checked) !== null && _b !== void 0 ? _b : false;
+                this.adaptiveEnabled = enabled;
+                AdaptiveLoop.setEnabled(enabled);
+            });
+        }
         // Cache UI elements
         this.soloOnlyBlocks = Array.from(overlay.querySelectorAll(".solo-only"));
         this.settingsStartButton = document.getElementById("settings-start");
@@ -229,6 +243,9 @@ export class OverlayManager {
             if (text) {
                 this.settingsCopy.textContent = text;
             }
+        }
+        if (this.adaptiveToggle) {
+            this.adaptiveToggle.disabled = !isSolo;
         }
         this.updateRulesDescription();
     }

@@ -7,6 +7,7 @@ import {
   GameSnapshot,
 } from "../../core/types.js";
 import { DIFFICULTY_LABELS } from "../../core/constants.js";
+import { AdaptiveLoop } from "../../analytics/adaptive-loop.js";
 
 export class OverlayManager {
   private modeOverlay: HTMLElement | null = null;
@@ -18,12 +19,14 @@ export class OverlayManager {
   private settingsStartButton: HTMLElement | null = null;
   private rulesDescription: HTMLElement | null = null;
   private soloOnlyBlocks: HTMLElement[] = [];
+  private adaptiveToggle: HTMLInputElement | null = null;
 
   public overlayVisible: boolean = false;
   public overlayStep: ModeStep = "players";
   public pendingMode: GameMode = "solo";
   public startPreference: StartPreference = "random";
   public ruleSet: RuleSet = "battle";
+  public adaptiveEnabled: boolean = AdaptiveLoop.isEnabled();
 
   private onBeginGame?: (mode: GameMode, difficulty?: Difficulty) => void;
 
@@ -124,6 +127,17 @@ export class OverlayManager {
         this.updateRulesDescription();
       }
     });
+
+    // Adaptive difficulty toggle
+    this.adaptiveToggle = document.getElementById("adaptive-difficulty-toggle") as HTMLInputElement | null;
+    if (this.adaptiveToggle) {
+      this.adaptiveToggle.checked = this.adaptiveEnabled;
+      this.adaptiveToggle.addEventListener("change", () => {
+        const enabled = this.adaptiveToggle?.checked ?? false;
+        this.adaptiveEnabled = enabled;
+        AdaptiveLoop.setEnabled(enabled);
+      });
+    }
 
     // Cache UI elements
     this.soloOnlyBlocks = Array.from(overlay.querySelectorAll(".solo-only"));
@@ -275,6 +289,10 @@ export class OverlayManager {
       if (text) {
         this.settingsCopy.textContent = text;
       }
+    }
+
+    if (this.adaptiveToggle) {
+      this.adaptiveToggle.disabled = !isSolo;
     }
 
     this.updateRulesDescription();

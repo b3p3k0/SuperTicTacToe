@@ -11,11 +11,16 @@ interface ScoredCandidate {
   score: number;
 }
 
-export class NormalAiStrategy {
-  private static readonly BLUNDER_RATE = 0.12;
-  private static readonly MAX_SEARCH_BRANCHES = 6;
+export interface NormalStrategyOptions {
+  blunderRate?: number;
+  maxBranches?: number;
+}
 
-  static choose(snapshot: GameSnapshot): AiMove | null {
+export class NormalAiStrategy {
+  private static readonly DEFAULT_BLUNDER_RATE = 0.12;
+  private static readonly DEFAULT_BRANCH_CAP = 6;
+
+  static choose(snapshot: GameSnapshot, options?: NormalStrategyOptions): AiMove | null {
     const candidates = AiUtils.collectCandidates(snapshot);
     if (candidates.length === 0) {
       return null;
@@ -34,18 +39,22 @@ export class NormalAiStrategy {
     }
 
     // Use scoring heuristics for other moves
-    const { move, scored, errorApplied } = this.scoreAndPick(snapshot, candidates);
+    const { move, scored, errorApplied } = this.scoreAndPick(snapshot, candidates, options);
 
-    AiDiagnostics.logDecision({
-      difficulty: "normal",
-      ruleSet: snapshot.ruleSet,
-      bestMove: move,
-      candidates: scored.slice(0, 5),
-      metadata: {
-        errorApplied,
-        candidateCount: scored.length,
-      },
-    });
+    if (AiDiagnostics.isEnabled()) {
+      const { breakdown } = AiEvaluator.evaluateDetailed(snapshot, "O");
+      AiDiagnostics.logDecision({
+        difficulty: "normal",
+        ruleSet: snapshot.ruleSet,
+        bestMove: move,
+        candidates: scored.slice(0, 5),
+        metadata: {
+          errorApplied,
+          candidateCount: scored.length,
+        },
+        breakdown,
+      });
+    }
 
     return move;
   }
@@ -53,17 +62,19 @@ export class NormalAiStrategy {
   private static scoreAndPick(
     snapshot: GameSnapshot,
     candidates: AiMove[],
+    options?: NormalStrategyOptions,
   ): { move: AiMove; scored: ScoredCandidate[]; errorApplied: boolean } {
     if (candidates.length === 0) {
       throw new Error("No candidates available");
     }
 
     const ordered = this.orderCandidates(snapshot, candidates, "O");
-    const limited = ordered.slice(0, this.MAX_SEARCH_BRANCHES);
+    const branchCap = options?.maxBranches ?? this.DEFAULT_BRANCH_CAP;
+    const limited = ordered.slice(0, branchCap);
 
     const scored = limited.map((entry) => ({
       move: entry.move,
-      score: this.depthTwoSearch(snapshot, entry.move),
+      score: this.depthTwoSearch(snapshot, entry.move, branchCap),
     }));
 
     if (scored.length === 0) {
@@ -74,7 +85,8 @@ export class NormalAiStrategy {
 
     let chosenIndex = 0;
     let errorApplied = false;
-    if (Math.random() < this.BLUNDER_RATE && scored.length > 1) {
+    const blunderRate = options?.blunderRate ?? this.DEFAULT_BLUNDER_RATE;
+    if (Math.random() < blunderRate && scored.length > 1) {
       const maxIdx = Math.min(2, scored.length - 1);
       chosenIndex = Math.floor(Math.random() * maxIdx) + 1;
       errorApplied = chosenIndex !== 0;
@@ -87,7 +99,11 @@ export class NormalAiStrategy {
     };
   }
 
-  private static depthTwoSearch(snapshot: GameSnapshot, move: AiMove): number {
+  private static depthTwoSearch(
+    snapshot: GameSnapshot,
+    move: AiMove,
+    branchCap: number,
+  ): number {
     const next = AiSimulator.applyMove(snapshot, move, "O");
     if (!next) {
       return -Infinity;
@@ -103,7 +119,7 @@ export class NormalAiStrategy {
 
     const orderedOpp = this.orderCandidates(next, opponentMoves, "X");
     let bestResponse = Infinity;
-    const limit = orderedOpp.slice(0, this.MAX_SEARCH_BRANCHES);
+    const limit = orderedOpp.slice(0, branchCap);
     for (const { move: oppMove } of limit) {
       const afterOpp = AiSimulator.applyMove(next, oppMove, "X");
       if (!afterOpp) {

@@ -5,7 +5,7 @@ import { AiSimulator } from "../simulator.js";
 import { AiDiagnostics } from "../diagnostics.js";
 import { AiEvaluator } from "../evaluator.js";
 export class NormalAiStrategy {
-    static choose(snapshot) {
+    static choose(snapshot, options) {
         const candidates = AiUtils.collectCandidates(snapshot);
         if (candidates.length === 0) {
             return null;
@@ -21,28 +21,34 @@ export class NormalAiStrategy {
             return blockingMove;
         }
         // Use scoring heuristics for other moves
-        const { move, scored, errorApplied } = this.scoreAndPick(snapshot, candidates);
-        AiDiagnostics.logDecision({
-            difficulty: "normal",
-            ruleSet: snapshot.ruleSet,
-            bestMove: move,
-            candidates: scored.slice(0, 5),
-            metadata: {
-                errorApplied,
-                candidateCount: scored.length,
-            },
-        });
+        const { move, scored, errorApplied } = this.scoreAndPick(snapshot, candidates, options);
+        if (AiDiagnostics.isEnabled()) {
+            const { breakdown } = AiEvaluator.evaluateDetailed(snapshot, "O");
+            AiDiagnostics.logDecision({
+                difficulty: "normal",
+                ruleSet: snapshot.ruleSet,
+                bestMove: move,
+                candidates: scored.slice(0, 5),
+                metadata: {
+                    errorApplied,
+                    candidateCount: scored.length,
+                },
+                breakdown,
+            });
+        }
         return move;
     }
-    static scoreAndPick(snapshot, candidates) {
+    static scoreAndPick(snapshot, candidates, options) {
+        var _a, _b;
         if (candidates.length === 0) {
             throw new Error("No candidates available");
         }
         const ordered = this.orderCandidates(snapshot, candidates, "O");
-        const limited = ordered.slice(0, this.MAX_SEARCH_BRANCHES);
+        const branchCap = (_a = options === null || options === void 0 ? void 0 : options.maxBranches) !== null && _a !== void 0 ? _a : this.DEFAULT_BRANCH_CAP;
+        const limited = ordered.slice(0, branchCap);
         const scored = limited.map((entry) => ({
             move: entry.move,
-            score: this.depthTwoSearch(snapshot, entry.move),
+            score: this.depthTwoSearch(snapshot, entry.move, branchCap),
         }));
         if (scored.length === 0) {
             scored.push({ move: ordered[0].move, score: -Infinity });
@@ -50,7 +56,8 @@ export class NormalAiStrategy {
         scored.sort((a, b) => b.score - a.score);
         let chosenIndex = 0;
         let errorApplied = false;
-        if (Math.random() < this.BLUNDER_RATE && scored.length > 1) {
+        const blunderRate = (_b = options === null || options === void 0 ? void 0 : options.blunderRate) !== null && _b !== void 0 ? _b : this.DEFAULT_BLUNDER_RATE;
+        if (Math.random() < blunderRate && scored.length > 1) {
             const maxIdx = Math.min(2, scored.length - 1);
             chosenIndex = Math.floor(Math.random() * maxIdx) + 1;
             errorApplied = chosenIndex !== 0;
@@ -61,7 +68,7 @@ export class NormalAiStrategy {
             errorApplied,
         };
     }
-    static depthTwoSearch(snapshot, move) {
+    static depthTwoSearch(snapshot, move, branchCap) {
         const next = AiSimulator.applyMove(snapshot, move, "O");
         if (!next) {
             return -Infinity;
@@ -75,7 +82,7 @@ export class NormalAiStrategy {
         }
         const orderedOpp = this.orderCandidates(next, opponentMoves, "X");
         let bestResponse = Infinity;
-        const limit = orderedOpp.slice(0, this.MAX_SEARCH_BRANCHES);
+        const limit = orderedOpp.slice(0, branchCap);
         for (const { move: oppMove } of limit) {
             const afterOpp = AiSimulator.applyMove(next, oppMove, "X");
             if (!afterOpp) {
@@ -137,5 +144,5 @@ export class NormalAiStrategy {
         return penalty;
     }
 }
-NormalAiStrategy.BLUNDER_RATE = 0.12;
-NormalAiStrategy.MAX_SEARCH_BRANCHES = 6;
+NormalAiStrategy.DEFAULT_BLUNDER_RATE = 0.12;
+NormalAiStrategy.DEFAULT_BRANCH_CAP = 6;
