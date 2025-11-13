@@ -1,10 +1,11 @@
-import { GameSnapshot, AiMove, Player } from "../../core/types.js";
+import { GameSnapshot, AiMove, Player, AdaptiveBand } from "../../core/types.js";
 import { CELL_PRIORITY, BOARD_PRIORITY } from "../../core/constants.js";
 import { AiUtils } from "../utils.js";
 import { AiSimulator } from "../simulator.js";
 import { RuleAwareHeuristics } from "../rule-heuristics.js";
 import { AiDiagnostics } from "../diagnostics.js";
 import { AiEvaluator } from "../evaluator.js";
+import { AiTelemetry } from "../telemetry.js";
 import { DrMctsSearch } from "../search/dr-mcts.js";
 
 interface ScoredMove {
@@ -23,6 +24,8 @@ interface HardStrategyOptions {
   depthAdjustment?: number;
   useMcts?: boolean;
   mctsBudgetMs?: number;
+  band?: AdaptiveBand | null;
+  player?: Player;
 }
 
 export class HardAiStrategy {
@@ -31,7 +34,8 @@ export class HardAiStrategy {
   private static readonly HIGH_BRANCH_THRESHOLD = 16;
   private static readonly HARD_TIME_MS = 750;
   private static readonly EXPERT_TIME_MS = 1400;
-  private static readonly LATE_GAME_CAP_MS = 2200;
+  private static readonly HARD_LATE_MS = 4000;
+  private static readonly EXPERT_LATE_MS = 6000;
   private static readonly LATE_GAME_THRESHOLD = 18;
   private static readonly QUIESCENCE_EXTENSION = 1;
   private static readonly QUIESCENCE_BRANCH_CAP = 6;
@@ -136,11 +140,21 @@ export class HardAiStrategy {
       });
     }
 
-    if (bestMove) {
-      return bestMove;
+    const moveToPlay = bestMove ?? ordered[0]?.move ?? null;
+    const decisionMs = Number((performance.now() - startTime).toFixed(2));
+    if (moveToPlay) {
+      AiTelemetry.emit({
+        topic: "hard-decision",
+        difficulty: allowJitter ? "hard" : "expert",
+        ruleSet: snapshot.ruleSet,
+        adaptiveBand: options?.band ?? null,
+        decisionMs,
+        usedMcts: !!options?.useMcts,
+        player: options?.player ?? null,
+      });
     }
 
-    return bestMove ?? ordered[0]?.move ?? null;
+    return moveToPlay;
   }
 
   private static minimax(
@@ -245,7 +259,7 @@ export class HardAiStrategy {
     const lateGame = remainingCells <= this.LATE_GAME_THRESHOLD;
     const base = allowJitter ? this.HARD_TIME_MS : this.EXPERT_TIME_MS;
     if (lateGame) {
-      return Math.min(this.LATE_GAME_CAP_MS, base + 600);
+      return allowJitter ? this.HARD_LATE_MS : this.EXPERT_LATE_MS;
     }
     return base;
   }

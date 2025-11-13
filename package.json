@@ -7,7 +7,8 @@
     "build-modules": "tsc",
     "watch": "tsc --watch",
     "test:ai": "node --experimental-default-type=module tests/evaluator-smoke.mjs",
-    "test:ai:regress": "node --experimental-default-type=module tests/ai-regressions.mjs"
+    "test:ai:regress": "node --experimental-default-type=module tests/ai-regressions.mjs",
+    "bench:selfplay": "node --experimental-default-type=module bench/selfplay.mjs"
   },
   "keywords": [],
   "author": "",

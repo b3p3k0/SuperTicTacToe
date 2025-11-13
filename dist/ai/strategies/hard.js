@@ -4,10 +4,11 @@ import { AiSimulator } from "../simulator.js";
 import { RuleAwareHeuristics } from "../rule-heuristics.js";
 import { AiDiagnostics } from "../diagnostics.js";
 import { AiEvaluator } from "../evaluator.js";
+import { AiTelemetry } from "../telemetry.js";
 import { DrMctsSearch } from "../search/dr-mcts.js";
 export class HardAiStrategy {
     static choose(snapshot, options) {
-        var _a, _b, _c, _d, _e, _f, _g;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j;
         const allowJitter = (_a = options === null || options === void 0 ? void 0 : options.allowJitter) !== null && _a !== void 0 ? _a : false;
         const candidates = AiUtils.collectCandidates(snapshot);
         if (candidates.length === 0) {
@@ -93,10 +94,20 @@ export class HardAiStrategy {
                 breakdown,
             });
         }
-        if (bestMove) {
-            return bestMove;
+        const moveToPlay = (_g = bestMove !== null && bestMove !== void 0 ? bestMove : (_f = ordered[0]) === null || _f === void 0 ? void 0 : _f.move) !== null && _g !== void 0 ? _g : null;
+        const decisionMs = Number((performance.now() - startTime).toFixed(2));
+        if (moveToPlay) {
+            AiTelemetry.emit({
+                topic: "hard-decision",
+                difficulty: allowJitter ? "hard" : "expert",
+                ruleSet: snapshot.ruleSet,
+                adaptiveBand: (_h = options === null || options === void 0 ? void 0 : options.band) !== null && _h !== void 0 ? _h : null,
+                decisionMs,
+                usedMcts: !!(options === null || options === void 0 ? void 0 : options.useMcts),
+                player: (_j = options === null || options === void 0 ? void 0 : options.player) !== null && _j !== void 0 ? _j : null,
+            });
         }
-        return (_g = bestMove !== null && bestMove !== void 0 ? bestMove : (_f = ordered[0]) === null || _f === void 0 ? void 0 : _f.move) !== null && _g !== void 0 ? _g : null;
+        return moveToPlay;
     }
     static minimax(state, depth, maxDepth, alpha, beta, cache, stats, startTime, maxTime) {
         stats.nodes += 1;
@@ -167,7 +178,7 @@ export class HardAiStrategy {
         const lateGame = remainingCells <= this.LATE_GAME_THRESHOLD;
         const base = allowJitter ? this.HARD_TIME_MS : this.EXPERT_TIME_MS;
         if (lateGame) {
-            return Math.min(this.LATE_GAME_CAP_MS, base + 600);
+            return allowJitter ? this.HARD_LATE_MS : this.EXPERT_LATE_MS;
         }
         return base;
     }
@@ -328,7 +339,8 @@ HardAiStrategy.EXTENDED_DEPTH = 6;
 HardAiStrategy.HIGH_BRANCH_THRESHOLD = 16;
 HardAiStrategy.HARD_TIME_MS = 750;
 HardAiStrategy.EXPERT_TIME_MS = 1400;
-HardAiStrategy.LATE_GAME_CAP_MS = 2200;
+HardAiStrategy.HARD_LATE_MS = 4000;
+HardAiStrategy.EXPERT_LATE_MS = 6000;
 HardAiStrategy.LATE_GAME_THRESHOLD = 18;
 HardAiStrategy.QUIESCENCE_EXTENSION = 1;
 HardAiStrategy.QUIESCENCE_BRANCH_CAP = 6;

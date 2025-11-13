@@ -10,6 +10,7 @@ const bundleOrder = [
   'dist/ai/evaluator.js',
   'dist/ai/rule-heuristics.js',
   'dist/ai/diagnostics.js',
+  'dist/ai/telemetry.js',
   'dist/ai/adaptive-tuning.js',
   'dist/ai/simulator.js',
   'dist/ai/strategies/easy.js',

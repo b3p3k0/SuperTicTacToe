@@ -26,11 +26,15 @@ export class AiController {
       case "hard":
         return HardAiStrategy.choose(snapshot, {
           allowJitter: true,
+          player: snapshot.currentPlayer,
+          band: this.adaptiveBand,
           ...tuning.hard,
         });
       case "expert":
         return HardAiStrategy.choose(snapshot, {
           allowJitter: false,
+          player: snapshot.currentPlayer,
+          band: this.adaptiveBand,
           ...tuning.expert,
         });
       case "normal":
