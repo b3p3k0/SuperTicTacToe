@@ -32,4 +32,7 @@ export class AiController {
                 return NormalAiStrategy.choose(snapshot, tuning.normal);
         }
     }
+    updateAdaptiveBand(band) {
+        this.adaptiveBand = band;
+    }
 }

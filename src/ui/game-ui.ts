@@ -350,6 +350,7 @@ export class GameUI {
     SoloStatsTracker.record(snapshot.ruleSet, difficulty, outcome);
     if (this.isAdaptiveActive()) {
       AdaptiveLoop.recordOutcome(snapshot.ruleSet, difficulty, outcome);
+      this.refreshAiControllerBand();
     }
   }
 
@@ -410,6 +411,7 @@ export class GameUI {
         durationMs: duration,
         illegalAttempts: this.adaptiveIllegalAttempts,
       });
+      this.refreshAiControllerBand();
     }
     this.adaptiveTurnStart = null;
     this.adaptiveIllegalAttempts = 0;
@@ -437,5 +439,16 @@ export class GameUI {
 
   private isAdaptiveActive(): boolean {
     return this.overlayManager.adaptiveEnabled && AdaptiveLoop.isEnabled();
+  }
+
+  private refreshAiControllerBand(): void {
+    if (!this.aiController || !this.aiProfile) {
+      return;
+    }
+    const band = this.isAdaptiveActive()
+      ? AdaptiveLoop.getSkillBucket(this.overlayManager.ruleSet, this.aiProfile.difficulty)
+      : null;
+    this.aiProfile.adaptiveBand = band;
+    this.aiController.updateAdaptiveBand(band);
   }
 }
