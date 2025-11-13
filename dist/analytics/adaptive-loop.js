@@ -1,4 +1,4 @@
-const STORAGE_KEY = "st3.adaptiveLoop";
+const ADAPTIVE_STORAGE_KEY = "st3.adaptiveLoop";
 const VERSION = 1;
 const MAX_SAMPLES = 16;
 const createDefaultBucket = () => ({
@@ -60,7 +60,7 @@ export class AdaptiveLoop {
             return this.createStore();
         }
         try {
-            const raw = window.localStorage.getItem(STORAGE_KEY);
+            const raw = window.localStorage.getItem(ADAPTIVE_STORAGE_KEY);
             if (!raw) {
                 return this.createStore();
             }
@@ -83,7 +83,7 @@ export class AdaptiveLoop {
             return;
         }
         try {
-            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+            window.localStorage.setItem(ADAPTIVE_STORAGE_KEY, JSON.stringify(store));
         }
         catch (_a) {
             // ignore quota errors

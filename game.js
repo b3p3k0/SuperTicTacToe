@@ -1316,6 +1316,54 @@ class AiDiagnostics {
 AiDiagnostics.FLAG_KEY = "st3.aiDebug";
 
 
+// === dist/ai/adaptive-tuning.js ===
+class AdaptiveTuning {
+    static resolve(difficulty, band) {
+        const normalized = band !== null && band !== void 0 ? band : "flow";
+        switch (difficulty) {
+            case "easy":
+                return { easy: this.easyTuning(normalized) };
+            case "normal":
+                return { normal: this.normalTuning(normalized) };
+            case "hard":
+                return { hard: this.hardTuning(normalized) };
+            case "expert":
+                return { expert: this.expertTuning(normalized) };
+            default:
+                return {};
+        }
+    }
+    static easyTuning(band) {
+        const blockChance = band === "struggle" ? 0.9 : band === "coast" ? 0.35 : 0.6;
+        const noiseScale = band === "struggle" ? 5.5 : band === "coast" ? 3 : 4.2;
+        return { blockChance, noiseScale };
+    }
+    static normalTuning(band) {
+        const blunderRate = band === "struggle" ? 0.2 : band === "coast" ? 0.05 : 0.12;
+        const branchCap = band === "coast" ? 8 : band === "struggle" ? 5 : 6;
+        return { blunderRate, branchCap };
+    }
+    static hardTuning(band) {
+        return {
+            allowJitter: true,
+            maxTimeMs: band === "coast" ? 1600 : band === "struggle" ? 650 : 1100,
+            depthAdjustment: band === "coast" ? 1 : band === "struggle" ? -1 : 0,
+            useMcts: band === "coast",
+            mctsBudgetMs: band === "coast" ? 350 : 0,
+        };
+    }
+    static expertTuning(band) {
+        return {
+            allowJitter: false,
+            maxTimeMs: band === "coast" ? 2000 : band === "struggle" ? 900 : 1400,
+            depthAdjustment: band === "coast" ? 1 : 0,
+            useMcts: band !== "struggle",
+            mctsBudgetMs: band === "coast" ? 450 : 250,
+        };
+    }
+}
+
+
 // === dist/ai/simulator.js ===
 
 class AiSimulator {
@@ -1600,6 +1648,103 @@ class NormalAiStrategy {
 }
 NormalAiStrategy.DEFAULT_BLUNDER_RATE = 0.12;
 NormalAiStrategy.DEFAULT_BRANCH_CAP = 6;
+
+
+// === dist/ai/search/dr-mcts.js ===
+
+
+
+class DrMctsSearch {
+    static run(snapshot, player, options) {
+        var _a, _b, _c;
+        const root = this.createNode(null, snapshot);
+        const maxTime = (_a = options === null || options === void 0 ? void 0 : options.maxTimeMs) !== null && _a !== void 0 ? _a : 350;
+        const deadline = performance.now() + maxTime;
+        const maxIterations = (_b = options === null || options === void 0 ? void 0 : options.iterations) !== null && _b !== void 0 ? _b : 600;
+        const exploration = (_c = options === null || options === void 0 ? void 0 : options.exploration) !== null && _c !== void 0 ? _c : 1.1;
+        let iterations = 0;
+        while (iterations < maxIterations && performance.now() < deadline) {
+            iterations += 1;
+            const path = this.select(root, exploration);
+            const leaf = path[path.length - 1];
+            const expanded = this.expand(leaf);
+            const evalNode = expanded !== null && expanded !== void 0 ? expanded : leaf;
+            const value = this.evaluateNode(evalNode, player);
+            const nodesToUpdate = expanded ? [...path, expanded] : path;
+            this.backpropagate(nodesToUpdate, value);
+        }
+        return root.children
+            .filter((child) => child.move)
+            .map((child) => ({
+            move: child.move,
+            visits: child.visits,
+            value: child.visits > 0 ? child.totalValue / child.visits : 0,
+        }))
+            .sort((a, b) => b.visits - a.visits);
+    }
+    static createNode(move, state, parent = null) {
+        return {
+            move,
+            state,
+            parent,
+            children: [],
+            unexpanded: AiUtils.collectCandidates(state),
+            visits: 0,
+            totalValue: 0,
+        };
+    }
+    static select(root, exploration) {
+        const path = [root];
+        let node = root;
+        while (node.unexpanded.length === 0 && node.children.length > 0 && node.state.status === "playing") {
+            node = this.bestChild(node, exploration);
+            path.push(node);
+        }
+        return path;
+    }
+    static bestChild(node, exploration) {
+        const totalVisits = Math.max(1, node.visits);
+        let bestScore = -Infinity;
+        let bestChild = node.children[0];
+        for (const child of node.children) {
+            const mean = child.visits > 0 ? child.totalValue / child.visits : 0;
+            const bonus = Math.sqrt(Math.log(totalVisits + 1) / (child.visits + 1)) * exploration;
+            const score = mean + bonus;
+            if (score > bestScore) {
+                bestScore = score;
+                bestChild = child;
+            }
+        }
+        return bestChild;
+    }
+    static expand(node) {
+        if (node.state.status !== "playing") {
+            return null;
+        }
+        if (node.unexpanded.length === 0) {
+            return null;
+        }
+        const move = node.unexpanded.pop();
+        const next = AiSimulator.applyMove(node.state, move, node.state.currentPlayer);
+        if (!next) {
+            return null;
+        }
+        const child = this.createNode(move, next, node);
+        node.children.push(child);
+        return child;
+    }
+    static evaluateNode(node, player) {
+        const score = AiEvaluator.evaluate(node.state, player);
+        const normalized = Math.max(-1, Math.min(1, score / 1000));
+        return normalized;
+    }
+    static backpropagate(nodes, value) {
+        nodes.forEach((node) => {
+            node.visits += 1;
+            node.totalValue += value;
+        });
+    }
+}
 
 
 // === dist/ai/strategies/hard.js ===
@@ -2194,6 +2339,128 @@ class SoloStatsTracker {
     }
     static hasStorage() {
         return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+    }
+}
+
+
+// === dist/analytics/adaptive-loop.js ===
+const ADAPTIVE_STORAGE_KEY = "st3.adaptiveLoop";
+const VERSION = 1;
+const MAX_SAMPLES = 16;
+const createDefaultBucket = () => ({
+    outcomes: [],
+    moveTimes: [],
+    illegalAttempts: [],
+    lastUpdated: Date.now(),
+});
+class AdaptiveLoop {
+    static isEnabled() {
+        return this.load().enabled;
+    }
+    static setEnabled(enabled) {
+        const store = this.load();
+        store.enabled = enabled;
+        this.save(store);
+    }
+    static recordHumanMove(ruleSet, difficulty, sample) {
+        if (!Number.isFinite(sample.durationMs)) {
+            return;
+        }
+        const store = this.load();
+        const bucket = this.getBucket(store, ruleSet, difficulty);
+        this.pushSample(bucket.moveTimes, sample.durationMs);
+        this.pushSample(bucket.illegalAttempts, Math.max(0, sample.illegalAttempts));
+        bucket.lastUpdated = Date.now();
+        this.save(store);
+    }
+    static recordOutcome(ruleSet, difficulty, outcome) {
+        const store = this.load();
+        const bucket = this.getBucket(store, ruleSet, difficulty);
+        const value = outcome === "human" ? 1 : outcome === "ai" ? -1 : 0;
+        this.pushSample(bucket.outcomes, value);
+        bucket.lastUpdated = Date.now();
+        this.save(store);
+    }
+    static getSkillBucket(ruleSet, difficulty) {
+        const bucket = this.getBucket(this.load(), ruleSet, difficulty);
+        const outcomeAvg = this.average(bucket.outcomes, 0);
+        const moveAvg = this.average(bucket.moveTimes, 4500);
+        const illegalTotal = bucket.illegalAttempts.reduce((sum, val) => sum + val, 0);
+        const illegalRate = bucket.moveTimes.length > 0
+            ? illegalTotal / bucket.moveTimes.length
+            : 0;
+        if (outcomeAvg <= -0.35 || moveAvg > 8500 || illegalRate > 0.35) {
+            return "struggle";
+        }
+        if (outcomeAvg >= 0.35 && moveAvg < 2500 && illegalRate < 0.1) {
+            return "coast";
+        }
+        return "flow";
+    }
+    static getSnapshot() {
+        return this.load();
+    }
+    static load() {
+        var _a, _b, _c;
+        if (typeof window === "undefined" || !window.localStorage) {
+            return this.createStore();
+        }
+        try {
+            const raw = window.localStorage.getItem(ADAPTIVE_STORAGE_KEY);
+            if (!raw) {
+                return this.createStore();
+            }
+            const parsed = JSON.parse(raw);
+            if (parsed.version !== VERSION) {
+                return this.createStore((_a = parsed.enabled) !== null && _a !== void 0 ? _a : false);
+            }
+            return {
+                version: VERSION,
+                enabled: (_b = parsed.enabled) !== null && _b !== void 0 ? _b : false,
+                buckets: (_c = parsed.buckets) !== null && _c !== void 0 ? _c : {},
+            };
+        }
+        catch (_d) {
+            return this.createStore();
+        }
+    }
+    static save(store) {
+        if (typeof window === "undefined" || !window.localStorage) {
+            return;
+        }
+        try {
+            window.localStorage.setItem(ADAPTIVE_STORAGE_KEY, JSON.stringify(store));
+        }
+        catch (_a) {
+            // ignore quota errors
+        }
+    }
+    static createStore(enabled = false) {
+        return {
+            version: VERSION,
+            enabled,
+            buckets: {},
+        };
+    }
+    static getBucket(store, ruleSet, difficulty) {
+        const key = `${ruleSet}:${difficulty}`;
+        if (!store.buckets[key]) {
+            store.buckets[key] = createDefaultBucket();
+        }
+        return store.buckets[key];
+    }
+    static pushSample(target, value) {
+        target.push(value);
+        if (target.length > MAX_SAMPLES) {
+            target.shift();
+        }
+    }
+    static average(values, fallback) {
+        if (values.length === 0) {
+            return fallback;
+        }
+        const total = values.reduce((sum, value) => sum + value, 0);
+        return total / values.length;
     }
 }
 
