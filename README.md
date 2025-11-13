@@ -6,8 +6,8 @@ A zero-dependency, browser-ready take on the 3×3 mega tic-tac-toe grid. Clone i
 
 ## Quick Play
 
-1. Download or clone this repo.
-2. Open `index.html` in any modern browser (double-click works via `file://`), hit **New Game**, and pick **1 Player** or **2 Players** when the overlay pops up. Choose Classic, Modern, or Battle rules, and if you’re in solo mode also pick Easy/Normal/Hard plus who starts (Human / AI / Random) before the board appears.
+1. Clone this repo or [download the latest release](https://github.com/b3p3k0/SuperTicTacToe/releases/latest).
+2. Open `index.html` in any modern browser (double-click works via `file:///), hit **New Game**, and pick **1 Player** or **2 Players** when the overlay pops up. Choose Classic, Modern, or Battle rules, and if you’re in solo mode also pick Easy/Normal/Hard plus who starts (Human / AI / Random) before the board appears.
 
 That’s it—`game.js`, `style.css`, and all other assets are already bundled, so you can drop the folder onto any static host with zero build steps.
 
@@ -35,23 +35,22 @@ All TypeScript source lives under `src/` (split into `core`, `ai`, `ui`, and `ma
 - **Move history**: chess-style log (e.g., `T12: P1BB3LB2 -> P2BB2LB5(F)`) with `(F)` indicating when the destination board was full and the next player could choose freely.
 - **Solo analytics & debugging**: every 1P game updates browser-side win/draw counters by rule set + difficulty (rendered in the bar beneath the board), and you can flip on AI diagnostic logs via DevTools when tuning.
 - **Rules & history toggles**: collapsible panels keep the layout tidy on smaller screens.
-- **Friendly guardrails**: illegal moves trigger a modal (“Oops! can’t move there because …”) with a single “got it!” button so players know what went wrong.
 
 ---
 
 ## File Map
 
-| File                                 | Purpose                                                             |
-| ------------------------------------ | ------------------------------------------------------------------- |
-| `index.html`                         | Shell markup and dialog scaffolding                                 |
-| `style.css`                          | Responsive layout + color tokens (easy to reskin for future themes) |
-| `src/core/*`                         | Pure game logic, rule definitions, types, and constants             |
-| `src/ai/*`                           | AI controller, simulator, and difficulty strategies                 |
-| `src/ui/*`                           | UI orchestration, overlays, panels, and theme manager               |
-| `src/main.ts`                        | Entry point that wires the engine/UI/theme manager                  |
+| File                                 | Purpose                                                                |
+| ------------------------------------ | ---------------------------------------------------------------------- |
+| `index.html`                         | Shell markup and dialog scaffolding                                    |
+| `style.css`                          | Responsive layout + color tokens (easy to reskin for future themes)    |
+| `src/core/*`                         | Pure game logic, rule definitions, types, and constants                |
+| `src/ai/*`                           | AI controller, simulator, and difficulty strategies                    |
+| `src/ui/*`                           | UI orchestration, overlays, panels, and theme manager                  |
+| `src/main.ts`                        | Entry point that wires the engine/UI/theme manager                     |
 | `game.js`                            | Compiled bundle that ships with the repo (rebuilt via `npm run build`) |
-| `package.json` / `package-lock.json` | Tooling metadata (`typescript` dev dependency, build scripts)       |
-| `tsconfig.json`                      | Compiler settings targeting ES2018/browser-friendly output          |
+| `package.json` / `package-lock.json` | Tooling metadata (`typescript` dev dependency, build scripts)          |
+| `tsconfig.json`                      | Compiler settings targeting ES2018/browser-friendly output             |
 
 ---
 
@@ -80,4 +79,4 @@ Optional polish: if you want special fonts or effects for that theme, add a CSS 
 - **Solo outcome log**: peek at `localStorage.st3.soloStats` to see aggregate Human / AI / Draw counts for each rule set and difficulty (reset with `localStorage.removeItem("st3.soloStats")`).
 - **Diagnostics toggle**: run `localStorage.setItem("st3.aiDebug", "1")` in DevTools and refresh to see per-move candidate tables for Normal/Hard. Disable with `"0"` (or remove the key) when you’re done profiling.
 
-Enjoy the grid warfare! If you add features (AI, saved games, themes), re-run `npm run build` so `game.js` stays in sync.\*\*\*
+Enjoy the grid warfare!
