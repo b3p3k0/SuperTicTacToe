@@ -1357,26 +1357,33 @@ class AdaptiveTuning {
         return { blockChance, noiseScale };
     }
     static normalTuning(band) {
-        const blunderRate = band === "struggle" ? 0.2 : band === "coast" ? 0.05 : 0.12;
-        const branchCap = band === "coast" ? 8 : band === "struggle" ? 5 : 6;
+        const blunderRate = band === "struggle" ? 0.22 : band === "coast" ? 0.05 : 0.15;
+        const branchCap = band === "coast" ? 8 : band === "struggle" ? 5 : 5;
         return { blunderRate, branchCap };
     }
     static hardTuning(band) {
+        const isFlow = band === "flow";
         return {
-            allowJitter: true,
-            maxTimeMs: band === "coast" ? 1600 : band === "struggle" ? 650 : 1100,
+            allowJitter: !isFlow,
+            maxTimeMs: band === "coast" ? 1600 : band === "struggle" ? 650 : 1200,
             depthAdjustment: band === "coast" ? 1 : band === "struggle" ? -1 : 0,
-            useMcts: band === "coast",
-            mctsBudgetMs: band === "coast" ? 350 : 0,
+            useMcts: band !== "struggle",
+            mctsBudgetMs: band === "coast" ? 320 : isFlow ? 200 : 0,
         };
     }
     static expertTuning(band) {
+        const weightOverrides = band === "flow"
+            ? { metaThreat: 150, activeBoardFocus: 32 }
+            : band === "coast"
+                ? { metaThreat: 155, activeBoardFocus: 34 }
+                : undefined;
         return {
             allowJitter: false,
-            maxTimeMs: band === "coast" ? 2000 : band === "struggle" ? 900 : 1400,
-            depthAdjustment: band === "coast" ? 1 : 0,
+            maxTimeMs: band === "coast" ? 2000 : band === "struggle" ? 900 : 1600,
+            depthAdjustment: band === "coast" ? 1 : band === "struggle" ? -1 : 0,
             useMcts: band !== "struggle",
-            mctsBudgetMs: band === "coast" ? 450 : 250,
+            mctsBudgetMs: band === "coast" ? 450 : band === "flow" ? 300 : 250,
+            ...(weightOverrides ? { weightOverrides } : {}),
         };
     }
 }
@@ -1778,6 +1785,7 @@ class HardAiStrategy {
     static choose(snapshot, options) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j;
         const allowJitter = (_a = options === null || options === void 0 ? void 0 : options.allowJitter) !== null && _a !== void 0 ? _a : false;
+        const weightOverrides = options === null || options === void 0 ? void 0 : options.weightOverrides;
         const candidates = AiUtils.collectCandidates(snapshot);
         if (candidates.length === 0) {
             return null;
@@ -1813,7 +1821,7 @@ class HardAiStrategy {
                 if (!next) {
                     continue;
                 }
-                const score = this.minimax(next, 1, depth, -Infinity, Infinity, cache, stats, startTime, maxTime);
+                const score = this.minimax(next, 1, depth, -Infinity, Infinity, cache, stats, startTime, maxTime, weightOverrides);
                 layerScores.push({ move, score });
                 if (score > iterationScore) {
                     iterationScore = score;
@@ -1877,10 +1885,10 @@ class HardAiStrategy {
         }
         return moveToPlay;
     }
-    static minimax(state, depth, maxDepth, alpha, beta, cache, stats, startTime, maxTime) {
+    static minimax(state, depth, maxDepth, alpha, beta, cache, stats, startTime, maxTime, weightOverrides) {
         stats.nodes += 1;
         if (performance.now() - startTime > maxTime) {
-            return AiEvaluator.evaluate(state, "O");
+            return AiEvaluator.evaluate(state, "O", weightOverrides);
         }
         const cacheKey = this.hashState(state, depth);
         const cached = cache.get(cacheKey);
@@ -1896,14 +1904,14 @@ class HardAiStrategy {
             if (this.shouldExtend(state)) {
                 const forcing = this.getForcingMoves(state, state.currentPlayer);
                 if (forcing.length > 0) {
-                    return this.evaluateForcingBranch(state, forcing, alpha, beta, stats, startTime, maxTime);
+                    return this.evaluateForcingBranch(state, forcing, alpha, beta, stats, startTime, maxTime, weightOverrides);
                 }
             }
-            return this.evaluateState(state);
+            return this.evaluateState(state, weightOverrides);
         }
         const candidates = AiUtils.collectCandidates(state);
         if (candidates.length === 0) {
-            return this.evaluateState(state);
+            return this.evaluateState(state, weightOverrides);
         }
         const maximizing = state.currentPlayer === "O";
         let bestScore = maximizing ? -Infinity : Infinity;
@@ -1913,7 +1921,7 @@ class HardAiStrategy {
             if (!next) {
                 continue;
             }
-            const value = this.minimax(next, depth + 1, maxDepth, alpha, beta, cache, stats, startTime, maxTime);
+            const value = this.minimax(next, depth + 1, maxDepth, alpha, beta, cache, stats, startTime, maxTime, weightOverrides);
             if (maximizing) {
                 if (value > bestScore) {
                     bestScore = value;
@@ -1974,8 +1982,8 @@ class HardAiStrategy {
         }
         return null;
     }
-    static evaluateState(state) {
-        return AiEvaluator.evaluate(state, "O");
+    static evaluateState(state, overrides) {
+        return AiEvaluator.evaluate(state, "O", overrides);
     }
     static orderCandidates(snapshot, moves, player) {
         return moves
@@ -2058,7 +2066,7 @@ class HardAiStrategy {
         })
             .slice(0, this.QUIESCENCE_BRANCH_CAP);
     }
-    static evaluateForcingBranch(state, moves, alpha, beta, stats, startTime, maxTime) {
+    static evaluateForcingBranch(state, moves, alpha, beta, stats, startTime, maxTime, weightOverrides) {
         const maximizing = state.currentPlayer === "O";
         let bestScore = maximizing ? -Infinity : Infinity;
         for (const move of moves) {
@@ -2070,7 +2078,7 @@ class HardAiStrategy {
                 continue;
             }
             stats.nodes += 1;
-            const value = this.evaluateState(next);
+            const value = this.evaluateState(next, weightOverrides);
             if (maximizing) {
                 if (value > bestScore) {
                     bestScore = value;
@@ -2088,7 +2096,7 @@ class HardAiStrategy {
             }
         }
         if (bestScore === (maximizing ? -Infinity : Infinity)) {
-            return this.evaluateState(state);
+            return this.evaluateState(state, weightOverrides);
         }
         return bestScore;
     }
@@ -2219,20 +2227,28 @@ class AiController {
         switch (this.difficulty) {
             case "easy":
                 return EasyAiStrategy.choose(snapshot, tuning.easy);
-            case "hard":
-                return HardAiStrategy.choose(snapshot, {
-                    allowJitter: true,
+            case "hard": {
+                const options = {
                     player: snapshot.currentPlayer,
                     band: this.adaptiveBand,
                     ...tuning.hard,
-                });
-            case "expert":
-                return HardAiStrategy.choose(snapshot, {
-                    allowJitter: false,
+                };
+                if (options.allowJitter === undefined) {
+                    options.allowJitter = true;
+                }
+                return HardAiStrategy.choose(snapshot, options);
+            }
+            case "expert": {
+                const options = {
                     player: snapshot.currentPlayer,
                     band: this.adaptiveBand,
                     ...tuning.expert,
-                });
+                };
+                if (options.allowJitter === undefined) {
+                    options.allowJitter = false;
+                }
+                return HardAiStrategy.choose(snapshot, options);
+            }
             case "normal":
             default:
                 return NormalAiStrategy.choose(snapshot, tuning.normal);

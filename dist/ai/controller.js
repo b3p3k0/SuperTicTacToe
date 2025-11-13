@@ -17,20 +17,28 @@ export class AiController {
         switch (this.difficulty) {
             case "easy":
                 return EasyAiStrategy.choose(snapshot, tuning.easy);
-            case "hard":
-                return HardAiStrategy.choose(snapshot, {
-                    allowJitter: true,
+            case "hard": {
+                const options = {
                     player: snapshot.currentPlayer,
                     band: this.adaptiveBand,
                     ...tuning.hard,
-                });
-            case "expert":
-                return HardAiStrategy.choose(snapshot, {
-                    allowJitter: false,
+                };
+                if (options.allowJitter === undefined) {
+                    options.allowJitter = true;
+                }
+                return HardAiStrategy.choose(snapshot, options);
+            }
+            case "expert": {
+                const options = {
                     player: snapshot.currentPlayer,
                     band: this.adaptiveBand,
                     ...tuning.expert,
-                });
+                };
+                if (options.allowJitter === undefined) {
+                    options.allowJitter = false;
+                }
+                return HardAiStrategy.choose(snapshot, options);
+            }
             case "normal":
             default:
                 return NormalAiStrategy.choose(snapshot, tuning.normal);

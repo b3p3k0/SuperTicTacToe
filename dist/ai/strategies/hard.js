@@ -10,6 +10,7 @@ export class HardAiStrategy {
     static choose(snapshot, options) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j;
         const allowJitter = (_a = options === null || options === void 0 ? void 0 : options.allowJitter) !== null && _a !== void 0 ? _a : false;
+        const weightOverrides = options === null || options === void 0 ? void 0 : options.weightOverrides;
         const candidates = AiUtils.collectCandidates(snapshot);
         if (candidates.length === 0) {
             return null;
@@ -45,7 +46,7 @@ export class HardAiStrategy {
                 if (!next) {
                     continue;
                 }
-                const score = this.minimax(next, 1, depth, -Infinity, Infinity, cache, stats, startTime, maxTime);
+                const score = this.minimax(next, 1, depth, -Infinity, Infinity, cache, stats, startTime, maxTime, weightOverrides);
                 layerScores.push({ move, score });
                 if (score > iterationScore) {
                     iterationScore = score;
@@ -109,10 +110,10 @@ export class HardAiStrategy {
         }
         return moveToPlay;
     }
-    static minimax(state, depth, maxDepth, alpha, beta, cache, stats, startTime, maxTime) {
+    static minimax(state, depth, maxDepth, alpha, beta, cache, stats, startTime, maxTime, weightOverrides) {
         stats.nodes += 1;
         if (performance.now() - startTime > maxTime) {
-            return AiEvaluator.evaluate(state, "O");
+            return AiEvaluator.evaluate(state, "O", weightOverrides);
         }
         const cacheKey = this.hashState(state, depth);
         const cached = cache.get(cacheKey);
@@ -128,14 +129,14 @@ export class HardAiStrategy {
             if (this.shouldExtend(state)) {
                 const forcing = this.getForcingMoves(state, state.currentPlayer);
                 if (forcing.length > 0) {
-                    return this.evaluateForcingBranch(state, forcing, alpha, beta, stats, startTime, maxTime);
+                    return this.evaluateForcingBranch(state, forcing, alpha, beta, stats, startTime, maxTime, weightOverrides);
                 }
             }
-            return this.evaluateState(state);
+            return this.evaluateState(state, weightOverrides);
         }
         const candidates = AiUtils.collectCandidates(state);
         if (candidates.length === 0) {
-            return this.evaluateState(state);
+            return this.evaluateState(state, weightOverrides);
         }
         const maximizing = state.currentPlayer === "O";
         let bestScore = maximizing ? -Infinity : Infinity;
@@ -145,7 +146,7 @@ export class HardAiStrategy {
             if (!next) {
                 continue;
             }
-            const value = this.minimax(next, depth + 1, maxDepth, alpha, beta, cache, stats, startTime, maxTime);
+            const value = this.minimax(next, depth + 1, maxDepth, alpha, beta, cache, stats, startTime, maxTime, weightOverrides);
             if (maximizing) {
                 if (value > bestScore) {
                     bestScore = value;
@@ -206,8 +207,8 @@ export class HardAiStrategy {
         }
         return null;
     }
-    static evaluateState(state) {
-        return AiEvaluator.evaluate(state, "O");
+    static evaluateState(state, overrides) {
+        return AiEvaluator.evaluate(state, "O", overrides);
     }
     static orderCandidates(snapshot, moves, player) {
         return moves
@@ -290,7 +291,7 @@ export class HardAiStrategy {
         })
             .slice(0, this.QUIESCENCE_BRANCH_CAP);
     }
-    static evaluateForcingBranch(state, moves, alpha, beta, stats, startTime, maxTime) {
+    static evaluateForcingBranch(state, moves, alpha, beta, stats, startTime, maxTime, weightOverrides) {
         const maximizing = state.currentPlayer === "O";
         let bestScore = maximizing ? -Infinity : Infinity;
         for (const move of moves) {
@@ -302,7 +303,7 @@ export class HardAiStrategy {
                 continue;
             }
             stats.nodes += 1;
-            const value = this.evaluateState(next);
+            const value = this.evaluateState(next, weightOverrides);
             if (maximizing) {
                 if (value > bestScore) {
                     bestScore = value;
@@ -320,7 +321,7 @@ export class HardAiStrategy {
             }
         }
         if (bestScore === (maximizing ? -Infinity : Infinity)) {
-            return this.evaluateState(state);
+            return this.evaluateState(state, weightOverrides);
         }
         return bestScore;
     }

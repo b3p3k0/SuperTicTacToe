@@ -13,6 +13,16 @@ That’s it—`game.js`, `style.css`, and all other assets are already bundled, 
 
 ---
 
+## Learn More
+
+Want to dive deeper into how Super T3 works under the hood? We've got educational resources that explain the technical concepts in an accessible way:
+
+- **[How the AI Opponent Works](docs/how-the-ai-works.md)** - Ever wondered how a computer plays games? Discover the four AI personalities (Easy through Expert), learn about algorithms like minimax and alpha-beta pruning, and see how the AI thinks several moves ahead just like a chess grandmaster.
+
+These guides are written for curious minds who want to understand the algorithms and strategies that power the game, perfect for students, educators, or anyone interested in game AI.
+
+---
+
 ## Development Setup
 
 ```bash

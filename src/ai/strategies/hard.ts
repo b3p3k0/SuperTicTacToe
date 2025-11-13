@@ -4,7 +4,7 @@ import { AiUtils } from "../utils.js";
 import { AiSimulator } from "../simulator.js";
 import { RuleAwareHeuristics } from "../rule-heuristics.js";
 import { AiDiagnostics } from "../diagnostics.js";
-import { AiEvaluator } from "../evaluator.js";
+import { AiEvaluator, EvaluationWeights } from "../evaluator.js";
 import { AiTelemetry } from "../telemetry.js";
 import { DrMctsSearch } from "../search/dr-mcts.js";
 
@@ -26,6 +26,7 @@ interface HardStrategyOptions {
   mctsBudgetMs?: number;
   band?: AdaptiveBand | null;
   player?: Player;
+  weightOverrides?: Partial<EvaluationWeights>;
 }
 
 export class HardAiStrategy {
@@ -42,6 +43,7 @@ export class HardAiStrategy {
 
   static choose(snapshot: GameSnapshot, options?: HardStrategyOptions): AiMove | null {
     const allowJitter = options?.allowJitter ?? false;
+    const weightOverrides = options?.weightOverrides;
     const candidates = AiUtils.collectCandidates(snapshot);
     if (candidates.length === 0) {
       return null;
@@ -85,7 +87,18 @@ export class HardAiStrategy {
         if (!next) {
           continue;
         }
-        const score = this.minimax(next, 1, depth, -Infinity, Infinity, cache, stats, startTime, maxTime);
+        const score = this.minimax(
+          next,
+          1,
+          depth,
+          -Infinity,
+          Infinity,
+          cache,
+          stats,
+          startTime,
+          maxTime,
+          weightOverrides,
+        );
         layerScores.push({ move, score });
         if (score > iterationScore) {
           iterationScore = score;
@@ -166,12 +179,13 @@ export class HardAiStrategy {
     cache: Map<string, number>,
     stats: SearchStats,
     startTime: number,
-    maxTime: number
+    maxTime: number,
+    weightOverrides?: Partial<EvaluationWeights>,
   ): number {
     stats.nodes += 1;
 
     if (performance.now() - startTime > maxTime) {
-      return AiEvaluator.evaluate(state, "O");
+      return AiEvaluator.evaluate(state, "O", weightOverrides);
     }
 
     const cacheKey = this.hashState(state, depth);
@@ -198,15 +212,16 @@ export class HardAiStrategy {
             stats,
             startTime,
             maxTime,
+            weightOverrides,
           );
         }
       }
-      return this.evaluateState(state);
+      return this.evaluateState(state, weightOverrides);
     }
 
     const candidates = AiUtils.collectCandidates(state);
     if (candidates.length === 0) {
-      return this.evaluateState(state);
+      return this.evaluateState(state, weightOverrides);
     }
 
     const maximizing = state.currentPlayer === "O";
@@ -220,7 +235,18 @@ export class HardAiStrategy {
         continue;
       }
 
-      const value = this.minimax(next, depth + 1, maxDepth, alpha, beta, cache, stats, startTime, maxTime);
+      const value = this.minimax(
+        next,
+        depth + 1,
+        maxDepth,
+        alpha,
+        beta,
+        cache,
+        stats,
+        startTime,
+        maxTime,
+        weightOverrides,
+      );
 
       if (maximizing) {
         if (value > bestScore) {
@@ -296,8 +322,11 @@ export class HardAiStrategy {
     return null;
   }
 
-  private static evaluateState(state: GameSnapshot): number {
-    return AiEvaluator.evaluate(state, "O");
+  private static evaluateState(
+    state: GameSnapshot,
+    overrides?: Partial<EvaluationWeights>,
+  ): number {
+    return AiEvaluator.evaluate(state, "O", overrides);
   }
 
   private static orderCandidates(
@@ -404,6 +433,7 @@ export class HardAiStrategy {
     stats: SearchStats,
     startTime: number,
     maxTime: number,
+    weightOverrides?: Partial<EvaluationWeights>,
   ): number {
     const maximizing = state.currentPlayer === "O";
     let bestScore = maximizing ? -Infinity : Infinity;
@@ -416,7 +446,7 @@ export class HardAiStrategy {
         continue;
       }
       stats.nodes += 1;
-      const value = this.evaluateState(next);
+      const value = this.evaluateState(next, weightOverrides);
       if (maximizing) {
         if (value > bestScore) {
           bestScore = value;
@@ -434,7 +464,7 @@ export class HardAiStrategy {
     }
 
     if (bestScore === (maximizing ? -Infinity : Infinity)) {
-      return this.evaluateState(state);
+      return this.evaluateState(state, weightOverrides);
     }
     return bestScore;
   }

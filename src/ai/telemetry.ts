@@ -1,6 +1,8 @@
 import { AdaptiveBand, Difficulty, Player, RuleSet } from "../core/types.js";
 
-export interface AiTelemetryEvent {
+export type AiTelemetryEvent = HardDecisionEvent;
+
+interface HardDecisionEvent {
   topic: "hard-decision";
   player?: Player | null;
   difficulty: Difficulty;

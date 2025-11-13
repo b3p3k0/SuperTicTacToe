@@ -20,26 +20,33 @@ export class AdaptiveTuning {
         return { blockChance, noiseScale };
     }
     static normalTuning(band) {
-        const blunderRate = band === "struggle" ? 0.2 : band === "coast" ? 0.05 : 0.12;
-        const branchCap = band === "coast" ? 8 : band === "struggle" ? 5 : 6;
+        const blunderRate = band === "struggle" ? 0.22 : band === "coast" ? 0.05 : 0.15;
+        const branchCap = band === "coast" ? 8 : band === "struggle" ? 5 : 5;
         return { blunderRate, branchCap };
     }
     static hardTuning(band) {
+        const isFlow = band === "flow";
         return {
-            allowJitter: true,
-            maxTimeMs: band === "coast" ? 1600 : band === "struggle" ? 650 : 1100,
+            allowJitter: !isFlow,
+            maxTimeMs: band === "coast" ? 1600 : band === "struggle" ? 650 : 1200,
             depthAdjustment: band === "coast" ? 1 : band === "struggle" ? -1 : 0,
-            useMcts: band === "coast",
-            mctsBudgetMs: band === "coast" ? 350 : 0,
+            useMcts: band !== "struggle",
+            mctsBudgetMs: band === "coast" ? 320 : isFlow ? 200 : 0,
         };
     }
     static expertTuning(band) {
+        const weightOverrides = band === "flow"
+            ? { metaThreat: 150, activeBoardFocus: 32 }
+            : band === "coast"
+                ? { metaThreat: 155, activeBoardFocus: 34 }
+                : undefined;
         return {
             allowJitter: false,
-            maxTimeMs: band === "coast" ? 2000 : band === "struggle" ? 900 : 1400,
-            depthAdjustment: band === "coast" ? 1 : 0,
+            maxTimeMs: band === "coast" ? 2000 : band === "struggle" ? 900 : 1600,
+            depthAdjustment: band === "coast" ? 1 : band === "struggle" ? -1 : 0,
             useMcts: band !== "struggle",
-            mctsBudgetMs: band === "coast" ? 450 : 250,
+            mctsBudgetMs: band === "coast" ? 450 : band === "flow" ? 300 : 250,
+            ...(weightOverrides ? { weightOverrides } : {}),
         };
     }
 }
