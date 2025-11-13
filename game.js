@@ -1373,17 +1373,44 @@ class AdaptiveTuning {
     }
     static expertTuning(band) {
         const weightOverrides = band === "flow"
-            ? { metaThreat: 150, activeBoardFocus: 32 }
+            ? {
+                metaThreat: 185,
+                activeBoardFocus: 40,
+                boardCaptured: 200,
+                boardThreat: 24,
+                battleStability: 45,
+            }
             : band === "coast"
-                ? { metaThreat: 155, activeBoardFocus: 34 }
+                ? {
+                    metaThreat: 160,
+                    activeBoardFocus: 34,
+                }
                 : undefined;
         return {
             allowJitter: false,
-            maxTimeMs: band === "coast" ? 2000 : band === "struggle" ? 900 : 1600,
-            depthAdjustment: band === "coast" ? 1 : band === "struggle" ? -1 : 0,
+            maxTimeMs: band === "coast" ? 2000 : band === "struggle" ? 900 : 2200,
+            depthAdjustment: band === "coast" ? 1 : band === "struggle" ? -1 : 2,
             useMcts: band !== "struggle",
-            mctsBudgetMs: band === "coast" ? 450 : band === "flow" ? 300 : 250,
+            mctsBudgetMs: band === "coast" ? 450 : band === "flow" ? 450 : 250,
             ...(weightOverrides ? { weightOverrides } : {}),
+        };
+    }
+    static staticHardPreset() {
+        return {
+            allowJitter: true,
+            maxTimeMs: 1100,
+            depthAdjustment: 0,
+            useMcts: false,
+            mctsBudgetMs: 0,
+        };
+    }
+    static staticExpertPreset() {
+        return {
+            allowJitter: false,
+            maxTimeMs: 1500,
+            depthAdjustment: 0,
+            useMcts: true,
+            mctsBudgetMs: 250,
         };
     }
 }
@@ -2214,44 +2241,47 @@ OpeningBook.MAX_HISTORY = 2;
 
 
 class AiController {
-    constructor(difficulty, adaptiveBand) {
+    constructor(difficulty, adaptiveBand, adaptiveEnabled = false) {
         this.difficulty = difficulty;
         this.adaptiveBand = adaptiveBand !== null && adaptiveBand !== void 0 ? adaptiveBand : null;
+        this.adaptiveEnabled = adaptiveEnabled;
     }
     chooseMove(snapshot) {
-        const tuning = AdaptiveTuning.resolve(this.difficulty, this.adaptiveBand);
+        const tuning = this.adaptiveEnabled
+            ? AdaptiveTuning.resolve(this.difficulty, this.adaptiveBand)
+            : undefined;
         const bookMove = OpeningBook.lookup(snapshot, this.difficulty);
         if (bookMove) {
             return bookMove;
         }
         switch (this.difficulty) {
             case "easy":
-                return EasyAiStrategy.choose(snapshot, tuning.easy);
+                return EasyAiStrategy.choose(snapshot, tuning === null || tuning === void 0 ? void 0 : tuning.easy);
             case "hard": {
-                const options = {
+                const adaptiveActive = this.adaptiveEnabled && !!this.adaptiveBand && (tuning === null || tuning === void 0 ? void 0 : tuning.hard);
+                const preset = adaptiveActive
+                    ? tuning.hard
+                    : AdaptiveTuning.staticHardPreset();
+                return HardAiStrategy.choose(snapshot, {
                     player: snapshot.currentPlayer,
-                    band: this.adaptiveBand,
-                    ...tuning.hard,
-                };
-                if (options.allowJitter === undefined) {
-                    options.allowJitter = true;
-                }
-                return HardAiStrategy.choose(snapshot, options);
+                    band: adaptiveActive ? this.adaptiveBand : null,
+                    ...preset,
+                });
             }
             case "expert": {
-                const options = {
+                const adaptiveActive = this.adaptiveEnabled && !!this.adaptiveBand && (tuning === null || tuning === void 0 ? void 0 : tuning.expert);
+                const preset = adaptiveActive
+                    ? tuning.expert
+                    : AdaptiveTuning.staticExpertPreset();
+                return HardAiStrategy.choose(snapshot, {
                     player: snapshot.currentPlayer,
-                    band: this.adaptiveBand,
-                    ...tuning.expert,
-                };
-                if (options.allowJitter === undefined) {
-                    options.allowJitter = false;
-                }
-                return HardAiStrategy.choose(snapshot, options);
+                    band: adaptiveActive ? this.adaptiveBand : null,
+                    ...preset,
+                });
             }
             case "normal":
             default:
-                return NormalAiStrategy.choose(snapshot, tuning.normal);
+                return NormalAiStrategy.choose(snapshot, tuning === null || tuning === void 0 ? void 0 : tuning.normal);
         }
     }
     updateAdaptiveBand(band) {
@@ -3194,9 +3224,10 @@ class GameUI {
         let startingPlayer = "X";
         if (mode === "solo") {
             const selected = difficulty !== null && difficulty !== void 0 ? difficulty : "normal";
-            const adaptiveBand = this.resolveAdaptiveBand(selected);
+            const adaptiveActive = this.isAdaptiveActive();
+            const adaptiveBand = adaptiveActive ? this.resolveAdaptiveBand(selected) : null;
             this.aiProfile = { difficulty: selected, adaptiveBand };
-            this.aiController = new AiController(selected, adaptiveBand);
+            this.aiController = new AiController(selected, adaptiveBand, adaptiveActive);
             startingPlayer = this.pickStartingPlayer();
         }
         else {

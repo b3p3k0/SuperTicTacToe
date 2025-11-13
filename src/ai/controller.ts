@@ -8,46 +8,54 @@ import { AdaptiveTuning } from "./adaptive-tuning.js";
 export class AiController {
   private difficulty: Difficulty;
   private adaptiveBand: AdaptiveBand | null;
+  private adaptiveEnabled: boolean;
 
-  constructor(difficulty: Difficulty, adaptiveBand?: AdaptiveBand | null) {
+  constructor(
+    difficulty: Difficulty,
+    adaptiveBand?: AdaptiveBand | null,
+    adaptiveEnabled = false,
+  ) {
     this.difficulty = difficulty;
     this.adaptiveBand = adaptiveBand ?? null;
+    this.adaptiveEnabled = adaptiveEnabled;
   }
 
   chooseMove(snapshot: GameSnapshot): AiMove | null {
-    const tuning = AdaptiveTuning.resolve(this.difficulty, this.adaptiveBand);
+    const tuning = this.adaptiveEnabled
+      ? AdaptiveTuning.resolve(this.difficulty, this.adaptiveBand)
+      : undefined;
     const bookMove = OpeningBook.lookup(snapshot, this.difficulty);
     if (bookMove) {
       return bookMove;
     }
     switch (this.difficulty) {
       case "easy":
-        return EasyAiStrategy.choose(snapshot, tuning.easy);
+        return EasyAiStrategy.choose(snapshot, tuning?.easy);
       case "hard": {
-        const options = {
+        const adaptiveActive = this.adaptiveEnabled && !!this.adaptiveBand && tuning?.hard;
+        const preset = adaptiveActive
+          ? tuning!.hard!
+          : AdaptiveTuning.staticHardPreset();
+        return HardAiStrategy.choose(snapshot, {
           player: snapshot.currentPlayer,
-          band: this.adaptiveBand,
-          ...tuning.hard,
-        };
-        if (options.allowJitter === undefined) {
-          options.allowJitter = true;
-        }
-        return HardAiStrategy.choose(snapshot, options);
+          band: adaptiveActive ? this.adaptiveBand : null,
+          ...preset,
+        });
       }
       case "expert": {
-        const options = {
+        const adaptiveActive = this.adaptiveEnabled && !!this.adaptiveBand && tuning?.expert;
+        const preset = adaptiveActive
+          ? tuning!.expert!
+          : AdaptiveTuning.staticExpertPreset();
+        return HardAiStrategy.choose(snapshot, {
           player: snapshot.currentPlayer,
-          band: this.adaptiveBand,
-          ...tuning.expert,
-        };
-        if (options.allowJitter === undefined) {
-          options.allowJitter = false;
-        }
-        return HardAiStrategy.choose(snapshot, options);
+          band: adaptiveActive ? this.adaptiveBand : null,
+          ...preset,
+        });
       }
       case "normal":
       default:
-        return NormalAiStrategy.choose(snapshot, tuning.normal);
+        return NormalAiStrategy.choose(snapshot, tuning?.normal);
     }
   }
 

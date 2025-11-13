@@ -72,17 +72,46 @@ export class AdaptiveTuning {
 
   private static expertTuning(band: AdaptiveBand): HardTuningOptions {
     const weightOverrides: Partial<EvaluationWeights> | undefined = band === "flow"
-      ? { metaThreat: 150, activeBoardFocus: 32 }
+      ? {
+          metaThreat: 185,
+          activeBoardFocus: 40,
+          boardCaptured: 200,
+          boardThreat: 24,
+          battleStability: 45,
+        }
       : band === "coast"
-        ? { metaThreat: 155, activeBoardFocus: 34 }
+        ? {
+            metaThreat: 160,
+            activeBoardFocus: 34,
+          }
         : undefined;
     return {
       allowJitter: false,
-      maxTimeMs: band === "coast" ? 2000 : band === "struggle" ? 900 : 1600,
-      depthAdjustment: band === "coast" ? 1 : band === "struggle" ? -1 : 0,
+      maxTimeMs: band === "coast" ? 2000 : band === "struggle" ? 900 : 2200,
+      depthAdjustment: band === "coast" ? 1 : band === "struggle" ? -1 : 2,
       useMcts: band !== "struggle",
-      mctsBudgetMs: band === "coast" ? 450 : band === "flow" ? 300 : 250,
+      mctsBudgetMs: band === "coast" ? 450 : band === "flow" ? 450 : 250,
       ...(weightOverrides ? { weightOverrides } : {}),
+    };
+  }
+
+  public static staticHardPreset(): HardTuningOptions {
+    return {
+      allowJitter: true,
+      maxTimeMs: 1100,
+      depthAdjustment: 0,
+      useMcts: false,
+      mctsBudgetMs: 0,
+    };
+  }
+
+  public static staticExpertPreset(): HardTuningOptions {
+    return {
+      allowJitter: false,
+      maxTimeMs: 1500,
+      depthAdjustment: 0,
+      useMcts: true,
+      mctsBudgetMs: 250,
     };
   }
 }

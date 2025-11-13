@@ -87,9 +87,10 @@ export class GameUI {
         let startingPlayer = "X";
         if (mode === "solo") {
             const selected = difficulty !== null && difficulty !== void 0 ? difficulty : "normal";
-            const adaptiveBand = this.resolveAdaptiveBand(selected);
+            const adaptiveActive = this.isAdaptiveActive();
+            const adaptiveBand = adaptiveActive ? this.resolveAdaptiveBand(selected) : null;
             this.aiProfile = { difficulty: selected, adaptiveBand };
-            this.aiController = new AiController(selected, adaptiveBand);
+            this.aiController = new AiController(selected, adaptiveBand, adaptiveActive);
             startingPlayer = this.pickStartingPlayer();
         }
         else {

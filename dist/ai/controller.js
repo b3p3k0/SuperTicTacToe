@@ -4,44 +4,47 @@ import { HardAiStrategy } from "./strategies/hard.js";
 import { OpeningBook } from "./opening-book.js";
 import { AdaptiveTuning } from "./adaptive-tuning.js";
 export class AiController {
-    constructor(difficulty, adaptiveBand) {
+    constructor(difficulty, adaptiveBand, adaptiveEnabled = false) {
         this.difficulty = difficulty;
         this.adaptiveBand = adaptiveBand !== null && adaptiveBand !== void 0 ? adaptiveBand : null;
+        this.adaptiveEnabled = adaptiveEnabled;
     }
     chooseMove(snapshot) {
-        const tuning = AdaptiveTuning.resolve(this.difficulty, this.adaptiveBand);
+        const tuning = this.adaptiveEnabled
+            ? AdaptiveTuning.resolve(this.difficulty, this.adaptiveBand)
+            : undefined;
         const bookMove = OpeningBook.lookup(snapshot, this.difficulty);
         if (bookMove) {
             return bookMove;
         }
         switch (this.difficulty) {
             case "easy":
-                return EasyAiStrategy.choose(snapshot, tuning.easy);
+                return EasyAiStrategy.choose(snapshot, tuning === null || tuning === void 0 ? void 0 : tuning.easy);
             case "hard": {
-                const options = {
+                const adaptiveActive = this.adaptiveEnabled && !!this.adaptiveBand && (tuning === null || tuning === void 0 ? void 0 : tuning.hard);
+                const preset = adaptiveActive
+                    ? tuning.hard
+                    : AdaptiveTuning.staticHardPreset();
+                return HardAiStrategy.choose(snapshot, {
                     player: snapshot.currentPlayer,
-                    band: this.adaptiveBand,
-                    ...tuning.hard,
-                };
-                if (options.allowJitter === undefined) {
-                    options.allowJitter = true;
-                }
-                return HardAiStrategy.choose(snapshot, options);
+                    band: adaptiveActive ? this.adaptiveBand : null,
+                    ...preset,
+                });
             }
             case "expert": {
-                const options = {
+                const adaptiveActive = this.adaptiveEnabled && !!this.adaptiveBand && (tuning === null || tuning === void 0 ? void 0 : tuning.expert);
+                const preset = adaptiveActive
+                    ? tuning.expert
+                    : AdaptiveTuning.staticExpertPreset();
+                return HardAiStrategy.choose(snapshot, {
                     player: snapshot.currentPlayer,
-                    band: this.adaptiveBand,
-                    ...tuning.expert,
-                };
-                if (options.allowJitter === undefined) {
-                    options.allowJitter = false;
-                }
-                return HardAiStrategy.choose(snapshot, options);
+                    band: adaptiveActive ? this.adaptiveBand : null,
+                    ...preset,
+                });
             }
             case "normal":
             default:
-                return NormalAiStrategy.choose(snapshot, tuning.normal);
+                return NormalAiStrategy.choose(snapshot, tuning === null || tuning === void 0 ? void 0 : tuning.normal);
         }
     }
     updateAdaptiveBand(band) {

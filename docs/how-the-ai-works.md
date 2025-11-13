@@ -40,6 +40,11 @@ Now we're getting serious! The Hard AI uses advanced algorithms that chess compu
 
 **The Cool Part:** The Hard AI remembers positions it has already calculated using a cache system. If it encounters the same position later, it instantly knows the answer without recalculating!
 
+> **Static vs Adaptive Hard**
+>
+> - When the Adaptive Difficulty toggle is **off**, Hard sticks to its classic jittered personality (no Monte Carlo search, light randomness, steady 750 ms think time).
+> - When Adaptive is **on** and you’re in the “flow” band, Hard becomes fully deterministic and plugs in a short burst of Monte Carlo Tree Search before each move, using the extra smarts only when you ask for it.
+
 ### Expert AI: The Perfect Machine
 The Expert AI is like playing against a computer that never makes mistakes and never gets distracted.
 
@@ -48,6 +53,10 @@ The Expert AI is like playing against a computer that never makes mistakes and n
 - Gets more thinking time (up to 1.4 seconds per move, 6 seconds in endgames)
 - Uses more sophisticated position evaluation
 - Never introduces any "jitter" or randomness into its decisions
+
+> **Adaptive Expert Boost**
+>
+> When you enable Adaptive Difficulty and land in the “flow” band, Expert shifts into high gear: it raises the weight it gives to meta-board threats, spends a bigger Monte Carlo budget, and stretches its think time to roughly two seconds. The result is an AI that leans harder into long-term captures instead of just trading local wins.
 
 ## How the AI Actually Picks a Move
 
