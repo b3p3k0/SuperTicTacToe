@@ -1,6 +1,6 @@
 # Super Tic-Tac-Toe (Super T3)
 
-A zero-dependency, browser-ready take on the 3×3 mega tic-tac-toe grid. Clone it, drop the folder onto any static host (or just open `index.html` locally), and you’re ready to play. Want to try it right now? Visit https://supert3.com for the live demo.
+A zero-dependency, browser-ready take on the 3×3 mega tic-tac-toe grid. Clone it, drop the folder onto any static host (or just open `index.html` locally), and you’re ready to play.
 
 ---
 
