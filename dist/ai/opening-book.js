@@ -3,19 +3,19 @@ const BOOK = [
         ruleSet: "battle",
         openingId: "ai-first-center",
         moves: [{ board: 4, cell: 4 }],
-        appliesTo: ["normal", "hard"],
+        appliesTo: ["normal", "hard", "expert"],
     },
     {
         ruleSet: "classic",
         openingId: "ai-first-center",
         moves: [{ board: 4, cell: 4 }],
-        appliesTo: ["normal", "hard"],
+        appliesTo: ["normal", "hard", "expert"],
     },
     {
         ruleSet: "modern",
         openingId: "ai-first-center",
         moves: [{ board: 4, cell: 4 }],
-        appliesTo: ["normal", "hard"],
+        appliesTo: ["normal", "hard", "expert"],
     },
     {
         ruleSet: "battle",
@@ -25,6 +25,51 @@ const BOOK = [
             { board: 0, cell: 0 },
         ],
         appliesTo: ["normal", "hard"],
+    },
+    {
+        ruleSet: "classic",
+        openingId: "human-center-response",
+        moves: [
+            { board: 4, cell: 4 },
+            { board: 8, cell: 8 },
+        ],
+        appliesTo: ["expert"],
+    },
+    {
+        ruleSet: "modern",
+        openingId: "human-center-response",
+        moves: [
+            { board: 4, cell: 4 },
+            { board: 2, cell: 2 },
+        ],
+        appliesTo: ["expert"],
+    },
+    {
+        ruleSet: "classic",
+        openingId: "human-center-corner",
+        moves: [
+            { board: 4, cell: 4 },
+            { board: 4, cell: 8 },
+        ],
+        appliesTo: ["expert"],
+    },
+    {
+        ruleSet: "modern",
+        openingId: "human-center-corner",
+        moves: [
+            { board: 4, cell: 4 },
+            { board: 4, cell: 2 },
+        ],
+        appliesTo: ["expert"],
+    },
+    {
+        ruleSet: "battle",
+        openingId: "human-edge-response",
+        moves: [
+            { board: 4, cell: 4 },
+            { board: 1, cell: 7 },
+        ],
+        appliesTo: ["expert"],
     },
 ];
 export class OpeningBook {
@@ -73,8 +118,16 @@ export class OpeningBook {
         if (!firstMove) {
             return null;
         }
-        if (firstMove.player === "X" && firstMove.boardIndex === 4 && firstMove.cellIndex === 4) {
-            return "human-center-response";
+        if (firstMove.player === "X" && firstMove.boardIndex === 4) {
+            if (firstMove.cellIndex === 4) {
+                return "human-center-response";
+            }
+            if ([0, 2, 6, 8].includes(firstMove.cellIndex)) {
+                return "human-center-corner";
+            }
+            if ([1, 3, 5, 7].includes(firstMove.cellIndex)) {
+                return "human-edge-response";
+            }
         }
         return null;
     }

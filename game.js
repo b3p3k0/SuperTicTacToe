@@ -2155,19 +2155,19 @@ const BOOK = [
         ruleSet: "battle",
         openingId: "ai-first-center",
         moves: [{ board: 4, cell: 4 }],
-        appliesTo: ["normal", "hard"],
+        appliesTo: ["normal", "hard", "expert"],
     },
     {
         ruleSet: "classic",
         openingId: "ai-first-center",
         moves: [{ board: 4, cell: 4 }],
-        appliesTo: ["normal", "hard"],
+        appliesTo: ["normal", "hard", "expert"],
     },
     {
         ruleSet: "modern",
         openingId: "ai-first-center",
         moves: [{ board: 4, cell: 4 }],
-        appliesTo: ["normal", "hard"],
+        appliesTo: ["normal", "hard", "expert"],
     },
     {
         ruleSet: "battle",
@@ -2177,6 +2177,51 @@ const BOOK = [
             { board: 0, cell: 0 },
         ],
         appliesTo: ["normal", "hard"],
+    },
+    {
+        ruleSet: "classic",
+        openingId: "human-center-response",
+        moves: [
+            { board: 4, cell: 4 },
+            { board: 8, cell: 8 },
+        ],
+        appliesTo: ["expert"],
+    },
+    {
+        ruleSet: "modern",
+        openingId: "human-center-response",
+        moves: [
+            { board: 4, cell: 4 },
+            { board: 2, cell: 2 },
+        ],
+        appliesTo: ["expert"],
+    },
+    {
+        ruleSet: "classic",
+        openingId: "human-center-corner",
+        moves: [
+            { board: 4, cell: 4 },
+            { board: 4, cell: 8 },
+        ],
+        appliesTo: ["expert"],
+    },
+    {
+        ruleSet: "modern",
+        openingId: "human-center-corner",
+        moves: [
+            { board: 4, cell: 4 },
+            { board: 4, cell: 2 },
+        ],
+        appliesTo: ["expert"],
+    },
+    {
+        ruleSet: "battle",
+        openingId: "human-edge-response",
+        moves: [
+            { board: 4, cell: 4 },
+            { board: 1, cell: 7 },
+        ],
+        appliesTo: ["expert"],
     },
 ];
 class OpeningBook {
@@ -2225,8 +2270,16 @@ class OpeningBook {
         if (!firstMove) {
             return null;
         }
-        if (firstMove.player === "X" && firstMove.boardIndex === 4 && firstMove.cellIndex === 4) {
-            return "human-center-response";
+        if (firstMove.player === "X" && firstMove.boardIndex === 4) {
+            if (firstMove.cellIndex === 4) {
+                return "human-center-response";
+            }
+            if ([0, 2, 6, 8].includes(firstMove.cellIndex)) {
+                return "human-center-corner";
+            }
+            if ([1, 3, 5, 7].includes(firstMove.cellIndex)) {
+                return "human-edge-response";
+            }
         }
         return null;
     }
@@ -3157,6 +3210,10 @@ class GameUI {
         this.adaptiveTurnStart = null;
         this.adaptiveIllegalAttempts = 0;
         this.adaptiveTurnMoveCount = -1;
+        this.adaptiveIndicator = null;
+        this.adaptiveIndicatorLabel = null;
+        this.adaptiveFlashTimer = null;
+        this.lastAdaptiveBand = null;
         this.engine = engine;
         // Get required DOM elements
         const boardContainer = document.getElementById("super-board");
@@ -3169,6 +3226,8 @@ class GameUI {
         this.turnLabel = turnLabel;
         this.constraintLabel = constraintLabel;
         this.resultLabel = resultLabel;
+        this.adaptiveIndicator = document.getElementById("adaptive-indicator");
+        this.adaptiveIndicatorLabel = document.getElementById("adaptive-indicator-label");
         // Initialize components
         this.boardRenderer = new BoardRenderer(boardContainer);
         this.overlayManager = new OverlayManager();
@@ -3260,6 +3319,7 @@ class GameUI {
         this.panelManager.updateHistory(snapshot.history);
         this.trackSoloOutcome(snapshot);
         this.updateSoloStatsBar();
+        this.updateAdaptiveIndicator(snapshot);
     }
     updateStatus(snapshot) {
         var _a;
@@ -3475,6 +3535,41 @@ class GameUI {
             return performance.now();
         }
         return Date.now();
+    }
+    updateAdaptiveIndicator(snapshot) {
+        var _a;
+        if (!this.adaptiveIndicator || !this.adaptiveIndicatorLabel) {
+            return;
+        }
+        const band = this.mode === "solo" && this.aiProfile ? (_a = this.aiProfile.adaptiveBand) !== null && _a !== void 0 ? _a : null : null;
+        const active = !!band && this.isAdaptiveActive();
+        if (!active) {
+            this.adaptiveIndicator.hidden = true;
+            this.adaptiveIndicator.classList.remove("flash");
+            this.lastAdaptiveBand = null;
+            return;
+        }
+        const label = band.charAt(0).toUpperCase() + band.slice(1);
+        this.adaptiveIndicatorLabel.textContent = `AI Boost: ${label}`;
+        this.adaptiveIndicator.hidden = false;
+        if (band !== this.lastAdaptiveBand) {
+            this.triggerAdaptiveFlash();
+            this.lastAdaptiveBand = band;
+        }
+    }
+    triggerAdaptiveFlash() {
+        if (!this.adaptiveIndicator) {
+            return;
+        }
+        this.adaptiveIndicator.classList.add("flash");
+        if (this.adaptiveFlashTimer !== null) {
+            window.clearTimeout(this.adaptiveFlashTimer);
+        }
+        this.adaptiveFlashTimer = window.setTimeout(() => {
+            var _a;
+            (_a = this.adaptiveIndicator) === null || _a === void 0 ? void 0 : _a.classList.remove("flash");
+            this.adaptiveFlashTimer = null;
+        }, 1200);
     }
     resolveAdaptiveBand(difficulty) {
         if (!this.isAdaptiveActive()) {

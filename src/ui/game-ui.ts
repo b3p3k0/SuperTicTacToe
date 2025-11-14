@@ -42,6 +42,10 @@ export class GameUI {
   private adaptiveTurnStart: number | null = null;
   private adaptiveIllegalAttempts = 0;
   private adaptiveTurnMoveCount = -1;
+  private adaptiveIndicator: HTMLElement | null = null;
+  private adaptiveIndicatorLabel: HTMLElement | null = null;
+  private adaptiveFlashTimer: number | null = null;
+  private lastAdaptiveBand: AdaptiveBand | null = null;
 
   constructor(engine: GameEngine) {
     this.engine = engine;
@@ -59,6 +63,8 @@ export class GameUI {
     this.turnLabel = turnLabel;
     this.constraintLabel = constraintLabel;
     this.resultLabel = resultLabel;
+    this.adaptiveIndicator = document.getElementById("adaptive-indicator");
+    this.adaptiveIndicatorLabel = document.getElementById("adaptive-indicator-label");
 
     // Initialize components
     this.boardRenderer = new BoardRenderer(boardContainer);
@@ -165,6 +171,7 @@ export class GameUI {
     this.panelManager.updateHistory(snapshot.history);
     this.trackSoloOutcome(snapshot);
     this.updateSoloStatsBar();
+    this.updateAdaptiveIndicator(snapshot);
   }
 
   private updateStatus(snapshot: GameSnapshot): void {
@@ -429,6 +436,41 @@ export class GameUI {
       return performance.now();
     }
     return Date.now();
+  }
+
+  private updateAdaptiveIndicator(snapshot: GameSnapshot): void {
+    if (!this.adaptiveIndicator || !this.adaptiveIndicatorLabel) {
+      return;
+    }
+    const band = this.mode === "solo" && this.aiProfile ? this.aiProfile.adaptiveBand ?? null : null;
+    const active = !!band && this.isAdaptiveActive();
+    if (!active) {
+      this.adaptiveIndicator.hidden = true;
+      this.adaptiveIndicator.classList.remove("flash");
+      this.lastAdaptiveBand = null;
+      return;
+    }
+    const label = band!.charAt(0).toUpperCase() + band!.slice(1);
+    this.adaptiveIndicatorLabel.textContent = `AI Boost: ${label}`;
+    this.adaptiveIndicator.hidden = false;
+    if (band !== this.lastAdaptiveBand) {
+      this.triggerAdaptiveFlash();
+      this.lastAdaptiveBand = band;
+    }
+  }
+
+  private triggerAdaptiveFlash(): void {
+    if (!this.adaptiveIndicator) {
+      return;
+    }
+    this.adaptiveIndicator.classList.add("flash");
+    if (this.adaptiveFlashTimer !== null) {
+      window.clearTimeout(this.adaptiveFlashTimer);
+    }
+    this.adaptiveFlashTimer = window.setTimeout(() => {
+      this.adaptiveIndicator?.classList.remove("flash");
+      this.adaptiveFlashTimer = null;
+    }, 1200);
   }
 
   private resolveAdaptiveBand(difficulty: Difficulty): AdaptiveBand | null {

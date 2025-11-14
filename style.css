@@ -181,6 +181,25 @@ body::before {
   font-weight: 600;
 }
 
+.adaptive-indicator {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+  transition: color 0.2s ease;
+}
+
+.adaptive-indicator.flash {
+  color: var(--accent);
+}
+
+.adaptive-indicator[hidden] {
+  display: none;
+}
+
 .solo-stats-bar {
   margin: 1rem 0 2rem;
   padding: 0.85rem 1.25rem;
