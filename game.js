@@ -1807,10 +1807,9 @@ class DrMctsSearch {
 
 
 
-
 class HardAiStrategy {
     static choose(snapshot, options) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+        var _a, _b, _c, _d, _e, _f, _g;
         const allowJitter = (_a = options === null || options === void 0 ? void 0 : options.allowJitter) !== null && _a !== void 0 ? _a : false;
         const weightOverrides = options === null || options === void 0 ? void 0 : options.weightOverrides;
         const candidates = AiUtils.collectCandidates(snapshot);
@@ -1898,18 +1897,6 @@ class HardAiStrategy {
             });
         }
         const moveToPlay = (_g = bestMove !== null && bestMove !== void 0 ? bestMove : (_f = ordered[0]) === null || _f === void 0 ? void 0 : _f.move) !== null && _g !== void 0 ? _g : null;
-        const decisionMs = Number((performance.now() - startTime).toFixed(2));
-        if (moveToPlay) {
-            AiTelemetry.emit({
-                topic: "hard-decision",
-                difficulty: allowJitter ? "hard" : "expert",
-                ruleSet: snapshot.ruleSet,
-                adaptiveBand: (_h = options === null || options === void 0 ? void 0 : options.band) !== null && _h !== void 0 ? _h : null,
-                decisionMs,
-                usedMcts: !!(options === null || options === void 0 ? void 0 : options.useMcts),
-                player: (_j = options === null || options === void 0 ? void 0 : options.player) !== null && _j !== void 0 ? _j : null,
-            });
-        }
         return moveToPlay;
     }
     static minimax(state, depth, maxDepth, alpha, beta, cache, stats, startTime, maxTime, weightOverrides) {
@@ -2293,6 +2280,7 @@ OpeningBook.MAX_HISTORY = 2;
 
 
 
+
 class AiController {
     constructor(difficulty, adaptiveBand, adaptiveEnabled = false) {
         this.difficulty = difficulty;
@@ -2300,45 +2288,75 @@ class AiController {
         this.adaptiveEnabled = adaptiveEnabled;
     }
     chooseMove(snapshot) {
+        var _a;
+        const decisionStart = this.getTimestamp();
+        let usedMcts = false;
+        let player = (_a = snapshot.currentPlayer) !== null && _a !== void 0 ? _a : null;
         const tuning = this.adaptiveEnabled
             ? AdaptiveTuning.resolve(this.difficulty, this.adaptiveBand)
             : undefined;
         const bookMove = OpeningBook.lookup(snapshot, this.difficulty);
         if (bookMove) {
-            return bookMove;
+            return this.emitAfterDecision(snapshot, bookMove, decisionStart, false, player);
         }
         switch (this.difficulty) {
             case "easy":
-                return EasyAiStrategy.choose(snapshot, tuning === null || tuning === void 0 ? void 0 : tuning.easy);
+                return this.emitAfterDecision(snapshot, EasyAiStrategy.choose(snapshot, tuning === null || tuning === void 0 ? void 0 : tuning.easy), decisionStart, usedMcts, player);
             case "hard": {
                 const adaptiveActive = this.adaptiveEnabled && !!this.adaptiveBand && (tuning === null || tuning === void 0 ? void 0 : tuning.hard);
                 const preset = adaptiveActive
                     ? tuning.hard
                     : AdaptiveTuning.staticHardPreset();
-                return HardAiStrategy.choose(snapshot, {
+                usedMcts = !!preset.useMcts;
+                return this.emitAfterDecision(snapshot, HardAiStrategy.choose(snapshot, {
                     player: snapshot.currentPlayer,
                     band: adaptiveActive ? this.adaptiveBand : null,
                     ...preset,
-                });
+                }), decisionStart, usedMcts, player);
             }
             case "expert": {
                 const adaptiveActive = this.adaptiveEnabled && !!this.adaptiveBand && (tuning === null || tuning === void 0 ? void 0 : tuning.expert);
                 const preset = adaptiveActive
                     ? tuning.expert
                     : AdaptiveTuning.staticExpertPreset();
-                return HardAiStrategy.choose(snapshot, {
+                usedMcts = !!preset.useMcts;
+                return this.emitAfterDecision(snapshot, HardAiStrategy.choose(snapshot, {
                     player: snapshot.currentPlayer,
                     band: adaptiveActive ? this.adaptiveBand : null,
                     ...preset,
-                });
+                }), decisionStart, usedMcts, player);
             }
             case "normal":
             default:
-                return NormalAiStrategy.choose(snapshot, tuning === null || tuning === void 0 ? void 0 : tuning.normal);
+                return this.emitAfterDecision(snapshot, NormalAiStrategy.choose(snapshot, tuning === null || tuning === void 0 ? void 0 : tuning.normal), decisionStart, usedMcts, player);
         }
     }
     updateAdaptiveBand(band) {
         this.adaptiveBand = band;
+    }
+    emitAfterDecision(snapshot, move, start, usedMcts, player) {
+        if (move) {
+            this.emitTelemetry(snapshot, start, usedMcts, player);
+        }
+        return move;
+    }
+    emitTelemetry(snapshot, start, usedMcts, player) {
+        const decisionMs = Math.max(0, this.getTimestamp() - start);
+        AiTelemetry.emit({
+            topic: "ai-decision",
+            difficulty: this.difficulty,
+            ruleSet: snapshot.ruleSet,
+            adaptiveBand: this.adaptiveBand,
+            usedMcts,
+            decisionMs,
+            player,
+        });
+    }
+    getTimestamp() {
+        if (typeof performance !== "undefined" && typeof performance.now === "function") {
+            return performance.now();
+        }
+        return Date.now();
     }
 }
 
@@ -3195,6 +3213,7 @@ class OverlayManager {
 
 
 
+
 class GameUI {
     constructor(engine) {
         // Game state
@@ -3212,8 +3231,11 @@ class GameUI {
         this.adaptiveTurnMoveCount = -1;
         this.adaptiveIndicator = null;
         this.adaptiveIndicatorLabel = null;
+        this.adaptiveRow = null;
         this.adaptiveFlashTimer = null;
         this.lastAdaptiveBand = null;
+        this.aiTelemetryLabel = null;
+        this.latestAiTelemetry = null;
         this.engine = engine;
         // Get required DOM elements
         const boardContainer = document.getElementById("super-board");
@@ -3226,8 +3248,10 @@ class GameUI {
         this.turnLabel = turnLabel;
         this.constraintLabel = constraintLabel;
         this.resultLabel = resultLabel;
+        this.adaptiveRow = document.getElementById("status-adaptive-row");
         this.adaptiveIndicator = document.getElementById("adaptive-indicator");
         this.adaptiveIndicatorLabel = document.getElementById("adaptive-indicator-label");
+        this.aiTelemetryLabel = document.getElementById("ai-telemetry");
         // Initialize components
         this.boardRenderer = new BoardRenderer(boardContainer);
         this.overlayManager = new OverlayManager();
@@ -3235,6 +3259,7 @@ class GameUI {
         this.soloStatsBar = document.getElementById("solo-stats-bar");
         this.soloStatsText = document.getElementById("solo-stats-text");
         this.setupEventHandlers();
+        this.bindTelemetryListener();
     }
     init() {
         this.overlayManager.showModeOverlay("players");
@@ -3254,6 +3279,12 @@ class GameUI {
         // Game start handler
         this.overlayManager.setGameStartHandler((mode, difficulty) => {
             this.beginGame(mode, difficulty);
+        });
+    }
+    bindTelemetryListener() {
+        AiTelemetry.setListener((event) => {
+            this.latestAiTelemetry = event;
+            this.updateAiTelemetryReadout();
         });
     }
     handleCellClick(boardIndex, cellIndex) {
@@ -3280,6 +3311,7 @@ class GameUI {
         this.mode = mode;
         this.cancelPendingAiMove();
         this.resetAdaptiveTracking();
+        this.clearAiTelemetry();
         let startingPlayer = "X";
         if (mode === "solo") {
             const selected = difficulty !== null && difficulty !== void 0 ? difficulty : "normal";
@@ -3320,6 +3352,7 @@ class GameUI {
         this.trackSoloOutcome(snapshot);
         this.updateSoloStatsBar();
         this.updateAdaptiveIndicator(snapshot);
+        this.updateAiTelemetryReadout();
     }
     updateStatus(snapshot) {
         var _a;
@@ -3530,6 +3563,10 @@ class GameUI {
         this.adaptiveIllegalAttempts = 0;
         this.adaptiveTurnMoveCount = -1;
     }
+    clearAiTelemetry() {
+        this.latestAiTelemetry = null;
+        this.updateAiTelemetryReadout();
+    }
     getTimestamp() {
         if (typeof performance !== "undefined" && typeof performance.now === "function") {
             return performance.now();
@@ -3547,11 +3584,18 @@ class GameUI {
             this.adaptiveIndicator.hidden = true;
             this.adaptiveIndicator.classList.remove("flash");
             this.lastAdaptiveBand = null;
+            if (this.adaptiveRow) {
+                this.adaptiveRow.hidden = true;
+            }
+            this.updateAiTelemetryReadout();
             return;
         }
-        const label = band.charAt(0).toUpperCase() + band.slice(1);
+        const label = this.formatAdaptiveBandLabel(band);
         this.adaptiveIndicatorLabel.textContent = `AI Boost: ${label}`;
         this.adaptiveIndicator.hidden = false;
+        if (this.adaptiveRow) {
+            this.adaptiveRow.hidden = false;
+        }
         if (band !== this.lastAdaptiveBand) {
             this.triggerAdaptiveFlash();
             this.lastAdaptiveBand = band;
@@ -3589,6 +3633,33 @@ class GameUI {
             : null;
         this.aiProfile.adaptiveBand = band;
         this.aiController.updateAdaptiveBand(band);
+    }
+    updateAiTelemetryReadout() {
+        var _a, _b, _c;
+        if (!this.aiTelemetryLabel) {
+            return;
+        }
+        const telemetryEnabled = this.mode === "solo" && this.isAdaptiveActive();
+        if (!telemetryEnabled || !this.latestAiTelemetry) {
+            this.aiTelemetryLabel.hidden = true;
+            return;
+        }
+        const band = (_c = (_a = this.latestAiTelemetry.adaptiveBand) !== null && _a !== void 0 ? _a : (_b = this.aiProfile) === null || _b === void 0 ? void 0 : _b.adaptiveBand) !== null && _c !== void 0 ? _c : null;
+        const parts = [`AI Telemetry: ${this.formatAdaptiveBandLabel(band)}`];
+        if (this.latestAiTelemetry.usedMcts) {
+            parts.push("MCTS");
+        }
+        if (typeof this.latestAiTelemetry.decisionMs === "number" && !Number.isNaN(this.latestAiTelemetry.decisionMs)) {
+            parts.push(`${Math.round(this.latestAiTelemetry.decisionMs)} ms`);
+        }
+        this.aiTelemetryLabel.textContent = parts.join(" · ");
+        this.aiTelemetryLabel.hidden = false;
+    }
+    formatAdaptiveBandLabel(band) {
+        if (!band) {
+            return "Flow";
+        }
+        return `${band.charAt(0).toUpperCase()}${band.slice(1)}`;
     }
 }
 

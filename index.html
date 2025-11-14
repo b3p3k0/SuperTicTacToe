@@ -38,12 +38,19 @@
       </header>
 
       <section class="status-bar" aria-live="polite">
-        <p id="turn-label">Player 1 (X) starts.</p>
-        <p id="constraint-label">Pick any board to begin.</p>
+        <div class="status-row status-row-primary">
+          <p id="turn-label">Player 1 (X) starts.</p>
+          <p id="constraint-label">Pick any board to begin.</p>
+        </div>
+        <div id="status-adaptive-row" class="status-row status-row-secondary" hidden>
+          <p id="adaptive-indicator" class="adaptive-indicator" hidden>
+            <span id="adaptive-indicator-label">AI Boost: Flow</span>
+          </p>
+          <p id="ai-telemetry" class="ai-telemetry" hidden>
+            AI Telemetry: Flow · MCTS · 250 ms
+          </p>
+        </div>
         <p id="result-label"></p>
-        <p id="adaptive-indicator" class="adaptive-indicator" hidden>
-          <span id="adaptive-indicator-label">AI Boost: Flow</span>
-        </p>
       </section>
 
       <main class="layout">

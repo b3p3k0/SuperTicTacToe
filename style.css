@@ -165,8 +165,8 @@ body::before {
 }
 
 .status-bar {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 0.75rem;
   padding: 1rem 1.25rem;
   background: var(--surface);
@@ -176,19 +176,32 @@ body::before {
   box-shadow: var(--panel-shadow, none);
 }
 
-.status-bar p {
+.status-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.status-row p {
   margin: 0;
   font-weight: 600;
 }
 
+.status-bar > p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.status-row-secondary {
+  align-items: center;
+}
+
 .adaptive-indicator {
-  grid-column: 1 / -1;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.4rem;
   font-size: 0.9rem;
   color: var(--muted);
-  margin-top: 0.15rem;
   transition: color 0.2s ease;
 }
 
@@ -197,6 +210,15 @@ body::before {
 }
 
 .adaptive-indicator[hidden] {
+  display: none;
+}
+
+.ai-telemetry {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.ai-telemetry[hidden] {
   display: none;
 }
 

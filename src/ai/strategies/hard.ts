@@ -5,7 +5,6 @@ import { AiSimulator } from "../simulator.js";
 import { RuleAwareHeuristics } from "../rule-heuristics.js";
 import { AiDiagnostics } from "../diagnostics.js";
 import { AiEvaluator, EvaluationWeights } from "../evaluator.js";
-import { AiTelemetry } from "../telemetry.js";
 import { DrMctsSearch } from "../search/dr-mcts.js";
 
 interface ScoredMove {
@@ -154,18 +153,6 @@ export class HardAiStrategy {
     }
 
     const moveToPlay = bestMove ?? ordered[0]?.move ?? null;
-    const decisionMs = Number((performance.now() - startTime).toFixed(2));
-    if (moveToPlay) {
-      AiTelemetry.emit({
-        topic: "hard-decision",
-        difficulty: allowJitter ? "hard" : "expert",
-        ruleSet: snapshot.ruleSet,
-        adaptiveBand: options?.band ?? null,
-        decisionMs,
-        usedMcts: !!options?.useMcts,
-        player: options?.player ?? null,
-      });
-    }
 
     return moveToPlay;
   }

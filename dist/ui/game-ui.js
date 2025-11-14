@@ -1,10 +1,11 @@
-import { PLAYER_LABELS, DIFFICULTY_LABELS, BOARD_NAME_MAP, } from "../core/constants.js";
+import { PLAYER_LABELS, DIFFICULTY_LABELS, BOARD_NAME_MAP } from "../core/constants.js";
 import { AiController } from "../ai/controller.js";
 import { BoardRenderer } from "./components/board.js";
 import { OverlayManager } from "./components/overlays.js";
 import { PanelManager } from "./components/panels.js";
 import { SoloStatsTracker } from "../analytics/solo-tracker.js";
 import { AdaptiveLoop } from "../analytics/adaptive-loop.js";
+import { AiTelemetry } from "../ai/telemetry.js";
 export class GameUI {
     constructor(engine) {
         // Game state
@@ -22,8 +23,11 @@ export class GameUI {
         this.adaptiveTurnMoveCount = -1;
         this.adaptiveIndicator = null;
         this.adaptiveIndicatorLabel = null;
+        this.adaptiveRow = null;
         this.adaptiveFlashTimer = null;
         this.lastAdaptiveBand = null;
+        this.aiTelemetryLabel = null;
+        this.latestAiTelemetry = null;
         this.engine = engine;
         // Get required DOM elements
         const boardContainer = document.getElementById("super-board");
@@ -36,8 +40,10 @@ export class GameUI {
         this.turnLabel = turnLabel;
         this.constraintLabel = constraintLabel;
         this.resultLabel = resultLabel;
+        this.adaptiveRow = document.getElementById("status-adaptive-row");
         this.adaptiveIndicator = document.getElementById("adaptive-indicator");
         this.adaptiveIndicatorLabel = document.getElementById("adaptive-indicator-label");
+        this.aiTelemetryLabel = document.getElementById("ai-telemetry");
         // Initialize components
         this.boardRenderer = new BoardRenderer(boardContainer);
         this.overlayManager = new OverlayManager();
@@ -45,6 +51,7 @@ export class GameUI {
         this.soloStatsBar = document.getElementById("solo-stats-bar");
         this.soloStatsText = document.getElementById("solo-stats-text");
         this.setupEventHandlers();
+        this.bindTelemetryListener();
     }
     init() {
         this.overlayManager.showModeOverlay("players");
@@ -64,6 +71,12 @@ export class GameUI {
         // Game start handler
         this.overlayManager.setGameStartHandler((mode, difficulty) => {
             this.beginGame(mode, difficulty);
+        });
+    }
+    bindTelemetryListener() {
+        AiTelemetry.setListener((event) => {
+            this.latestAiTelemetry = event;
+            this.updateAiTelemetryReadout();
         });
     }
     handleCellClick(boardIndex, cellIndex) {
@@ -90,6 +103,7 @@ export class GameUI {
         this.mode = mode;
         this.cancelPendingAiMove();
         this.resetAdaptiveTracking();
+        this.clearAiTelemetry();
         let startingPlayer = "X";
         if (mode === "solo") {
             const selected = difficulty !== null && difficulty !== void 0 ? difficulty : "normal";
@@ -130,6 +144,7 @@ export class GameUI {
         this.trackSoloOutcome(snapshot);
         this.updateSoloStatsBar();
         this.updateAdaptiveIndicator(snapshot);
+        this.updateAiTelemetryReadout();
     }
     updateStatus(snapshot) {
         var _a;
@@ -340,6 +355,10 @@ export class GameUI {
         this.adaptiveIllegalAttempts = 0;
         this.adaptiveTurnMoveCount = -1;
     }
+    clearAiTelemetry() {
+        this.latestAiTelemetry = null;
+        this.updateAiTelemetryReadout();
+    }
     getTimestamp() {
         if (typeof performance !== "undefined" && typeof performance.now === "function") {
             return performance.now();
@@ -357,11 +376,18 @@ export class GameUI {
             this.adaptiveIndicator.hidden = true;
             this.adaptiveIndicator.classList.remove("flash");
             this.lastAdaptiveBand = null;
+            if (this.adaptiveRow) {
+                this.adaptiveRow.hidden = true;
+            }
+            this.updateAiTelemetryReadout();
             return;
         }
-        const label = band.charAt(0).toUpperCase() + band.slice(1);
+        const label = this.formatAdaptiveBandLabel(band);
         this.adaptiveIndicatorLabel.textContent = `AI Boost: ${label}`;
         this.adaptiveIndicator.hidden = false;
+        if (this.adaptiveRow) {
+            this.adaptiveRow.hidden = false;
+        }
         if (band !== this.lastAdaptiveBand) {
             this.triggerAdaptiveFlash();
             this.lastAdaptiveBand = band;
@@ -399,5 +425,32 @@ export class GameUI {
             : null;
         this.aiProfile.adaptiveBand = band;
         this.aiController.updateAdaptiveBand(band);
+    }
+    updateAiTelemetryReadout() {
+        var _a, _b, _c;
+        if (!this.aiTelemetryLabel) {
+            return;
+        }
+        const telemetryEnabled = this.mode === "solo" && this.isAdaptiveActive();
+        if (!telemetryEnabled || !this.latestAiTelemetry) {
+            this.aiTelemetryLabel.hidden = true;
+            return;
+        }
+        const band = (_c = (_a = this.latestAiTelemetry.adaptiveBand) !== null && _a !== void 0 ? _a : (_b = this.aiProfile) === null || _b === void 0 ? void 0 : _b.adaptiveBand) !== null && _c !== void 0 ? _c : null;
+        const parts = [`AI Telemetry: ${this.formatAdaptiveBandLabel(band)}`];
+        if (this.latestAiTelemetry.usedMcts) {
+            parts.push("MCTS");
+        }
+        if (typeof this.latestAiTelemetry.decisionMs === "number" && !Number.isNaN(this.latestAiTelemetry.decisionMs)) {
+            parts.push(`${Math.round(this.latestAiTelemetry.decisionMs)} ms`);
+        }
+        this.aiTelemetryLabel.textContent = parts.join(" · ");
+        this.aiTelemetryLabel.hidden = false;
+    }
+    formatAdaptiveBandLabel(band) {
+        if (!band) {
+            return "Flow";
+        }
+        return `${band.charAt(0).toUpperCase()}${band.slice(1)}`;
     }
 }

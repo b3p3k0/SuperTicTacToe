@@ -4,11 +4,10 @@ import { AiSimulator } from "../simulator.js";
 import { RuleAwareHeuristics } from "../rule-heuristics.js";
 import { AiDiagnostics } from "../diagnostics.js";
 import { AiEvaluator } from "../evaluator.js";
-import { AiTelemetry } from "../telemetry.js";
 import { DrMctsSearch } from "../search/dr-mcts.js";
 export class HardAiStrategy {
     static choose(snapshot, options) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+        var _a, _b, _c, _d, _e, _f, _g;
         const allowJitter = (_a = options === null || options === void 0 ? void 0 : options.allowJitter) !== null && _a !== void 0 ? _a : false;
         const weightOverrides = options === null || options === void 0 ? void 0 : options.weightOverrides;
         const candidates = AiUtils.collectCandidates(snapshot);
@@ -96,18 +95,6 @@ export class HardAiStrategy {
             });
         }
         const moveToPlay = (_g = bestMove !== null && bestMove !== void 0 ? bestMove : (_f = ordered[0]) === null || _f === void 0 ? void 0 : _f.move) !== null && _g !== void 0 ? _g : null;
-        const decisionMs = Number((performance.now() - startTime).toFixed(2));
-        if (moveToPlay) {
-            AiTelemetry.emit({
-                topic: "hard-decision",
-                difficulty: allowJitter ? "hard" : "expert",
-                ruleSet: snapshot.ruleSet,
-                adaptiveBand: (_h = options === null || options === void 0 ? void 0 : options.band) !== null && _h !== void 0 ? _h : null,
-                decisionMs,
-                usedMcts: !!(options === null || options === void 0 ? void 0 : options.useMcts),
-                player: (_j = options === null || options === void 0 ? void 0 : options.player) !== null && _j !== void 0 ? _j : null,
-            });
-        }
         return moveToPlay;
     }
     static minimax(state, depth, maxDepth, alpha, beta, cache, stats, startTime, maxTime, weightOverrides) {
