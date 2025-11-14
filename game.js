@@ -37,6 +37,7 @@ const DIFFICULTY_LABELS = {
     expert: "Expert",
 };
 const THEME_STORAGE_KEY = "st3.theme";
+const THEME_TOKENS_KEY = "st3.themeTokens";
 const THEMES = {
     default: {
         label: "Default",
@@ -2676,17 +2677,21 @@ class ThemeManager {
             this.select.value = themeName;
         }
         this.current = themeName;
-        if (persist) {
-            try {
-                window.localStorage.setItem(THEME_STORAGE_KEY, themeName);
-            }
-            catch (error) {
-                console.warn("Unable to save theme preference:", error);
-            }
-        }
+        this.persistThemePreference(themeName, theme.tokens, persist);
     }
     getCurrentTheme() {
         return this.current;
+    }
+    persistThemePreference(name, tokens, logErrors) {
+        try {
+            window.localStorage.setItem(THEME_STORAGE_KEY, name);
+            window.localStorage.setItem(THEME_TOKENS_KEY, JSON.stringify(tokens));
+        }
+        catch (error) {
+            if (logErrors) {
+                console.warn("Unable to save theme preference:", error);
+            }
+        }
     }
 }
 

@@ -1,5 +1,5 @@
 import { ThemeName } from "../core/types.js";
-import { THEME_STORAGE_KEY, THEMES } from "../core/constants.js";
+import { THEME_STORAGE_KEY, THEME_TOKENS_KEY, THEMES } from "../core/constants.js";
 
 export class ThemeManager {
   private select: HTMLSelectElement | null;
@@ -70,16 +70,25 @@ export class ThemeManager {
 
     this.current = themeName;
 
-    if (persist) {
-      try {
-        window.localStorage.setItem(THEME_STORAGE_KEY, themeName);
-      } catch (error) {
-        console.warn("Unable to save theme preference:", error);
-      }
-    }
+    this.persistThemePreference(themeName, theme.tokens, persist);
   }
 
   getCurrentTheme(): ThemeName {
     return this.current;
+  }
+
+  private persistThemePreference(
+    name: ThemeName,
+    tokens: Record<string, string>,
+    logErrors: boolean,
+  ): void {
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, name);
+      window.localStorage.setItem(THEME_TOKENS_KEY, JSON.stringify(tokens));
+    } catch (error) {
+      if (logErrors) {
+        console.warn("Unable to save theme preference:", error);
+      }
+    }
   }
 }

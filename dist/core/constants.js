@@ -34,6 +34,7 @@ export const DIFFICULTY_LABELS = {
     expert: "Expert",
 };
 export const THEME_STORAGE_KEY = "st3.theme";
+export const THEME_TOKENS_KEY = "st3.themeTokens";
 export const THEMES = {
     default: {
         label: "Default",

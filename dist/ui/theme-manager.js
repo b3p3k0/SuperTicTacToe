@@ -1,4 +1,4 @@
-import { THEME_STORAGE_KEY, THEMES } from "../core/constants.js";
+import { THEME_STORAGE_KEY, THEME_TOKENS_KEY, THEMES } from "../core/constants.js";
 export class ThemeManager {
     constructor(select) {
         var _a;
@@ -57,16 +57,20 @@ export class ThemeManager {
             this.select.value = themeName;
         }
         this.current = themeName;
-        if (persist) {
-            try {
-                window.localStorage.setItem(THEME_STORAGE_KEY, themeName);
-            }
-            catch (error) {
-                console.warn("Unable to save theme preference:", error);
-            }
-        }
+        this.persistThemePreference(themeName, theme.tokens, persist);
     }
     getCurrentTheme() {
         return this.current;
+    }
+    persistThemePreference(name, tokens, logErrors) {
+        try {
+            window.localStorage.setItem(THEME_STORAGE_KEY, name);
+            window.localStorage.setItem(THEME_TOKENS_KEY, JSON.stringify(tokens));
+        }
+        catch (error) {
+            if (logErrors) {
+                console.warn("Unable to save theme preference:", error);
+            }
+        }
     }
 }

@@ -40,6 +40,7 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
 };
 
 export const THEME_STORAGE_KEY = "st3.theme";
+export const THEME_TOKENS_KEY = "st3.themeTokens";
 
 export const THEMES: Record<ThemeName, ThemeConfig> = {
   default: {

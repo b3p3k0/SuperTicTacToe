@@ -35,6 +35,8 @@ Want to dive deeper into how Super T3 works under the hood? We've got educationa
 
 These guides are written for curious minds who want to understand the algorithms, strategies, and engineering principles that power modern interactive software, perfect for students, educators, or anyone interested in game AI, web development, computer graphics, quality engineering, and the collaborative culture of programming.
 
+Prefer to browse them inside the game? Open `learn.html` (or click the “Want to build your own games?” link on the home screen) and the resources appear with your current theme.
+
 ---
 
 ## Development Setup
