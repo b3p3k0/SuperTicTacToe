@@ -23,13 +23,12 @@ Want to dive deeper into how Super T3 works under the hood? We've got educationa
 
 - **[Coding With AI Partners](docs/coding-with-ai-partners.md)** - Discover the exciting world of "vibe coding" where humans and AI collaborate to build software faster than ever. Learn how AI agents turn ideas into code, why programming fundamentals matter more than ever, and what the future holds for human-AI collaboration in software development.
 
-- **[How the AI Opponent Works](docs/how-the-ai-works.md)** - Ever wondered how a computer plays games? Discover the four AI personalities (Easy through Expert), learn about algorithms like minimax and alpha-beta pruning, and see how the AI thinks several moves ahead just like a chess grandmaster.
 
 - **[From Pixels to Play: How Computer Graphics Work](docs/from-pixels-to-play.md)** - Journey from mathematical descriptions to the pixels on your screen. Learn how browsers render smooth 60fps animations, why our color themes look appealing, how hardware acceleration makes graphics buttery-smooth, and the fascinating process that turns CSS code into visual magic.
 
 - **[Building Things That Don't Break: Software Testing and Quality](docs/building-things-that-dont-break.md)** - Develop the detective mindset of quality engineering. Discover how we test edge cases, prevent bugs through smart architecture, handle errors gracefully, and why building reliable software is both a technical challenge and an ethical responsibility.
 
-- **[How Games Think: The Science of Rules and Logic](docs/how-games-think.md)** - Explore the mathematical science behind game design, strategy, and decision-making. Discover why our three rule variants create completely different strategic experiences, learn about decision trees and game theory, and understand how simple rules can create infinitely complex and engaging gameplay.
+- **[How Games and AI Think](docs/how-games-and-ai-think.md)** - Learn how Super T3’s rule variants shape strategy, why decision trees and forks matter, and how our four AI personalities search, prune, and adapt to your moves.
 
 - **[The Joy of Building Together: How Shared Code Changed the World](docs/the-joy-of-building-together.md)** - Explore the fascinating history and philosophy of Free and Open Source Software (FOSS). Discover how collaborative development creates better software than traditional corporate approaches, why the greatest programmers share their work freely, and how you can join a global community of builders who code for the love of solving problems.
 

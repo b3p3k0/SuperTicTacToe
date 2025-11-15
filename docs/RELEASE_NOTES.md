@@ -1,3 +1,21 @@
+# Release Notes - Super Tic-Tac-Toe v2.5.1
+
+_November 15, 2025_
+
+This minor release focuses on polishing the Learn Hub so every lesson feels intentional and the layout stays balanced on any screen.
+
+## 🧠 Learn Hub Refresh
+- **New consolidated lesson**: “How Games and AI Think” merges the overlapping “How Games Think” and “How the AI Opponent Works” guides into a single story that ties rule variants, decision trees, and AI personas together. The README, docs, and in-game Learn Hub now link to the new article so players find the latest information immediately.
+- **Dedupe & cleanup**: Retired the redundant markdown/HTML files from the repo to keep the learning catalog lean for future contributions.
+
+## 📱 Responsive Grid Polish
+- Rebuilt the Learn Hub card layout using a wrapping flexbox so partial rows are automatically centered. Whether you view the page as 4×2 on desktop or 2×3 on mobile, the last card no longer hugs the left edge.
+
+## 🔢 Version Sync
+- Updated the in-game footer to advertise v2.5.1 so the shipped build, repo metadata, and upcoming GitHub release stay in lockstep.
+
+---
+
 # Release Notes - Super Tic-Tac-Toe v1.1
 
 ## 🎯 Major Architecture Overhaul - Modular TypeScript Refactor

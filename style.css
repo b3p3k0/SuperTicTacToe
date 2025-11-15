@@ -293,9 +293,16 @@ body::before {
 }
 
 .learn-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 1.25rem;
+  justify-content: center;
+}
+
+.learn-grid .learn-card {
+  flex: 1 1 260px;
+  max-width: min(100%, 320px);
+  min-width: min(100%, 240px);
 }
 
 .learn-card {

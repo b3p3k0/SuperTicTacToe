@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>How Games and AI Think | Learn Hub</title>
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body class="learn-lesson">
+    <div class="lesson-shell">
+      <a class="lesson-back" href="./">&larr; Back to Learning Hub</a>
+      <header class="lesson-header">
+        <p class="eyebrow">Super Tic-Tac-Toe Learn Hub</p>
+        <h1>How Games and AI Think</h1>
+        <p>Discover how Super T3’s rules create strategic drama and how our AI studies every move to match you.</p>
+      </header>
+      <main class="lesson-body">
+        <article class="lesson-article">
+<h1>How Games and AI Think</h1>
+<p>Strategy games feel alive because rules shape behavior and smart opponents respond to every move. In Super Tic-Tac-Toe, the same mathematical ideas that make rule sets interesting also power the AI that fights back. This lesson combines those perspectives so you can understand both the board's personality and the digital mind across from you.</p>
+<h2>Rules Give Games a Personality</h2>
+<p>Game theory says a ruleset is like DNA: change a gene, and the organism behaves differently. Simple tweaks decide whether a match feels fair, frantic, or contemplative.</p>
+<ul>
+<li><strong>Emergent complexity</strong>: Even 3×3 tic-tac-toe, with only 138 unique states, teaches planning and pattern spotting. Scale to a 9×9 meta-board and the possibility space explodes beyond 10^50 positions.</li>
+<li><strong>Skill vs. surprise</strong>: Good rules reward smart play but keep just enough unpredictability—forcing players to weigh risk, tempo, and territory.</li>
+<li><strong>Shared information</strong>: Super T3 is a perfect-information game. Every piece is visible, so outcomes hinge on decision quality, not hidden cards or dice.</li>
+</ul>
+<h2>Super T3 Case Study: Three Ways to Play</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Ruleset</th>
+      <th>Key Rule</th>
+      <th>Strategic Vibe</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Classic</strong></td>
+      <td>Winning a mini-board locks ownership forever, but the spaces remain playable.</td>
+      <td>A diplomatic land-grab where early territory gives lasting leverage. Mistakes linger, so cautious players thrive.</td>
+    </tr>
+    <tr>
+      <td><strong>Modern</strong></td>
+      <td>Captured or drawn boards close immediately.</td>
+      <td>The arena shrinks every turn. Aggressive players use fast strikes to cut off options and race to meta-lines.</td>
+    </tr>
+    <tr>
+      <td><strong>Battle</strong> (default)</td>
+      <td>Boards stay live and can be recaptured until full.</td>
+      <td>Tug-of-war pressure. You must attack and defend simultaneously, weighing whether a capture is stable or bait.</td>
+    </tr>
+  </tbody>
+</table>
+<p>Each variant changes the value of routing (the board you send your opponent to next), meaning the "best" move often depends on both local wins and future destinations.</p>
+<h2>Thinking in Decision Trees</h2>
+<p>When you pick a square, your brain sketches a tree of possibilities: "If I go here, they must play there…" Depth matters. Forks—positions that create two simultaneous threats—force the opponent into a lose/lose response. Super T3 adds layers:</p>
+<ul>
+<li><strong>Micro forks</strong>: Two threats inside one mini-board.</li>
+<li><strong>Meta forks</strong>: Owning two boards in a line and pressuring the third.</li>
+<li><strong>Routing traps</strong>: Sacrificing a local win so the opponent lands on a terrible board.</li>
+</ul>
+<p>Perfect play would lead to many draws, just like in chess at grandmaster level, but humans (and even AI under time pressure) rarely see everything. That's where our digital opponent comes in.</p>
+<h2>Meet the Four AI Personalities</h2>
+<p>We tuned four distinctive AIs so every player can find a fun challenge:</p>
+<ol>
+<li><strong>Easy – The Forgetful Friend</strong>
+  <ul>
+    <li>Spots instant wins but purposely "forgets" to block about half the time.</li>
+    <li>Uses light heuristics (centers &gt; corners) plus randomness for variety.</li>
+  </ul>
+</li>
+<li><strong>Normal – The Strategic Thinker</strong>
+  <ul>
+    <li>Always blocks threats, looks two moves ahead, and sometimes makes tiny blunders (~12%) to stay human-like.</li>
+    <li>Scores moves by counting patterns that create or block future forks.</li>
+  </ul>
+</li>
+<li><strong>Hard – The Chess Master</strong>
+  <ul>
+    <li>Runs minimax search 4–6 plies deep with alpha-beta pruning and a 750 ms budget per move.</li>
+    <li>Orders candidate moves by promise, caches repeated states, and sprinkles minimal randomness when Adaptive mode is off.</li>
+  </ul>
+</li>
+<li><strong>Expert – The Perfect Machine</strong>
+  <ul>
+    <li>Extends think time to ~1.4 s (and longer in endgames) and removes all randomness.</li>
+    <li>When Adaptive mode is on and you are in the "flow" band, it adds Monte Carlo Tree Search rollouts for extra foresight.</li>
+  </ul>
+</li>
+</ol>
+<h2>How the AI Chooses a Move</h2>
+<ol>
+<li><strong>Opening book</strong>: Early in the game, the AI checks a small library of proven sequences (e.g., center-center starts) to avoid aimless wandering.</li>
+<li><strong>Immediate tactics</strong>: It grabs instant wins or blocks yours before doing anything fancy.</li>
+<li><strong>Generate &amp; order moves</strong>: Every legal move is scored quickly so promising options are searched first (centers, threats, routing plays).</li>
+<li><strong>Search the tree</strong>: Depending on difficulty, the AI explores alternating player turns, pruning branches that obviously fail. Leaves are evaluated with a shared heuristic that values board ownership, threats, routing control, and—under Battle rules—stability against recapture.</li>
+<li><strong>Make the call</strong>: After thousands of simulated futures, it chooses the move with the best outcome under the assumption that you counter perfectly.</li>
+</ol>
+<h2>Adaptive Difficulty &amp; Fun Facts</h2>
+<ul>
+<li><strong>Tuning bands</strong>: If you're losing several games, Adaptive mode eases up (shallower search, faster decisions). If you're dominating, it digs deeper. Close matches keep the default "flow" behavior.</li>
+<li><strong>Speed</strong>: Hard can examine 10k–50k positions per second on a laptop browser.</li>
+<li><strong>Memory</strong>: Transposition tables cache evaluated states so the AI can recall them instantly later in the match.</li>
+<li><strong>Diagnostics</strong>: Enable <code>localStorage.setItem("st3.aiDebug", "1")</code> to log candidate scores and see the engine's thought process.</li>
+</ul>
+<h2>What to Practice Next</h2>
+<ul>
+<li><strong>Spot forks early</strong>: Try to find two threats before the AI does—it's the fastest way to force errors.</li>
+<li><strong>Plan the destination</strong>: Before taking a juicy win, ask which board you are sending the opponent to and whether it strengthens or weakens your meta plan.</li>
+<li><strong>Play both sides</strong>: Switching between Classic, Modern, and Battle teaches how rule tweaks change the "value" of every square.</li>
+<li><strong>Think like the AI</strong>: Pause and imagine the opponent's best reply. The more you imitate the search process, the faster you'll improve.</li>
+</ul>
+<p>Games are laboratories for thinking. When you understand both the rules' personality and the AI's logic, every match becomes a chance to experiment, learn, and have more fun.</p>
+        </article>
+      </main>
+      <footer class="lesson-footer">
+        <a href="./">&larr; Back to Learning Hub</a>
+      </footer>
+    </div>
+    <script src="theme.js"></script>
+  </body>
+</html>
