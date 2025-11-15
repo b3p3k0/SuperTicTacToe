@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>How We Turn Code Into a Webpage | Learn Hub</title>
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body class="learn-lesson">
+    <div class="lesson-shell">
+      <a class="lesson-back" href="./">&larr; Back to Learning Hub</a>
+      <header class="lesson-header">
+        <p class="eyebrow">Super Tic-Tac-Toe Learn Hub</p>
+        <h1>How We Turn Code Into a Webpage</h1>
+        <p>Learn how HTML, CSS, and JavaScript join forces so a simple folder becomes a playable game.</p>
+      </header>
+      <main class="lesson-body">
+        <article class="lesson-article">
+<h1>How We Turn Code Into a Webpage</h1>
+<p>Ever wondered how a simple folder of files becomes an interactive game you can play in your browser? It&#39;s like magic, but it&#39;s actually just three powerful technologies working together like instruments in an orchestra!</p>
+<p>Think about your favorite video game. Behind the scenes, there&#39;s code that handles the rules, graphics that make everything look good, and a way for you to interact with it all. Web games work the same way, but instead of downloading a big file to your computer, everything runs right in your web browser using three core languages: <strong>HTML</strong>, <strong>CSS</strong>, and <strong>JavaScript</strong>.</p>
+<h2>The Three Building Blocks of Web Pages</h2>
+<h3>HTML: The Foundation</h3>
+<p>HTML (HyperText Markup Language) is like the skeleton or blueprint of a webpage. It defines what content exists and how it&#39;s structured.</p>
+<p><strong>What HTML does:</strong></p>
+<ul>
+<li>Creates the basic structure (headers, paragraphs, buttons, game boards)</li>
+<li>Tells the browser &quot;put a button here, put text there, make this area interactive&quot;</li>
+<li>Provides labels and descriptions for accessibility (so screen readers work)</li>
+<li>Links to other files the page needs (like CSS styles and JavaScript code)</li>
+</ul>
+<p><strong>In our game:</strong>
+Looking at our <a href="../index.html">index.html</a>, you can see HTML creating:</p>
+<ul>
+<li>The game board container: <code>&lt;div id=&quot;super-board&quot; class=&quot;super-board&quot;&gt;</code></li>
+<li>Buttons for starting games: <code>&lt;button id=&quot;new-game&quot; class=&quot;btn accent&quot;&gt;New Game&lt;/button&gt;</code></li>
+<li>Text areas for showing whose turn it is</li>
+<li>Dialog boxes for game settings</li>
+</ul>
+<p><strong>Fun fact:</strong> HTML uses &quot;tags&quot; that work like containers. <code>&lt;button&gt;New Game&lt;/button&gt;</code> creates a button with the text &quot;New Game&quot; inside it.</p>
+<h3>CSS: The Artist</h3>
+<p>CSS (Cascading Style Sheets) is like the interior designer of the web. It makes everything look beautiful and controls how things are positioned.</p>
+<p><strong>What CSS does:</strong></p>
+<ul>
+<li>Sets colors, fonts, sizes, and spacing</li>
+<li>Creates animations and visual effects</li>
+<li>Arranges elements on the page (layout)</li>
+<li>Makes the page responsive so it works on phones, tablets, and computers</li>
+</ul>
+<p><strong>In our game:</strong>
+Our <a href="../style.css">style.css</a> file:</p>
+<ul>
+<li>Defines color themes with CSS &quot;custom properties&quot; like <code>--p1: #2463eb</code> (Player 1&#39;s blue color)</li>
+<li>Creates the 3×3 grid layout for the boards</li>
+<li>Makes buttons glow when you hover over them</li>
+<li>Handles the smooth animations when boards get captured</li>
+</ul>
+<p><strong>Cool technique:</strong> We use CSS custom properties (variables) so changing themes is as simple as swapping out a few color values. One line like <code>--accent: #ff6b6b;</code> sets the accent color for the entire page!</p>
+<h3>JavaScript: The Brain</h3>
+<p>JavaScript is the programming language that makes web pages interactive. It&#39;s what turns a static display into a living, breathing game.</p>
+<p><strong>What JavaScript does:</strong></p>
+<ul>
+<li>Handles user interactions (clicks, keyboard input)</li>
+<li>Updates the game state (whose turn, what moves are legal)</li>
+<li>Changes what you see on screen in real-time</li>
+<li>Communicates with servers (though our game runs entirely in your browser!)</li>
+</ul>
+<p><strong>In our game:</strong>
+Our compiled <a href="../game.js">game.js</a> file contains:</p>
+<ul>
+<li>The game engine that enforces Super Tic-Tac-Toe rules</li>
+<li>The AI opponent with four different difficulty levels</li>
+<li>Code that updates the visual board when you make moves</li>
+<li>Logic for handling different rule sets (Classic, Modern, Battle)</li>
+</ul>
+<h2>How Web Pages Get to Your Browser</h2>
+<h3>The Client-Server Journey</h3>
+<p>When you visit most websites, here&#39;s what happens:</p>
+<ol>
+<li><strong>You type a URL</strong> or click a link</li>
+<li><strong>Your browser (the &quot;client&quot;) sends a request</strong> to a computer somewhere on the internet (the &quot;server&quot;)</li>
+<li><strong>The server finds the files</strong> (HTML, CSS, JavaScript) and sends them back</li>
+<li><strong>Your browser receives the files</strong> and assembles them into the webpage you see</li>
+<li><strong>JavaScript starts running</strong> and makes the page interactive</li>
+</ol>
+<p><strong>Think of it like ordering takeout:</strong></p>
+<ul>
+<li>You (browser) call the restaurant (server)</li>
+<li>You ask for specific dishes (files)</li>
+<li>The restaurant prepares your order (finds the files)</li>
+<li>A delivery driver (the internet) brings it to you</li>
+<li>You assemble everything on your table (browser renders the page)</li>
+</ul>
+<h3>Local Files: Skipping the Server</h3>
+<p>Our Super Tic-Tac-Toe game has a special feature – it can run entirely from local files! When you double-click <a href="../index.html">index.html</a>, your browser opens it using the <code>file://</code> protocol instead of requesting it from a server.</p>
+<p><strong>Why this works:</strong></p>
+<ul>
+<li>All game logic runs in JavaScript in your browser</li>
+<li>No need to save game states on a server</li>
+<li>No internet connection required once you download the files</li>
+<li>Perfect for classrooms, airplanes, or anywhere without reliable internet</li>
+</ul>
+<h2>Our Build System: From Source Code to Browser</h2>
+<p>Here&#39;s where it gets really interesting! We don&#39;t actually write directly in the <code>game.js</code> file that your browser runs. Instead, we use a more advanced process:</p>
+<h3>Step 1: TypeScript Source Code</h3>
+<p>We write our code in TypeScript (a more powerful version of JavaScript) organized in neat folders:</p>
+<ul>
+<li><code>src/core/</code> - Game rules and logic</li>
+<li><code>src/ai/</code> - AI opponent strategies</li>
+<li><code>src/ui/</code> - Interface components</li>
+</ul>
+<p><strong>Why TypeScript?</strong> It catches errors before they reach your browser and makes the code easier to maintain as it grows.</p>
+<h3>Step 2: Compilation</h3>
+<p>When we run <code>npm run build</code>, a tool called the TypeScript compiler:</p>
+<ol>
+<li>Reads all our TypeScript source files</li>
+<li>Checks for errors (like trying to use a variable that doesn&#39;t exist)</li>
+<li>Converts TypeScript into regular JavaScript</li>
+<li>Saves the results in a <code>dist/</code> folder</li>
+</ol>
+<h3>Step 3: Bundling</h3>
+<p>Here&#39;s the clever part! Our custom bundling script (<a href="../bundle.js">bundle.js</a>):</p>
+<ol>
+<li>Takes all the separate JavaScript files</li>
+<li>Removes the &quot;import&quot; and &quot;export&quot; statements (since browsers load everything differently)</li>
+<li>Concatenates them into one big file in the right order</li>
+<li>Creates the final <code>game.js</code> that your browser loads</li>
+</ol>
+<p><strong>Why bundle?</strong></p>
+<ul>
+<li>One file loads faster than many small files</li>
+<li>Ensures everything loads in the correct order</li>
+<li>Keeps the deployment simple (just copy the folder anywhere!)</li>
+</ul>
+<h3>Step 4: Zero Dependencies</h3>
+<p>Unlike many modern web projects, our game has zero runtime dependencies. This means:</p>
+<ul>
+<li>No need to download additional libraries</li>
+<li>Works in any browser that supports modern JavaScript</li>
+<li>The entire game fits in just a few files</li>
+<li>You can copy it to any web server and it just works</li>
+</ul>
+<h2>Modern Web Concepts</h2>
+<h3>Responsive Design</h3>
+<p>Our CSS uses techniques like &quot;CSS Grid&quot; and &quot;Flexbox&quot; to automatically adjust the layout based on your screen size. The same code works on phones, tablets, and desktop computers!</p>
+<h3>Progressive Enhancement</h3>
+<p>The game starts with basic HTML structure, then CSS makes it beautiful, then JavaScript adds interactivity. If any layer fails, you still get something usable.</p>
+<h3>Accessibility</h3>
+<p>We use proper HTML semantics, ARIA labels, and keyboard navigation so the game works with screen readers and assistive technologies.</p>
+<h3>Local Storage</h3>
+<p>The browser&#39;s <code>localStorage</code> API lets us remember your theme preference and solo game statistics between sessions, all without needing a server!</p>
+<h2>Fun Technical Facts</h2>
+<p><strong>Speed</strong>: Modern browsers can execute JavaScript at nearly native speeds thanks to advanced &quot;just-in-time&quot; compilation.</p>
+<p><strong>Memory</strong>: Our entire game (code + assets) weighs less than 200KB – smaller than most photos!</p>
+<p><strong>Standards</strong>: The HTML, CSS, and JavaScript we use follow international standards maintained by organizations like W3C and ECMA International.</p>
+<p><strong>Compatibility</strong>: Our code targets ES2018 JavaScript features, meaning it works in browsers released in the last 5+ years.</p>
+<p><strong>Performance</strong>: CSS animations and transitions use the browser&#39;s graphics hardware acceleration, making them smooth even on older devices.</p>
+<h2>Why This Architecture Matters</h2>
+<p>Understanding how web technologies work together helps you:</p>
+<p><strong>As a Player:</strong></p>
+<ul>
+<li>Understand why some games need internet and others don&#39;t</li>
+<li>Know why some browsers might behave differently</li>
+<li>Appreciate the engineering behind smooth, responsive interfaces</li>
+</ul>
+<p><strong>As a Future Developer:</strong></p>
+<ul>
+<li>See how large projects can be organized into logical modules</li>
+<li>Learn how build systems help manage complexity</li>
+<li>Understand the tradeoffs between different deployment strategies</li>
+</ul>
+<p>The beauty of web development is that with just three core technologies – HTML for structure, CSS for style, and JavaScript for behavior – you can create rich, interactive experiences that run anywhere there&#39;s a browser. And the best part? You can view the source code of any webpage to see how it&#39;s built!</p>
+<p>Our Super Tic-Tac-Toe game showcases how these technologies can work together to create something sophisticated yet simple, powerful yet accessible. From the TypeScript source code to the final bundled game running in your browser, it&#39;s a complete example of modern web development in action.</p>
+<h2>Ready to Start Your Coding Journey?</h2>
+<p>If this peek behind the curtain has sparked your curiosity about programming, there are tons of amazing (and free!) resources to get you started:</p>
+<h3><strong>Free Coding Websites Perfect for Beginners:</strong></h3>
+<p><strong><a href="https://scratch.mit.edu/">Scratch</a></strong> - MIT&#39;s visual programming language where you drag and drop code blocks to create games, stories, and animations. Perfect for ages 8-16, and it&#39;s exactly how many professional programmers got started!</p>
+<p><strong><a href="https://code.org/">Code.org</a></strong> - Comprehensive courses from pre-reader activities to advanced programming. Their &quot;Hour of Code&quot; activities are a great way to test the waters.</p>
+<p><strong><a href="https://www.khanacademy.org/computing/computer-programming">Khan Academy</a></strong> - Free courses in JavaScript, HTML/CSS, and SQL. Their interactive exercises let you see your code come to life instantly.</p>
+<p><strong><a href="https://www.scratchjr.org/">ScratchJr</a></strong> - A simpler version of Scratch designed for ages 5-7, perfect for younger kids who want to start creating right away.</p>
+<h3><strong>Game-Based Learning:</strong></h3>
+<p><strong><a href="https://codecombat.com/">CodeCombat</a></strong> - Learn programming by playing adventure games where you write real code to control your character.</p>
+<p><strong><a href="https://www.apple.com/swift/playgrounds/">Swift Playgrounds</a></strong> - Apple&#39;s fun app for learning Swift programming through interactive puzzles (iPad/Mac).</p>
+<h3><strong>Why Start With These?</strong></h3>
+<p>These platforms teach the same fundamental concepts we use in our game:</p>
+<ul>
+<li><strong>Logic and problem-solving</strong> (like our AI algorithms)</li>
+<li><strong>Breaking complex problems into smaller parts</strong> (like our modular code structure)</li>
+<li><strong>Creating interactive experiences</strong> (like our game interface)</li>
+<li><strong>Debugging and testing</strong> (finding and fixing problems in your code)</li>
+</ul>
+<p>The skills you learn making a simple animation in Scratch translate directly to understanding how our game engine works, or how our AI makes decisions. Programming is like learning a new language – once you understand the basic grammar, you can start building amazing things!</p>
+<p><strong>Pro tip:</strong> Start with visual programming (Scratch) to learn the concepts, then move to text-based languages (JavaScript, Python) when you&#39;re ready for more power and flexibility. Many professional game developers started exactly this way!</p>
+
+        </article>
+      </main>
+      <footer class="lesson-footer">
+        <a href="./">&larr; Back to Learning Hub</a>
+      </footer>
+    </div>
+    <script src="theme.js"></script>
+  </body>
+</html>
