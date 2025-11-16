@@ -67,17 +67,45 @@ const DEFAULT_THEME_TOKENS = {
   });
   document.body.dataset.theme = themeName;
 
-  document.querySelectorAll("[data-learn-close]").forEach((button) => {
-    button.addEventListener("click", () => {
-      if (window.opener && !window.opener.closed) {
-        window.close();
+  const handleLearnClose = () => {
+    if (window.opener && !window.opener.closed) {
+      window.close();
+      return;
+    }
+
+    window.close();
+    if (window.closed) {
+      return;
+    }
+
+    try {
+      window.open("", "_self");
+      window.close();
+    } catch (error) {
+      console.warn("Unable to reopen window for closing:", error);
+    }
+
+    if (window.closed) {
+      return;
+    }
+
+    window.location.replace("../index.html");
+  };
+
+  const bindLearnClosers = () => {
+    document.querySelectorAll("[data-learn-close]").forEach((button) => {
+      if (button.dataset.learnCloseBound === "true") {
         return;
       }
-
-      window.close();
-      window.setTimeout(() => {
-        window.location.href = "../index.html";
-      }, 100);
+      button.dataset.learnCloseBound = "true";
+      button.addEventListener("click", handleLearnClose);
     });
+  };
+
+  bindLearnClosers();
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) {
+      bindLearnClosers();
+    }
   });
 })();
