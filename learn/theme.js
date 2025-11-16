@@ -73,12 +73,11 @@ const DEFAULT_THEME_TOKENS = {
         window.close();
         return;
       }
-      if (window.history.length > 1) {
-        window.history.back();
-        return;
-      }
+
       window.close();
-      window.location.href = "../index.html";
+      window.setTimeout(() => {
+        window.location.href = "../index.html";
+      }, 100);
     });
   });
 })();
