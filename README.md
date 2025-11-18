@@ -88,6 +88,8 @@ Want your own color vibe? Follow these three simple steps:
 2. Change the `label` plus the color tokens inside `tokens` (e.g., `--bg`, `--surface`, `--p1`, `--p2`). Think of each token as a paint bucket for part of the UI—backgrounds, buttons, or player marks.
 3. Run `npm run build` so the new theme ships into `game.js`. Reload `index.html`, pick your theme from the dropdown, and you’re done.
 
+Need a map for every token? See the [Theme Token Cheatsheet](docs/theme-token-cheatsheet.md) for plain-language descriptions of each value.
+
 Optional polish: if you want special fonts or effects for that theme, add a CSS rule like `body[data-theme="mytheme"] { … }` near the end of `style.css`.
 
 ---

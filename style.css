@@ -1242,6 +1242,21 @@ body[data-theme="cupertino"] .mini-board.active-board {
   background: linear-gradient(to bottom, #f0f6ff 0%, #e6f1ff 100%);
 }
 
+body[data-theme="cupertino"] .mini-board.captured-p1,
+body[data-theme="cupertino"] .mini-board.captured-p1 .cell {
+  background: var(--capture-bg);
+}
+
+body[data-theme="cupertino"] .mini-board.captured-p2,
+body[data-theme="cupertino"] .mini-board.captured-p2 .cell {
+  background: var(--capture-bg-p2, var(--capture-bg));
+}
+
+body[data-theme="cupertino"] .mini-board.drawn,
+body[data-theme="cupertino"] .mini-board.drawn .cell {
+  background: var(--draw-bg);
+}
+
 body[data-theme="cupertino"] .cell {
   border-radius: 4px;
   border-width: 1px;
