@@ -892,6 +892,21 @@ body[data-theme="wopr"] .mini-board.active-board {
   box-shadow: 0 0 0 1px rgba(65, 255, 0, 0.4), inset 0 0 4px rgba(65, 255, 0, 0.3);
 }
 
+body[data-theme="wopr"] .mini-board.captured-p1,
+body[data-theme="wopr"] .mini-board.captured-p1 .cell {
+  background: var(--capture-bg);
+}
+
+body[data-theme="wopr"] .mini-board.captured-p2,
+body[data-theme="wopr"] .mini-board.captured-p2 .cell {
+  background: var(--capture-bg-p2, var(--capture-bg));
+}
+
+body[data-theme="wopr"] .mini-board.drawn,
+body[data-theme="wopr"] .mini-board.drawn .cell {
+  background: var(--draw-bg);
+}
+
 body[data-theme="wopr"] .cell {
   border-radius: 2px;
   border-width: 1px;
