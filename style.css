@@ -703,6 +703,7 @@ body[data-theme="twotone"] .btn.difficulty-expert {
 }
 
 .learning-hub-row {
+  display: flex;
   margin-top: 24px;
   justify-content: center;
 }
