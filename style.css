@@ -1278,7 +1278,7 @@ body[data-theme="cupertino"] .btn.difficulty-easy {
   border-left-color: #d1e5ff;
   border-right-color: #85b8e6;
   border-bottom-color: #85b8e6;
-  color: white;
+  color: #444444;
   box-shadow: none;
 }
 
@@ -1288,7 +1288,7 @@ body[data-theme="cupertino"] .btn.difficulty-normal {
   border-left-color: #b3d4ff;
   border-right-color: #5c8fd9;
   border-bottom-color: #5c8fd9;
-  color: white;
+  color: #444444;
   box-shadow: none;
 }
 
@@ -1298,7 +1298,7 @@ body[data-theme="cupertino"] .btn.difficulty-hard {
   border-left-color: #ffc4b8;
   border-right-color: #e68a77;
   border-bottom-color: #e68a77;
-  color: white;
+  color: #444444;
   box-shadow: none;
 }
 
@@ -1308,7 +1308,7 @@ body[data-theme="cupertino"] .btn.difficulty-expert {
   border-left-color: #d1c4f5;
   border-right-color: #9985cc;
   border-bottom-color: #9985cc;
-  color: white;
+  color: #444444;
   box-shadow: none;
 }
 
