@@ -924,6 +924,10 @@ body[data-theme="wopr"] .btn.accent {
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
 }
 
+body[data-theme="wopr"] .learning-hub-row .btn {
+  text-transform: none;
+}
+
 body[data-theme="wopr"] .mini-board {
   border-radius: 6px;
   border-width: 1px;
