@@ -164,6 +164,41 @@ body::before {
   box-shadow: 0 8px 20px var(--accent-shadow, rgba(0, 0, 0, 0.2));
 }
 
+/* Difficulty button colors */
+.btn.difficulty-easy {
+  background: var(--diff-easy);
+  border-color: var(--diff-easy);
+  color: white;
+  box-shadow: 0 8px 20px rgba(0, 170, 255, 0.25);
+}
+
+.btn.difficulty-normal {
+  background: var(--diff-normal);
+  border-color: var(--diff-normal);
+  color: white;
+  box-shadow: 0 8px 20px rgba(0, 194, 0, 0.25);
+}
+
+.btn.difficulty-hard {
+  background: var(--diff-hard);
+  border-color: var(--diff-hard);
+  color: white;
+  box-shadow: 0 8px 20px rgba(150, 0, 0, 0.25);
+}
+
+.btn.difficulty-expert {
+  background: var(--diff-expert);
+  border-color: var(--diff-expert);
+  color: white;
+  box-shadow: 0 8px 20px rgba(61, 0, 71, 0.25);
+}
+
+/* Two Tone theme: make Expert bold since it shares color with Hard */
+body[data-theme="twotone"] .btn.difficulty-expert {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
 .status-bar {
   display: flex;
   flex-direction: column;

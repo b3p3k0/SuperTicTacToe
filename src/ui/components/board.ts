@@ -82,9 +82,11 @@ export class BoardRenderer {
       }
 
       // Update board classes
+      const isCaptured = state.winner === "X" || state.winner === "O";
+      const shouldLockActive = isCaptured && snapshot.activeBoardIndex === index;
       boardEl.classList.toggle(
         "active-board",
-        snapshot.activeBoardIndex === index && allowedSet.has(index)
+        snapshot.activeBoardIndex === index && allowedSet.has(index) && !shouldLockActive
       );
       boardEl.classList.toggle(
         "free-choice",

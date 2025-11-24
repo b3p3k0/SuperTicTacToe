@@ -1,9 +1,10 @@
-import { THEME_STORAGE_KEY, THEME_TOKENS_KEY, THEMES } from "../core/constants.js";
+import { THEME_STORAGE_KEY, THEME_TOKENS_KEY, THEME_VERSION_KEY, THEME_VERSION, THEMES, } from "../core/constants.js";
 export class ThemeManager {
     constructor(select) {
         var _a;
         this.current = "default";
         this.select = select;
+        this.maybeUpgradeThemeTokens();
         this.populateOptions();
         const initialTheme = this.getStoredTheme();
         this.applyTheme(initialTheme, false);
@@ -66,11 +67,25 @@ export class ThemeManager {
         try {
             window.localStorage.setItem(THEME_STORAGE_KEY, name);
             window.localStorage.setItem(THEME_TOKENS_KEY, JSON.stringify(tokens));
+            window.localStorage.setItem(THEME_VERSION_KEY, THEME_VERSION);
         }
         catch (error) {
             if (logErrors) {
                 console.warn("Unable to save theme preference:", error);
             }
+        }
+    }
+    maybeUpgradeThemeTokens() {
+        try {
+            const version = window.localStorage.getItem(THEME_VERSION_KEY);
+            if (version === THEME_VERSION) {
+                return;
+            }
+            window.localStorage.removeItem(THEME_TOKENS_KEY);
+            window.localStorage.setItem(THEME_VERSION_KEY, THEME_VERSION);
+        }
+        catch (error) {
+            console.warn("Unable to sync theme version:", error);
         }
     }
 }

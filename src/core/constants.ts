@@ -41,6 +41,8 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
 
 export const THEME_STORAGE_KEY = "st3.theme";
 export const THEME_TOKENS_KEY = "st3.themeTokens";
+export const THEME_VERSION_KEY = "st3.themeVersion";
+export const THEME_VERSION = "2025.11-hotfix";
 
 export const THEMES: Record<ThemeName, ThemeConfig> = {
   default: {
@@ -66,6 +68,10 @@ export const THEMES: Record<ThemeName, ThemeConfig> = {
       "--active-board-glow-strong": "rgba(0, 214, 0, 0.5)",
       "--macro-line": "rgba(0, 0, 0, 0.35)",
       "--overlay-scrim": "rgba(20, 24, 35, 0.85)",
+      "--diff-easy": "#00aaff",
+      "--diff-normal": "#00c200",
+      "--diff-hard": "#960000",
+      "--diff-expert": "#3d0047",
       "--font-body": `"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`,
       "--font-heading": `"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`,
       "--bg-pattern":
@@ -98,6 +104,10 @@ export const THEMES: Record<ThemeName, ThemeConfig> = {
       "--active-board-glow-strong": "rgba(61, 214, 140, 0.5)",
       "--macro-line": "rgba(255, 255, 255, 0.15)",
       "--overlay-scrim": "rgba(2, 6, 23, 0.85)",
+      "--diff-easy": "#4fb4ff",
+      "--diff-normal": "#1d8cf8",
+      "--diff-hard": "#ff8c66",
+      "--diff-expert": "#e02b2b",
       "--font-body": `"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`,
       "--font-heading": `"Space Grotesk", "Segoe UI", system-ui, sans-serif`,
       "--bg-pattern":
@@ -130,6 +140,10 @@ export const THEMES: Record<ThemeName, ThemeConfig> = {
       "--active-board-glow-strong": "rgba(5, 214, 111, 0.75)",
       "--macro-line": "rgba(0, 133, 255, 0.35)",
       "--overlay-scrim": "rgba(255, 116, 0, 0.75)",
+      "--diff-easy": "#00b3ff",
+      "--diff-normal": "#00d65f",
+      "--diff-hard": "#ff2b53",
+      "--diff-expert": "#b000ff",
       "--font-body": `"Fredoka", "Baloo 2", "Comic Sans MS", "Trebuchet MS", sans-serif`,
       "--font-heading": `"Fredoka", "Baloo 2", "Comic Sans MS", "Trebuchet MS", sans-serif`,
       "--bg-pattern":
@@ -152,8 +166,8 @@ export const THEMES: Record<ThemeName, ThemeConfig> = {
       "--accent-shadow": "rgba(255, 69, 0, 0.4)",
       "--p1": "#41ff00",
       "--p2": "#00ff88",
-      "--capture-bg": "#001100",
-      "--capture-bg-p2": "#001100",
+      "--capture-bg": "#0b2e00",
+      "--capture-bg-p2": "#402400",
       "--draw-bg": "#002200",
       "--cell-bg": "#000000",
       "--last-move-glow": "rgba(65, 255, 0, 0.6)",
@@ -162,6 +176,10 @@ export const THEMES: Record<ThemeName, ThemeConfig> = {
       "--active-board-glow-strong": "rgba(65, 255, 0, 0.6)",
       "--macro-line": "rgba(65, 255, 0, 0.3)",
       "--overlay-scrim": "rgba(0, 0, 0, 0.85)",
+      "--diff-easy": "#00aaff",
+      "--diff-normal": "#00ff00",
+      "--diff-hard": "#ff0000",
+      "--diff-expert": "#ff00ff",
       "--font-body": `"VT323", "IBM Plex Mono", "Courier New", monospace`,
       "--font-heading": `"VT323", "IBM Plex Mono", "Courier New", monospace`,
       "--bg-pattern":
@@ -194,6 +212,10 @@ export const THEMES: Record<ThemeName, ThemeConfig> = {
       "--active-board-glow-strong": "rgba(255, 111, 183, 0.55)",
       "--macro-line": "rgba(255, 111, 183, 0.4)",
       "--overlay-scrim": "rgba(32, 7, 24, 0.85)",
+      "--diff-easy": "#ff99cc",
+      "--diff-normal": "#ff4fa7",
+      "--diff-hard": "#ff1e83",
+      "--diff-expert": "#cc0066",
       "--font-body": `"Noto Sans JP", "Inter", system-ui, sans-serif`,
       "--font-heading": `"Zen Kurenaido", "Noto Sans JP", "Inter", sans-serif`,
       "--bg-pattern":
@@ -226,6 +248,10 @@ export const THEMES: Record<ThemeName, ThemeConfig> = {
       "--active-board-glow-strong": "rgba(255, 124, 64, 0.6)",
       "--macro-line": "rgba(255, 188, 91, 0.25)",
       "--overlay-scrim": "rgba(15, 5, 22, 0.85)",
+      "--diff-easy": "#1dd3b0",
+      "--diff-normal": "#ffbc5b",
+      "--diff-hard": "#ff5f6d",
+      "--diff-expert": "#b830d9",
       "--font-body": `"Nunito", "Segoe UI", system-ui, sans-serif`,
       "--font-heading": `"Chakra Petch", "Nunito", "Segoe UI", sans-serif`,
       "--bg-pattern":
@@ -258,6 +284,10 @@ export const THEMES: Record<ThemeName, ThemeConfig> = {
       "--active-board-glow-strong": "rgba(0, 0, 0, 0.6)",
       "--macro-line": "rgba(0, 0, 0, 0.9)",
       "--overlay-scrim": "rgba(0, 0, 0, 0.85)",
+      "--diff-easy": "#666666",
+      "--diff-normal": "#333333",
+      "--diff-hard": "#000000",
+      "--diff-expert": "#000000",
       "--font-body": `"Source Sans Pro", "Arial", sans-serif`,
       "--font-heading": `"Source Sans Pro", "Arial", sans-serif`,
       "--bg-pattern": "none",
@@ -289,6 +319,10 @@ export const THEMES: Record<ThemeName, ThemeConfig> = {
       "--active-board-glow-strong": "rgba(98, 255, 149, 0.55)",
       "--macro-line": "rgba(255, 78, 205, 0.35)",
       "--overlay-scrim": "rgba(5, 2, 12, 0.85)",
+      "--diff-easy": "#62d4ff",
+      "--diff-normal": "#c880ff",
+      "--diff-hard": "#ff4ecd",
+      "--diff-expert": "#d900aa",
       "--font-body": `"Orbitron", "Segoe UI", system-ui, sans-serif`,
       "--font-heading": `"Orbitron", "Segoe UI", system-ui, sans-serif`,
       "--bg-pattern":
@@ -311,8 +345,8 @@ export const THEMES: Record<ThemeName, ThemeConfig> = {
       "--accent-shadow": "rgba(0, 0, 255, 0.4)",
       "--p1": "#000080",
       "--p2": "#800080",
-      "--capture-bg": "#d4d0c8",
-      "--capture-bg-p2": "#d4d0c8",
+      "--capture-bg": "#d1e0ff",
+      "--capture-bg-p2": "#ffe3b3",
       "--draw-bg": "#b8b8b8",
       "--cell-bg": "#c0c0c0",
       "--last-move-glow": "rgba(0, 0, 128, 0.6)",
@@ -321,6 +355,10 @@ export const THEMES: Record<ThemeName, ThemeConfig> = {
       "--active-board-glow-strong": "rgba(0, 0, 255, 0.6)",
       "--macro-line": "rgba(0, 0, 0, 0.6)",
       "--overlay-scrim": "rgba(128, 128, 128, 0.85)",
+      "--diff-easy": "#0080ff",
+      "--diff-normal": "#0000ff",
+      "--diff-hard": "#ff0000",
+      "--diff-expert": "#800080",
       "--font-body": `"MS Sans Serif", "Trebuchet MS", Arial, sans-serif`,
       "--font-heading": `"MS Sans Serif", "Trebuchet MS", Arial, sans-serif`,
       "--bg-pattern": "none",
@@ -342,8 +380,8 @@ export const THEMES: Record<ThemeName, ThemeConfig> = {
       "--accent-shadow": "rgba(0, 102, 204, 0.3)",
       "--p1": "#000000",
       "--p2": "#333333",
-      "--capture-bg": "#d0cdc9",
-      "--capture-bg-p2": "#ccc9c5",
+      "--capture-bg": "#cbdcf8",
+      "--capture-bg-p2": "#ffe1c7",
       "--draw-bg": "#c6c3bf",
       "--cell-bg": "#f0ede9",
       "--last-move-glow": "rgba(0, 0, 0, 0.25)",
@@ -352,6 +390,10 @@ export const THEMES: Record<ThemeName, ThemeConfig> = {
       "--active-board-glow-strong": "rgba(0, 102, 204, 0.25)",
       "--macro-line": "rgba(0, 0, 0, 0.3)",
       "--overlay-scrim": "rgba(90, 90, 90, 0.85)",
+      "--diff-easy": "#4d9fff",
+      "--diff-normal": "#0066cc",
+      "--diff-hard": "#cc3300",
+      "--diff-expert": "#663399",
       "--font-body": `"Charcoal", "Chicago", "Geneva", "Lucida Grande", sans-serif`,
       "--font-heading": `"Charcoal", "Chicago", "Geneva", "Lucida Grande", sans-serif`,
       "--bg-pattern":
