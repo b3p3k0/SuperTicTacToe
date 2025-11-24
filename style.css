@@ -153,6 +153,13 @@ body::before {
   transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
+a.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
 .btn:active {
   transform: scale(0.97);
 }
