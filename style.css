@@ -1271,43 +1271,43 @@ body[data-theme="cupertino"] .btn.accent {
   color: white;
 }
 
-/* Cupertino difficulty button overrides - use solid colors */
+/* Cupertino difficulty button overrides - use pastel colors */
 body[data-theme="cupertino"] .btn.difficulty-easy {
   background: var(--diff-easy);
-  border-top-color: #7bb3ff;
-  border-left-color: #7bb3ff;
-  border-right-color: #2563a8;
-  border-bottom-color: #2563a8;
+  border-top-color: #d1e5ff;
+  border-left-color: #d1e5ff;
+  border-right-color: #85b8e6;
+  border-bottom-color: #85b8e6;
   color: white;
   box-shadow: none;
 }
 
 body[data-theme="cupertino"] .btn.difficulty-normal {
   background: var(--diff-normal);
-  border-top-color: #3385ff;
-  border-left-color: #3385ff;
-  border-right-color: #003d7a;
-  border-bottom-color: #003d7a;
+  border-top-color: #b3d4ff;
+  border-left-color: #b3d4ff;
+  border-right-color: #5c8fd9;
+  border-bottom-color: #5c8fd9;
   color: white;
   box-shadow: none;
 }
 
 body[data-theme="cupertino"] .btn.difficulty-hard {
   background: var(--diff-hard);
-  border-top-color: #ff6633;
-  border-left-color: #ff6633;
-  border-right-color: #8c1a00;
-  border-bottom-color: #8c1a00;
+  border-top-color: #ffc4b8;
+  border-left-color: #ffc4b8;
+  border-right-color: #e68a77;
+  border-bottom-color: #e68a77;
   color: white;
   box-shadow: none;
 }
 
 body[data-theme="cupertino"] .btn.difficulty-expert {
   background: var(--diff-expert);
-  border-top-color: #9966cc;
-  border-left-color: #9966cc;
-  border-right-color: #442266;
-  border-bottom-color: #442266;
+  border-top-color: #d1c4f5;
+  border-left-color: #d1c4f5;
+  border-right-color: #9985cc;
+  border-bottom-color: #9985cc;
   color: white;
   box-shadow: none;
 }
