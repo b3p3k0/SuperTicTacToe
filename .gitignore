@@ -11,4 +11,6 @@ CLAUDE.md
 *.log
 .DS_Store
 Thumbs.db
-/bench/
+/bench/results/
+/bench/archive/
+/bench/*-dist/

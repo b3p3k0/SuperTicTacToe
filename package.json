@@ -1,18 +1,23 @@
 {
   "name": "st3",
-  "version": "1.0.0",
+  "version": "2.5.2",
   "description": "Super Tic-Tac-Toe static web app",
+  "author": "Kevin M. Nord",
+  "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/b3p3k0/SuperTicTacToe.git"
+  },
   "scripts": {
     "build": "tsc && node bundle.js",
     "build-modules": "tsc",
     "watch": "tsc --watch",
-    "test:ai": "node --experimental-default-type=module tests/evaluator-smoke.mjs",
-    "test:ai:regress": "node --experimental-default-type=module tests/ai-regressions.mjs",
-    "bench:selfplay": "node --experimental-default-type=module bench/selfplay.mjs"
+    "test": "node tests/engine-rules.mjs && node tests/evaluator-smoke.mjs && node tests/ai-regressions.mjs",
+    "test:ai": "node tests/evaluator-smoke.mjs",
+    "test:ai:regress": "node tests/ai-regressions.mjs",
+    "bench:selfplay": "node bench/selfplay.mjs"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
     "typescript": "^5.9.3"
   }

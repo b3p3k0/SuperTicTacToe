@@ -112,7 +112,7 @@ export class GameEngine {
     this.moveCount += 1;
 
     const beforeWinner = board.winner;
-    this.evaluateBoardState(boardIndex, this.currentPlayer);
+    this.evaluateBoardState(boardIndex, cellIndex, this.currentPlayer);
 
     const afterWinner = board.winner;
     const ownershipChanged =
@@ -183,16 +183,16 @@ export class GameEngine {
     return false;
   }
 
-  private evaluateBoardState(boardIndex: number, priorityPlayer?: Player): void {
+  private evaluateBoardState(boardIndex: number, cellIndex: number, player: Player): void {
     const board = this.boardAt(boardIndex);
-    const boardNowFull = board.cells.every((cell) => cell !== null);
-    const preferredPlayer = this.ruleSet === "battle" ? priorityPlayer : undefined;
-    const winner = this.findWinner(board.cells, preferredPlayer);
-    if (winner && (!board.winner || this.ruleSet === "battle")) {
-      board.winner = winner;
+    // Ownership only changes when this move completes a new three-in-a-row.
+    // Battle lets a new line steal a captured board; Classic and Modern lock the first capture.
+    const madeLine = this.completesLine(board.cells, cellIndex, player);
+    if (madeLine && (!board.winner || this.ruleSet === "battle")) {
+      board.winner = player;
     }
 
-    board.isFull = boardNowFull;
+    board.isFull = board.cells.every((cell) => cell !== null);
     board.isDraw = !board.winner && board.isFull;
   }
 
@@ -230,31 +230,10 @@ export class GameEngine {
     return null;
   }
 
-  private findWinner(cells: CellValue[], priorityPlayer?: Player): Player | null {
-    if (priorityPlayer) {
-      if (this.hasLine(cells, priorityPlayer)) {
-        return priorityPlayer;
-      }
-      const opponent = priorityPlayer === "X" ? "O" : "X";
-      if (this.hasLine(cells, opponent)) {
-        return opponent;
-      }
-      return null;
-    }
-
-    for (const [a, b, c] of WIN_PATTERNS) {
-      const mark = cells[a];
-      if (mark && mark === cells[b] && mark === cells[c]) {
-        return mark;
-      }
-    }
-    return null;
-  }
-
-  private hasLine(cells: CellValue[], player: Player): boolean {
-    return WIN_PATTERNS.some(([a, b, c]) => {
-      return cells[a] === player && cells[b] === player && cells[c] === player;
-    });
+  private completesLine(cells: CellValue[], cellIndex: number, player: Player): boolean {
+    return WIN_PATTERNS.some(
+      (pattern) => pattern.includes(cellIndex) && pattern.every((idx) => cells[idx] === player),
+    );
   }
 
   private getAllowedBoards(): number[] {

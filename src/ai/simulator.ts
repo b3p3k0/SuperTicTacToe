@@ -19,10 +19,9 @@ export class AiSimulator {
     const beforeWinner = board.winner;
     board.cells[move.cellIndex] = player;
 
-    const preferredPlayer = ruleSet === "battle" ? player : undefined;
-    const winner = AiUtils.findWinner(board.cells, preferredPlayer);
-    if (winner && (!board.winner || ruleSet === "battle")) {
-      board.winner = winner;
+    const madeLine = AiUtils.completesLine(board.cells, move.cellIndex, player);
+    if (madeLine && (!board.winner || ruleSet === "battle")) {
+      board.winner = player;
     }
 
     board.isFull = board.cells.every((cell) => cell !== null);
