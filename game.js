@@ -481,7 +481,7 @@ class GameEngine {
         board.cells[cellIndex] = this.currentPlayer;
         this.moveCount += 1;
         const beforeWinner = board.winner;
-        this.evaluateBoardState(boardIndex, this.currentPlayer);
+        this.evaluateBoardState(boardIndex, cellIndex, this.currentPlayer);
         const afterWinner = board.winner;
         const ownershipChanged = afterWinner !== beforeWinner && afterWinner === this.currentPlayer;
         const capturedBoard = ownershipChanged;
@@ -538,15 +538,15 @@ class GameEngine {
         }
         return false;
     }
-    evaluateBoardState(boardIndex, priorityPlayer) {
+    evaluateBoardState(boardIndex, cellIndex, player) {
         const board = this.boardAt(boardIndex);
-        const boardNowFull = board.cells.every((cell) => cell !== null);
-        const preferredPlayer = this.ruleSet === "battle" ? priorityPlayer : undefined;
-        const winner = this.findWinner(board.cells, preferredPlayer);
-        if (winner && (!board.winner || this.ruleSet === "battle")) {
-            board.winner = winner;
+        // Ownership only changes when this move completes a new three-in-a-row.
+        // Battle lets a new line steal a captured board; Classic and Modern lock the first capture.
+        const madeLine = this.completesLine(board.cells, cellIndex, player);
+        if (madeLine && (!board.winner || this.ruleSet === "battle")) {
+            board.winner = player;
         }
-        board.isFull = boardNowFull;
+        board.isFull = board.cells.every((cell) => cell !== null);
         board.isDraw = !board.winner && board.isFull;
     }
     updateMacroState() {
@@ -577,29 +577,8 @@ class GameEngine {
         }
         return null;
     }
-    findWinner(cells, priorityPlayer) {
-        if (priorityPlayer) {
-            if (this.hasLine(cells, priorityPlayer)) {
-                return priorityPlayer;
-            }
-            const opponent = priorityPlayer === "X" ? "O" : "X";
-            if (this.hasLine(cells, opponent)) {
-                return opponent;
-            }
-            return null;
-        }
-        for (const [a, b, c] of WIN_PATTERNS) {
-            const mark = cells[a];
-            if (mark && mark === cells[b] && mark === cells[c]) {
-                return mark;
-            }
-        }
-        return null;
-    }
-    hasLine(cells, player) {
-        return WIN_PATTERNS.some(([a, b, c]) => {
-            return cells[a] === player && cells[b] === player && cells[c] === player;
-        });
+    completesLine(cells, cellIndex, player) {
+        return WIN_PATTERNS.some((pattern) => pattern.includes(cellIndex) && pattern.every((idx) => cells[idx] === player));
     }
     getAllowedBoards() {
         if (this.status !== "playing") {
@@ -734,44 +713,6 @@ class AiUtils {
             }
         }
         return score;
-    }
-    static evaluateBoardComfort(board) {
-        let score = 0;
-        for (const pattern of WIN_PATTERNS) {
-            const marks = pattern.map((idx) => board.cells[idx]);
-            const ours = marks.filter((mark) => mark === "O").length;
-            const theirs = marks.filter((mark) => mark === "X").length;
-            if (theirs === 0) {
-                score += ours * 0.4;
-            }
-            if (ours === 0 && theirs === 2) {
-                score -= 1.5;
-            }
-        }
-        return score;
-    }
-    static createsMacroThreat(snapshot, move) {
-        const board = snapshot.boards[move.boardIndex];
-        const isBattle = snapshot.ruleSet === "battle";
-        const boardLocked = (board === null || board === void 0 ? void 0 : board.winner) && (!isBattle || board.isFull);
-        if (!board || boardLocked) {
-            return false;
-        }
-        if (!this.completesLine(board.cells, move.cellIndex, "O")) {
-            return false;
-        }
-        const futureWinners = snapshot.boards.map((mini, index) => {
-            if (index === move.boardIndex) {
-                return "O";
-            }
-            return mini.winner;
-        });
-        return WIN_PATTERNS.some((pattern) => {
-            const wins = pattern.map((idx) => futureWinners[idx]);
-            const oCount = wins.filter((mark) => mark === "O").length;
-            const blanks = wins.filter((mark) => !mark).length;
-            return oCount === 2 && blanks === 1;
-        });
     }
     static completesLine(cells, cellIndex, player) {
         return WIN_PATTERNS.some((pattern) => {
@@ -944,25 +885,6 @@ class AiUtils {
     static getOpponent(player) {
         return player === "X" ? "O" : "X";
     }
-    static findWinner(cells, priorityPlayer) {
-        if (priorityPlayer) {
-            if (this.hasLine(cells, priorityPlayer)) {
-                return priorityPlayer;
-            }
-            const opponent = this.getOpponent(priorityPlayer);
-            if (this.hasLine(cells, opponent)) {
-                return opponent;
-            }
-            return null;
-        }
-        for (const [a, b, c] of WIN_PATTERNS) {
-            const mark = cells[a];
-            if (mark && mark === cells[b] && mark === cells[c]) {
-                return mark;
-            }
-        }
-        return null;
-    }
     static findMacroWinner(boards) {
         var _a, _b, _c;
         for (const pattern of WIN_PATTERNS) {
@@ -973,11 +895,6 @@ class AiUtils {
             }
         }
         return null;
-    }
-    static hasLine(cells, player) {
-        return WIN_PATTERNS.some(([a, b, c]) => {
-            return cells[a] === player && cells[b] === player && cells[c] === player;
-        });
     }
 }
 
@@ -1136,20 +1053,6 @@ class RuleAwareHeuristics {
                 return 0;
         }
     }
-    static stateBonus(snapshot, player) {
-        var _a;
-        const ruleSet = (_a = snapshot.ruleSet) !== null && _a !== void 0 ? _a : "battle";
-        switch (ruleSet) {
-            case "battle":
-                return this.battleStateBonus(snapshot, player);
-            case "classic":
-                return this.classicStateBonus(snapshot, player);
-            case "modern":
-                return this.modernStateBonus(snapshot, player);
-            default:
-                return 0;
-        }
-    }
     static battleMoveBonus({ snapshot, move, player }) {
         const opponent = AiUtils.getOpponent(player);
         let score = 0;
@@ -1202,7 +1105,7 @@ class RuleAwareHeuristics {
                 score -= 1.2;
             }
             else if (!targetBoard.winner && targetBoard.isFull) {
-                score += 0.6; // Directing into an exhausted board frees our next choice
+                score += 0.6; // Sends the opponent to a full board (free choice for them); measured neutral in self-play
             }
         }
         return score;
@@ -1219,7 +1122,7 @@ class RuleAwareHeuristics {
         const targetBoard = snapshot.boards[move.cellIndex];
         if (targetBoard) {
             if (targetBoard.isFull || targetBoard.isDraw || targetBoard.winner) {
-                score += 0.9; // Sending opponent into a closed board grants us flexibility
+                score += 0.9; // Sends the opponent to a closed board (free choice for them); measured neutral in self-play
             }
             else {
                 const aiPotential = AiUtils.boardPotential(targetBoard.cells, player);
@@ -1227,63 +1130,6 @@ class RuleAwareHeuristics {
                 score += (aiPotential - opponentPotential) * 0.2;
             }
         }
-        return score;
-    }
-    static battleStateBonus(snapshot, player) {
-        const opponent = AiUtils.getOpponent(player);
-        let score = 0;
-        snapshot.boards.forEach((board) => {
-            if (!board || !board.winner || board.isFull) {
-                return;
-            }
-            if (board.winner === player) {
-                const margin = AiUtils.boardPotential(board.cells, player) -
-                    AiUtils.boardPotential(board.cells, opponent);
-                score += 3 + Math.max(margin, 0) * 0.35;
-            }
-            else if (board.winner === opponent) {
-                score -= 3;
-            }
-        });
-        return score;
-    }
-    static classicStateBonus(snapshot, player) {
-        const opponent = AiUtils.getOpponent(player);
-        let score = 0;
-        snapshot.boards.forEach((board) => {
-            if (!board || !board.winner) {
-                return;
-            }
-            if (board.winner === player) {
-                score += board.isFull ? 9 : 7;
-            }
-            else if (board.winner === opponent) {
-                score -= board.isFull ? 9 : 7;
-            }
-        });
-        return score;
-    }
-    static modernStateBonus(snapshot, player) {
-        let openBoards = 0;
-        let score = 0;
-        snapshot.boards.forEach((board) => {
-            if (!board) {
-                return;
-            }
-            const closed = board.isFull || board.isDraw || !!board.winner;
-            if (!closed) {
-                openBoards += 1;
-            }
-            if (board.winner === player) {
-                score += 10;
-            }
-            else if (board.winner === AiUtils.getOpponent(player)) {
-                score -= 10;
-            }
-        });
-        const totalBoards = snapshot.boards.length || 1;
-        const flexibility = 1 - openBoards / totalBoards;
-        score += flexibility * 4; // Fewer open boards favors whoever is ahead
         return score;
     }
 }
@@ -1401,8 +1247,8 @@ class AdaptiveTuning {
     }
     static normalTuning(band) {
         const blunderRate = band === "struggle" ? 0.22 : band === "coast" ? 0.05 : 0.15;
-        const branchCap = band === "coast" ? 8 : band === "struggle" ? 5 : 5;
-        return { blunderRate, branchCap };
+        const maxBranches = band === "coast" ? 8 : 5;
+        return { blunderRate, maxBranches };
     }
     static hardTuning(band) {
         const isFlow = band === "flow";
@@ -1410,8 +1256,6 @@ class AdaptiveTuning {
             allowJitter: !isFlow,
             maxTimeMs: band === "coast" ? 1600 : band === "struggle" ? 650 : 1200,
             depthAdjustment: band === "coast" ? 1 : band === "struggle" ? -1 : 0,
-            useMcts: band !== "struggle",
-            mctsBudgetMs: band === "coast" ? 320 : isFlow ? 200 : 0,
         };
     }
     static expertTuning(band) {
@@ -1433,8 +1277,6 @@ class AdaptiveTuning {
             allowJitter: false,
             maxTimeMs: band === "coast" ? 2000 : band === "struggle" ? 900 : 2200,
             depthAdjustment: band === "coast" ? 1 : band === "struggle" ? -1 : 2,
-            useMcts: band !== "struggle",
-            mctsBudgetMs: band === "coast" ? 450 : band === "flow" ? 450 : 250,
             ...(weightOverrides ? { weightOverrides } : {}),
         };
     }
@@ -1443,8 +1285,6 @@ class AdaptiveTuning {
             allowJitter: true,
             maxTimeMs: 1100,
             depthAdjustment: 0,
-            useMcts: false,
-            mctsBudgetMs: 0,
         };
     }
     static staticExpertPreset() {
@@ -1452,8 +1292,6 @@ class AdaptiveTuning {
             allowJitter: false,
             maxTimeMs: 1500,
             depthAdjustment: 0,
-            useMcts: true,
-            mctsBudgetMs: 250,
         };
     }
 }
@@ -1477,10 +1315,9 @@ class AiSimulator {
         }
         const beforeWinner = board.winner;
         board.cells[move.cellIndex] = player;
-        const preferredPlayer = ruleSet === "battle" ? player : undefined;
-        const winner = AiUtils.findWinner(board.cells, preferredPlayer);
-        if (winner && (!board.winner || ruleSet === "battle")) {
-            board.winner = winner;
+        const madeLine = AiUtils.completesLine(board.cells, move.cellIndex, player);
+        if (madeLine && (!board.winner || ruleSet === "battle")) {
+            board.winner = player;
         }
         board.isFull = board.cells.every((cell) => cell !== null);
         board.isDraw = !board.winner && board.isFull;
@@ -1713,137 +1550,12 @@ class NormalAiStrategy {
         })
             .sort((a, b) => b.heuristic - a.heuristic);
     }
-    static simulateImmediatePunish(snapshot, move) {
-        const next = AiSimulator.applyMove(snapshot, move, "O");
-        if (!next) {
-            return 0;
-        }
-        const opponentCandidates = AiUtils.collectCandidates(next);
-        if (opponentCandidates.length === 0) {
-            return 0;
-        }
-        let penalty = 0;
-        const immediateLoss = AiUtils.findImmediateWin(next, opponentCandidates, "X");
-        if (immediateLoss) {
-            penalty -= 6;
-        }
-        if (snapshot.ruleSet === "battle") {
-            const contestedIndex = move.boardIndex;
-            const contestedBoard = next.boards[contestedIndex];
-            if (contestedBoard && contestedBoard.winner === "O" && !contestedBoard.isFull) {
-                const recaptureCandidates = opponentCandidates.filter((candidate) => candidate.boardIndex === contestedIndex);
-                const recaptureThreat = recaptureCandidates.some((candidate) => AiUtils.completesLine(contestedBoard.cells, candidate.cellIndex, "X"));
-                if (recaptureThreat) {
-                    penalty -= 4.5;
-                }
-            }
-        }
-        return penalty;
-    }
 }
 NormalAiStrategy.DEFAULT_BLUNDER_RATE = 0.12;
 NormalAiStrategy.DEFAULT_BRANCH_CAP = 6;
 
 
-// === dist/ai/search/dr-mcts.js ===
-
-
-
-class DrMctsSearch {
-    static run(snapshot, player, options) {
-        var _a, _b, _c;
-        const root = this.createNode(null, snapshot);
-        const maxTime = (_a = options === null || options === void 0 ? void 0 : options.maxTimeMs) !== null && _a !== void 0 ? _a : 350;
-        const deadline = performance.now() + maxTime;
-        const maxIterations = (_b = options === null || options === void 0 ? void 0 : options.iterations) !== null && _b !== void 0 ? _b : 600;
-        const exploration = (_c = options === null || options === void 0 ? void 0 : options.exploration) !== null && _c !== void 0 ? _c : 1.1;
-        let iterations = 0;
-        while (iterations < maxIterations && performance.now() < deadline) {
-            iterations += 1;
-            const path = this.select(root, exploration);
-            const leaf = path[path.length - 1];
-            const expanded = this.expand(leaf);
-            const evalNode = expanded !== null && expanded !== void 0 ? expanded : leaf;
-            const value = this.evaluateNode(evalNode, player);
-            const nodesToUpdate = expanded ? [...path, expanded] : path;
-            this.backpropagate(nodesToUpdate, value);
-        }
-        return root.children
-            .filter((child) => child.move)
-            .map((child) => ({
-            move: child.move,
-            visits: child.visits,
-            value: child.visits > 0 ? child.totalValue / child.visits : 0,
-        }))
-            .sort((a, b) => b.visits - a.visits);
-    }
-    static createNode(move, state, parent = null) {
-        return {
-            move,
-            state,
-            parent,
-            children: [],
-            unexpanded: AiUtils.collectCandidates(state),
-            visits: 0,
-            totalValue: 0,
-        };
-    }
-    static select(root, exploration) {
-        const path = [root];
-        let node = root;
-        while (node.unexpanded.length === 0 && node.children.length > 0 && node.state.status === "playing") {
-            node = this.bestChild(node, exploration);
-            path.push(node);
-        }
-        return path;
-    }
-    static bestChild(node, exploration) {
-        const totalVisits = Math.max(1, node.visits);
-        let bestScore = -Infinity;
-        let bestChild = node.children[0];
-        for (const child of node.children) {
-            const mean = child.visits > 0 ? child.totalValue / child.visits : 0;
-            const bonus = Math.sqrt(Math.log(totalVisits + 1) / (child.visits + 1)) * exploration;
-            const score = mean + bonus;
-            if (score > bestScore) {
-                bestScore = score;
-                bestChild = child;
-            }
-        }
-        return bestChild;
-    }
-    static expand(node) {
-        if (node.state.status !== "playing") {
-            return null;
-        }
-        if (node.unexpanded.length === 0) {
-            return null;
-        }
-        const move = node.unexpanded.pop();
-        const next = AiSimulator.applyMove(node.state, move, node.state.currentPlayer);
-        if (!next) {
-            return null;
-        }
-        const child = this.createNode(move, next, node);
-        node.children.push(child);
-        return child;
-    }
-    static evaluateNode(node, player) {
-        const score = AiEvaluator.evaluate(node.state, player);
-        const normalized = Math.max(-1, Math.min(1, score / 1000));
-        return normalized;
-    }
-    static backpropagate(nodes, value) {
-        nodes.forEach((node) => {
-            node.visits += 1;
-            node.totalValue += value;
-        });
-    }
-}
-
-
 // === dist/ai/strategies/hard.js ===
-
 
 
 
@@ -1859,59 +1571,61 @@ class HardAiStrategy {
         if (candidates.length === 0) {
             return null;
         }
-        let ordered = this.orderCandidates(snapshot, candidates, "O");
-        if (options === null || options === void 0 ? void 0 : options.useMcts) {
-            const mcts = DrMctsSearch.run(snapshot, "O", {
-                maxTimeMs: (_b = options.mctsBudgetMs) !== null && _b !== void 0 ? _b : 350,
-            });
-            if (mcts.length > 0) {
-                ordered = this.applyMctsOrdering(ordered, mcts);
-            }
+        const winNow = candidates.find((move) => { var _a; return ((_a = AiSimulator.applyMove(snapshot, move, "O")) === null || _a === void 0 ? void 0 : _a.winner) === "O"; });
+        if (winNow) {
+            return winNow;
         }
-        const depthSchedule = this.buildDepthSchedule(ordered.length, allowJitter, (_c = options === null || options === void 0 ? void 0 : options.depthAdjustment) !== null && _c !== void 0 ? _c : 0);
-        const cache = new Map();
-        const stats = { nodes: 0, cacheHits: 0 };
         const startTime = performance.now();
-        const maxTime = this.computeTimeBudget(snapshot, options === null || options === void 0 ? void 0 : options.maxTimeMs, allowJitter);
+        const maxTime = (_b = options === null || options === void 0 ? void 0 : options.maxTimeMs) !== null && _b !== void 0 ? _b : this.DEFAULT_TIME_MS;
+        let ordered = this.orderCandidates(snapshot, candidates, "O");
+        const depthSchedule = this.buildDepthSchedule(ordered.length, allowJitter, (_c = options === null || options === void 0 ? void 0 : options.depthAdjustment) !== null && _c !== void 0 ? _c : 0);
+        const stats = { nodes: 0 };
         let bestMove = (_e = (_d = ordered[0]) === null || _d === void 0 ? void 0 : _d.move) !== null && _e !== void 0 ? _e : null;
         let bestScore = -Infinity;
         let depthReached = this.BASE_DEPTH;
         let lastIterationScores = [];
-        depthLoop: for (const depth of depthSchedule) {
+        let completedIterations = 0;
+        for (const depth of depthSchedule) {
             depthReached = depth;
             let iterationBest = null;
             let iterationScore = -Infinity;
+            let timedOut = false;
             const layerScores = [];
             for (const { move } of ordered) {
                 if (performance.now() - startTime > maxTime) {
-                    break depthLoop;
+                    timedOut = true;
+                    break;
                 }
                 const next = AiSimulator.applyMove(snapshot, move, "O");
                 if (!next) {
                     continue;
                 }
-                const score = this.minimax(next, 1, depth, -Infinity, Infinity, cache, stats, startTime, maxTime, weightOverrides);
+                // Root alpha-beta window: a move that cannot beat the best so far is cut off early.
+                // Hard keeps a small margin so near-equal moves still get exact scores for the jitter pick.
+                const alpha = iterationScore - (allowJitter ? this.JITTER_TOLERANCE : 0);
+                const score = this.minimax(next, 1, depth, alpha, Infinity, stats, startTime, maxTime, weightOverrides);
                 layerScores.push({ move, score });
                 if (score > iterationScore) {
                     iterationScore = score;
                     iterationBest = move;
                 }
             }
-            if (layerScores.length > 0) {
-                lastIterationScores = layerScores;
-            }
-            if (iterationBest) {
+            // Keep a cut-short pass only when no full pass exists; a finished pass beats a partial deeper one.
+            if (iterationBest && (!timedOut || completedIterations === 0)) {
                 bestMove = iterationBest;
                 bestScore = iterationScore;
+                lastIterationScores = layerScores;
             }
-            if (performance.now() - startTime > maxTime) {
+            if (timedOut) {
                 break;
             }
+            completedIterations += 1;
+            // Search this pass's best moves first in the next pass; better ordering means more cut-offs.
+            ordered = [...layerScores].sort((a, b) => b.score - a.score);
         }
         if (allowJitter && lastIterationScores.length > 1) {
             const topScore = Math.max(...lastIterationScores.map((entry) => entry.score));
-            const tolerance = 0.4;
-            const contenders = lastIterationScores.filter((entry) => topScore - entry.score <= tolerance);
+            const contenders = lastIterationScores.filter((entry) => topScore - entry.score <= this.JITTER_TOLERANCE);
             if (contenders.length > 1) {
                 const choice = contenders[Math.floor(Math.random() * contenders.length)];
                 bestMove = choice.move;
@@ -1927,14 +1641,11 @@ class HardAiStrategy {
                 depth: depthReached,
                 candidates: ordered.slice(0, 5),
                 metadata: {
-                    cacheEntries: cache.size,
                     nodes: stats.nodes,
-                    cacheHits: stats.cacheHits,
                     jitter: allowJitter,
                     timeMs: Number((performance.now() - startTime).toFixed(1)),
                     maxTime,
                     depthSchedule,
-                    usedMcts: !!(options === null || options === void 0 ? void 0 : options.useMcts),
                 },
                 breakdown,
             });
@@ -1942,16 +1653,10 @@ class HardAiStrategy {
         const moveToPlay = (_g = bestMove !== null && bestMove !== void 0 ? bestMove : (_f = ordered[0]) === null || _f === void 0 ? void 0 : _f.move) !== null && _g !== void 0 ? _g : null;
         return moveToPlay;
     }
-    static minimax(state, depth, maxDepth, alpha, beta, cache, stats, startTime, maxTime, weightOverrides) {
+    static minimax(state, depth, maxDepth, alpha, beta, stats, startTime, maxTime, weightOverrides) {
         stats.nodes += 1;
         if (performance.now() - startTime > maxTime) {
             return AiEvaluator.evaluate(state, "O", weightOverrides);
-        }
-        const cacheKey = this.hashState(state, depth);
-        const cached = cache.get(cacheKey);
-        if (cached !== undefined) {
-            stats.cacheHits += 1;
-            return cached;
         }
         const terminal = this.evaluateTerminal(state, depth);
         if (terminal !== null) {
@@ -1961,7 +1666,7 @@ class HardAiStrategy {
             if (this.shouldExtend(state)) {
                 const forcing = this.getForcingMoves(state, state.currentPlayer);
                 if (forcing.length > 0) {
-                    return this.evaluateForcingBranch(state, forcing, alpha, beta, stats, startTime, maxTime, weightOverrides);
+                    return this.evaluateForcingBranch(state, forcing, depth, alpha, beta, stats, startTime, maxTime, weightOverrides);
                 }
             }
             return this.evaluateState(state, weightOverrides);
@@ -1978,7 +1683,7 @@ class HardAiStrategy {
             if (!next) {
                 continue;
             }
-            const value = this.minimax(next, depth + 1, maxDepth, alpha, beta, cache, stats, startTime, maxTime, weightOverrides);
+            const value = this.minimax(next, depth + 1, maxDepth, alpha, beta, stats, startTime, maxTime, weightOverrides);
             if (maximizing) {
                 if (value > bestScore) {
                     bestScore = value;
@@ -1998,33 +1703,19 @@ class HardAiStrategy {
                 }
             }
         }
-        cache.set(cacheKey, bestScore);
         return bestScore;
     }
-    static computeTimeBudget(snapshot, override, allowJitter) {
-        if (typeof override === "number") {
-            return override;
-        }
-        const remainingCells = snapshot.boards.reduce((total, board) => {
-            return total + board.cells.filter((cell) => cell === null).length;
-        }, 0);
-        const lateGame = remainingCells <= this.LATE_GAME_THRESHOLD;
-        const base = allowJitter ? this.HARD_TIME_MS : this.EXPERT_TIME_MS;
-        if (lateGame) {
-            return allowJitter ? this.HARD_LATE_MS : this.EXPERT_LATE_MS;
-        }
-        return base;
-    }
     static buildDepthSchedule(candidateCount, allowJitter, depthAdjustment) {
+        // Hard (jitter on) stops at depth 5. Expert goes to depth 6, and to 7 when the position is narrow.
         const depths = [this.BASE_DEPTH + depthAdjustment];
         if (candidateCount <= this.HIGH_BRANCH_THRESHOLD) {
             depths.push(this.BASE_DEPTH + 1 + depthAdjustment);
         }
-        if (candidateCount <= 12) {
+        if (!allowJitter && candidateCount <= this.EXTENDED_BRANCH_THRESHOLD) {
             depths.push(this.EXTENDED_DEPTH + depthAdjustment);
         }
-        if (allowJitter && candidateCount > 8 && depths.length > 2) {
-            depths.pop();
+        if (!allowJitter && candidateCount <= this.NARROW_BRANCH_THRESHOLD) {
+            depths.push(this.EXTENDED_DEPTH + 1 + depthAdjustment);
         }
         return depths
             .map((depth) => Math.max(3, depth))
@@ -2032,7 +1723,8 @@ class HardAiStrategy {
     }
     static evaluateTerminal(state, depth) {
         if (state.status === "won" && state.winner) {
-            return state.winner === "O" ? 100 - depth * 2 : depth * 2 - 100;
+            // Subtract depth so a sooner win (or later loss) is preferred.
+            return state.winner === "O" ? this.TERMINAL_SCORE - depth : depth - this.TERMINAL_SCORE;
         }
         if (state.status === "draw") {
             return 0;
@@ -2060,27 +1752,6 @@ class HardAiStrategy {
             return { move, score: heuristic };
         })
             .sort((a, b) => b.score - a.score);
-    }
-    static applyMctsOrdering(ordered, mcts) {
-        const map = new Map();
-        mcts.forEach((entry) => {
-            const key = this.moveKey(entry.move);
-            map.set(key, { visits: entry.visits, value: entry.value });
-        });
-        return ordered
-            .map((entry) => {
-            const bonus = map.get(this.moveKey(entry.move));
-            if (!bonus) {
-                return entry;
-            }
-            const visitBoost = Math.log(bonus.visits + 1);
-            const adjusted = entry.score + bonus.value * 6 + visitBoost;
-            return { move: entry.move, score: adjusted };
-        })
-            .sort((a, b) => b.score - a.score);
-    }
-    static moveKey(move) {
-        return `${move.boardIndex}-${move.cellIndex}`;
     }
     static shouldExtend(state) {
         if (state.status !== "playing") {
@@ -2123,7 +1794,8 @@ class HardAiStrategy {
         })
             .slice(0, this.QUIESCENCE_BRANCH_CAP);
     }
-    static evaluateForcingBranch(state, moves, alpha, beta, stats, startTime, maxTime, weightOverrides) {
+    static evaluateForcingBranch(state, moves, depth, alpha, beta, stats, startTime, maxTime, weightOverrides) {
+        var _a;
         const maximizing = state.currentPlayer === "O";
         let bestScore = maximizing ? -Infinity : Infinity;
         for (const move of moves) {
@@ -2135,7 +1807,7 @@ class HardAiStrategy {
                 continue;
             }
             stats.nodes += 1;
-            const value = this.evaluateState(next, weightOverrides);
+            const value = (_a = this.evaluateTerminal(next, depth + 1)) !== null && _a !== void 0 ? _a : this.evaluateState(next, weightOverrides);
             if (maximizing) {
                 if (value > bestScore) {
                     bestScore = value;
@@ -2157,120 +1829,33 @@ class HardAiStrategy {
         }
         return bestScore;
     }
-    static hashState(state, depth) {
-        var _a;
-        const boardKey = state.boards
-            .map((board) => board.cells.map((cell) => cell !== null && cell !== void 0 ? cell : "_").join(""))
-            .join("|");
-        const winners = state.boards.map((board) => { var _a; return (_a = board.winner) !== null && _a !== void 0 ? _a : "_"; }).join("");
-        const active = (_a = state.activeBoardIndex) !== null && _a !== void 0 ? _a : "a";
-        return `${state.ruleSet}|${state.currentPlayer}|${active}|${depth}|${winners}|${boardKey}`;
-    }
 }
 HardAiStrategy.BASE_DEPTH = 4;
 HardAiStrategy.EXTENDED_DEPTH = 6;
 HardAiStrategy.HIGH_BRANCH_THRESHOLD = 16;
-HardAiStrategy.HARD_TIME_MS = 750;
-HardAiStrategy.EXPERT_TIME_MS = 1400;
-HardAiStrategy.HARD_LATE_MS = 4000;
-HardAiStrategy.EXPERT_LATE_MS = 6000;
-HardAiStrategy.LATE_GAME_THRESHOLD = 18;
-HardAiStrategy.QUIESCENCE_EXTENSION = 1;
+HardAiStrategy.EXTENDED_BRANCH_THRESHOLD = 12;
+HardAiStrategy.NARROW_BRANCH_THRESHOLD = 8;
+HardAiStrategy.DEFAULT_TIME_MS = 1000;
 HardAiStrategy.QUIESCENCE_BRANCH_CAP = 6;
+HardAiStrategy.TERMINAL_SCORE = 10000; // matches AiEvaluator terminalWin
+HardAiStrategy.JITTER_TOLERANCE = 0.4;
 
 
 // === dist/ai/opening-book.js ===
+// Only the AI's opening move is booked: take the centre of the centre board.
+// Replies to the human's first move were removed; the forced-board rule made them unreachable.
 const BOOK = [
-    {
-        ruleSet: "battle",
-        openingId: "ai-first-center",
-        moves: [{ board: 4, cell: 4 }],
-        appliesTo: ["normal", "hard", "expert"],
-    },
-    {
-        ruleSet: "classic",
-        openingId: "ai-first-center",
-        moves: [{ board: 4, cell: 4 }],
-        appliesTo: ["normal", "hard", "expert"],
-    },
-    {
-        ruleSet: "modern",
-        openingId: "ai-first-center",
-        moves: [{ board: 4, cell: 4 }],
-        appliesTo: ["normal", "hard", "expert"],
-    },
-    {
-        ruleSet: "battle",
-        openingId: "human-center-response",
-        moves: [
-            { board: 4, cell: 4 },
-            { board: 0, cell: 0 },
-        ],
-        appliesTo: ["normal", "hard"],
-    },
-    {
-        ruleSet: "classic",
-        openingId: "human-center-response",
-        moves: [
-            { board: 4, cell: 4 },
-            { board: 8, cell: 8 },
-        ],
-        appliesTo: ["expert"],
-    },
-    {
-        ruleSet: "modern",
-        openingId: "human-center-response",
-        moves: [
-            { board: 4, cell: 4 },
-            { board: 2, cell: 2 },
-        ],
-        appliesTo: ["expert"],
-    },
-    {
-        ruleSet: "classic",
-        openingId: "human-center-corner",
-        moves: [
-            { board: 4, cell: 4 },
-            { board: 4, cell: 8 },
-        ],
-        appliesTo: ["expert"],
-    },
-    {
-        ruleSet: "modern",
-        openingId: "human-center-corner",
-        moves: [
-            { board: 4, cell: 4 },
-            { board: 4, cell: 2 },
-        ],
-        appliesTo: ["expert"],
-    },
-    {
-        ruleSet: "battle",
-        openingId: "human-edge-response",
-        moves: [
-            { board: 4, cell: 4 },
-            { board: 1, cell: 7 },
-        ],
-        appliesTo: ["expert"],
-    },
+    { ruleSet: "battle", moves: [{ board: 4, cell: 4 }], appliesTo: ["normal", "hard", "expert"] },
+    { ruleSet: "classic", moves: [{ board: 4, cell: 4 }], appliesTo: ["normal", "hard", "expert"] },
+    { ruleSet: "modern", moves: [{ board: 4, cell: 4 }], appliesTo: ["normal", "hard", "expert"] },
 ];
 class OpeningBook {
     static lookup(snapshot, difficulty) {
-        if (snapshot.moveCount >= this.MAX_HISTORY) {
+        if (snapshot.moveCount !== 0 || snapshot.history.length !== 0) {
             return null;
         }
-        const historyKey = this.buildHistoryKey(snapshot.history);
-        if (!historyKey) {
-            return null;
-        }
-        const entry = BOOK.find((book) => book.ruleSet === snapshot.ruleSet &&
-            book.openingId === historyKey &&
-            book.appliesTo.includes(difficulty));
-        if (!entry) {
-            return null;
-        }
-        const nextIndex = snapshot.moveCount;
-        const plannedMove = entry.moves[nextIndex];
+        const entry = BOOK.find((book) => book.ruleSet === snapshot.ruleSet && book.appliesTo.includes(difficulty));
+        const plannedMove = entry === null || entry === void 0 ? void 0 : entry.moves[0];
         if (!plannedMove) {
             return null;
         }
@@ -2287,34 +1872,7 @@ class OpeningBook {
             cellIndex: plannedMove.cell,
         };
     }
-    static buildHistoryKey(historyEntries) {
-        var _a;
-        if (historyEntries.length === 0) {
-            return "ai-first-center";
-        }
-        const entry = historyEntries[0];
-        if (!entry) {
-            return null;
-        }
-        const firstMove = (_a = entry.p1Move) !== null && _a !== void 0 ? _a : entry.p2Move;
-        if (!firstMove) {
-            return null;
-        }
-        if (firstMove.player === "X" && firstMove.boardIndex === 4) {
-            if (firstMove.cellIndex === 4) {
-                return "human-center-response";
-            }
-            if ([0, 2, 6, 8].includes(firstMove.cellIndex)) {
-                return "human-center-corner";
-            }
-            if ([1, 3, 5, 7].includes(firstMove.cellIndex)) {
-                return "human-edge-response";
-            }
-        }
-        return null;
-    }
 }
-OpeningBook.MAX_HISTORY = 2;
 
 
 // === dist/ai/controller.js ===
@@ -2333,64 +1891,60 @@ class AiController {
     chooseMove(snapshot) {
         var _a;
         const decisionStart = this.getTimestamp();
-        let usedMcts = false;
         let player = (_a = snapshot.currentPlayer) !== null && _a !== void 0 ? _a : null;
         const tuning = this.adaptiveEnabled
             ? AdaptiveTuning.resolve(this.difficulty, this.adaptiveBand)
             : undefined;
         const bookMove = OpeningBook.lookup(snapshot, this.difficulty);
         if (bookMove) {
-            return this.emitAfterDecision(snapshot, bookMove, decisionStart, false, player);
+            return this.emitAfterDecision(snapshot, bookMove, decisionStart, player);
         }
         switch (this.difficulty) {
             case "easy":
-                return this.emitAfterDecision(snapshot, EasyAiStrategy.choose(snapshot, tuning === null || tuning === void 0 ? void 0 : tuning.easy), decisionStart, usedMcts, player);
+                return this.emitAfterDecision(snapshot, EasyAiStrategy.choose(snapshot, tuning === null || tuning === void 0 ? void 0 : tuning.easy), decisionStart, player);
             case "hard": {
                 const adaptiveActive = this.adaptiveEnabled && !!this.adaptiveBand && (tuning === null || tuning === void 0 ? void 0 : tuning.hard);
                 const preset = adaptiveActive
                     ? tuning.hard
                     : AdaptiveTuning.staticHardPreset();
-                usedMcts = !!preset.useMcts;
                 return this.emitAfterDecision(snapshot, HardAiStrategy.choose(snapshot, {
                     player: snapshot.currentPlayer,
                     band: adaptiveActive ? this.adaptiveBand : null,
                     ...preset,
-                }), decisionStart, usedMcts, player);
+                }), decisionStart, player);
             }
             case "expert": {
                 const adaptiveActive = this.adaptiveEnabled && !!this.adaptiveBand && (tuning === null || tuning === void 0 ? void 0 : tuning.expert);
                 const preset = adaptiveActive
                     ? tuning.expert
                     : AdaptiveTuning.staticExpertPreset();
-                usedMcts = !!preset.useMcts;
                 return this.emitAfterDecision(snapshot, HardAiStrategy.choose(snapshot, {
                     player: snapshot.currentPlayer,
                     band: adaptiveActive ? this.adaptiveBand : null,
                     ...preset,
-                }), decisionStart, usedMcts, player);
+                }), decisionStart, player);
             }
             case "normal":
             default:
-                return this.emitAfterDecision(snapshot, NormalAiStrategy.choose(snapshot, tuning === null || tuning === void 0 ? void 0 : tuning.normal), decisionStart, usedMcts, player);
+                return this.emitAfterDecision(snapshot, NormalAiStrategy.choose(snapshot, tuning === null || tuning === void 0 ? void 0 : tuning.normal), decisionStart, player);
         }
     }
     updateAdaptiveBand(band) {
         this.adaptiveBand = band;
     }
-    emitAfterDecision(snapshot, move, start, usedMcts, player) {
+    emitAfterDecision(snapshot, move, start, player) {
         if (move) {
-            this.emitTelemetry(snapshot, start, usedMcts, player);
+            this.emitTelemetry(snapshot, start, player);
         }
         return move;
     }
-    emitTelemetry(snapshot, start, usedMcts, player) {
+    emitTelemetry(snapshot, start, player) {
         const decisionMs = Math.max(0, this.getTimestamp() - start);
         AiTelemetry.emit({
             topic: "ai-decision",
             difficulty: this.difficulty,
             ruleSet: snapshot.ruleSet,
             adaptiveBand: this.adaptiveBand,
-            usedMcts,
             decisionMs,
             player,
         });
@@ -2416,7 +1970,6 @@ class SoloStatsTracker {
         this.increment(stats.byDifficulty[difficulty], outcome);
         stats.lastUpdated = Date.now();
         this.save(stats);
-        this.logToConsole(ruleSet, difficulty, outcome, stats);
     }
     static getStats() {
         if (!this.hasStorage()) {
@@ -2521,15 +2074,6 @@ class SoloStatsTracker {
         catch (_a) {
             // Ignore quota errors
         }
-    }
-    static logToConsole(ruleSet, difficulty, outcome, stats) {
-        var _a;
-        if (typeof console === "undefined") {
-            return;
-        }
-        const label = `[ST3] Solo stats update (${ruleSet} · ${difficulty}) → ${outcome.toUpperCase()}`;
-        console.info(label);
-        (_a = console.table) === null || _a === void 0 ? void 0 : _a.call(console, stats.totals);
     }
     static hasStorage() {
         return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
@@ -2886,21 +2430,16 @@ class BoardRenderer {
     constructor(boardContainer) {
         this.miniBoards = [];
         this.cellButtons = [];
-        console.log("🎯 BoardRenderer constructor starting...");
-        console.log("🔍 Board container:", boardContainer);
         this.boardContainer = boardContainer;
         this.buildBoards();
-        console.log("✅ BoardRenderer constructor complete");
     }
     setCellClickHandler(handler) {
-        console.log("🎯 Setting cell click handler...");
         this.onCellClick = handler;
     }
     setBoardLocked(locked) {
         this.boardContainer.classList.toggle("board-locked", locked);
     }
     buildBoards() {
-        console.log("🏗️ Building game boards...");
         for (let boardIndex = 0; boardIndex < BOARD_COUNT; boardIndex += 1) {
             const miniBoard = document.createElement("div");
             miniBoard.className = "mini-board";
@@ -2917,7 +2456,6 @@ class BoardRenderer {
                 cellButton.setAttribute("aria-label", `Board ${boardIndex + 1}, Square ${cellIndex + 1}`);
                 cellButton.addEventListener("click", () => {
                     var _a;
-                    console.log("🖱️ CELL EVENT FIRED:", { boardIndex, cellIndex, hasHandler: !!this.onCellClick });
                     (_a = this.onCellClick) === null || _a === void 0 ? void 0 : _a.call(this, boardIndex, cellIndex);
                 });
                 miniBoard.appendChild(cellButton);
@@ -2929,12 +2467,7 @@ class BoardRenderer {
         }
     }
     updateBoards(snapshot, humanInputLocked) {
-        console.log("🎯 BOARD UPDATE START");
-        console.log("🎯 BOARD - humanInputLocked:", humanInputLocked);
-        console.log("🎯 BOARD - snapshot.allowedBoards:", snapshot.allowedBoards);
-        console.log("🎯 BOARD - snapshot.status:", snapshot.status);
         const allowedSet = new Set(snapshot.allowedBoards);
-        console.log("🎯 BOARD - Setting board-locked class:", humanInputLocked);
         this.setBoardLocked(humanInputLocked);
         this.miniBoards.forEach((boardEl, index) => {
             const state = snapshot.boards[index];
@@ -2942,9 +2475,7 @@ class BoardRenderer {
                 return;
             }
             // Update board classes
-            const isCaptured = state.winner === "X" || state.winner === "O";
-            const shouldLockActive = isCaptured && snapshot.activeBoardIndex === index;
-            boardEl.classList.toggle("active-board", snapshot.activeBoardIndex === index && allowedSet.has(index) && !shouldLockActive);
+            boardEl.classList.toggle("active-board", snapshot.activeBoardIndex === index && allowedSet.has(index));
             boardEl.classList.toggle("free-choice", snapshot.activeBoardIndex === null && allowedSet.has(index));
             boardEl.classList.toggle("captured-p1", state.winner === "X");
             boardEl.classList.toggle("captured-p2", state.winner === "O");
@@ -2956,8 +2487,6 @@ class BoardRenderer {
                 console.warn("🎯 BOARD - No cell buttons found for board", index);
                 return;
             }
-            let enabledCells = 0;
-            let disabledCells = 0;
             cells.forEach((button, cellIdx) => {
                 const value = state.cells[cellIdx];
                 button.textContent = value !== null && value !== void 0 ? value : "";
@@ -2967,34 +2496,12 @@ class BoardRenderer {
                     snapshot.status !== "playing" ||
                     !allowedSet.has(index);
                 button.disabled = shouldDisable;
-                if (shouldDisable) {
-                    disabledCells++;
-                }
-                else {
-                    enabledCells++;
-                }
                 const isLastMove = !!snapshot.lastMove &&
                     snapshot.lastMove.boardIndex === index &&
                     snapshot.lastMove.cellIndex === cellIdx;
                 button.classList.toggle("last-move", isLastMove);
-                // Check if this cell should be clickable for human
-                if (!shouldDisable && !humanInputLocked) {
-                    // Log a sample cell that should be clickable
-                    if (cellIdx === 0) {
-                        console.log("🎯 BOARD - Sample clickable cell:", {
-                            board: index,
-                            cell: cellIdx,
-                            hasEventHandler: !!this.onCellClick,
-                            buttonDisabled: button.disabled,
-                            humanInputLocked
-                        });
-                    }
-                }
             });
-            console.log(`🎯 BOARD - Board ${index}: enabled=${enabledCells}, disabled=${disabledCells}`);
         });
-        console.log("🎯 BOARD - Event handler available:", !!this.onCellClick);
-        console.log("🎯 BOARD UPDATE COMPLETE");
     }
 }
 
@@ -3034,41 +2541,31 @@ class OverlayManager {
         this.modeOverlay = overlay;
         // Mode selection buttons
         const modeButtons = overlay.querySelectorAll("[data-mode-choice]");
-        console.log("🔍 Found mode buttons:", modeButtons.length, Array.from(modeButtons));
         modeButtons.forEach((button) => {
             const modeChoice = button.dataset.modeChoice;
-            console.log("🎯 Processing mode button:", button, "choice:", modeChoice);
             if (!modeChoice) {
                 console.warn("⚠️ Mode button missing data-mode-choice:", button);
                 return;
             }
             button.addEventListener("click", () => {
-                console.log("🖱️ Mode button clicked:", modeChoice);
                 this.pendingMode = modeChoice;
                 this.showModeOverlay("difficulty");
             });
-            console.log("✅ Event listener added for mode:", modeChoice);
         });
         // Difficulty buttons
         const diffButtons = overlay.querySelectorAll("[data-difficulty-choice]");
-        console.log("🔍 Found difficulty buttons:", diffButtons.length, Array.from(diffButtons));
         diffButtons.forEach((button) => {
             const diff = button.dataset.difficultyChoice;
-            console.log("🎯 Processing difficulty button:", button, "choice:", diff);
             if (!diff) {
                 console.warn("⚠️ Difficulty button missing data-difficulty-choice:", button);
                 return;
             }
             button.addEventListener("click", (event) => {
                 var _a, _b, _c;
-                console.log("🖱️ Difficulty button clicked:", diff, "button:", button);
-                console.log("🔍 Event details:", event);
                 if (button.disabled) {
-                    console.log("⚠️ Difficulty button is disabled, ignoring click");
                     return;
                 }
                 const mode = (_a = this.pendingMode) !== null && _a !== void 0 ? _a : "solo";
-                console.log("🎮 Starting game with mode:", mode, "difficulty:", diff);
                 if (mode === "solo") {
                     (_b = this.onBeginGame) === null || _b === void 0 ? void 0 : _b.call(this, mode, diff);
                 }
@@ -3076,7 +2573,6 @@ class OverlayManager {
                     (_c = this.onBeginGame) === null || _c === void 0 ? void 0 : _c.call(this, mode);
                 }
             });
-            console.log("✅ Event listener added for difficulty:", diff);
         });
         // Back button
         const backButton = document.getElementById("difficulty-back");
@@ -3146,7 +2642,6 @@ class OverlayManager {
         });
     }
     showModeOverlay(step) {
-        console.log("📋 showModeOverlay called with step:", step);
         if (!this.modeOverlay) {
             console.warn("⚠️ Mode overlay element not found");
             return;
@@ -3156,9 +2651,7 @@ class OverlayManager {
         this.modeOverlay.dataset.step = step;
         this.modeOverlay.dataset.visible = "true";
         this.modeOverlay.setAttribute("aria-hidden", "false");
-        console.log("📋 Overlay step set to:", step, "dataset:", this.modeOverlay.dataset);
         this.refreshSettingsPanel();
-        console.log("✅ showModeOverlay complete");
     }
     hideModeOverlay() {
         if (!this.modeOverlay) {
@@ -3192,7 +2685,7 @@ class OverlayManager {
         this.resultOverlay.dataset.visible = "false";
         this.resultOverlay.setAttribute("aria-hidden", "true");
     }
-    updateResultOverlay(snapshot) {
+    updateResultOverlay(snapshot, mode = "solo") {
         if (!this.resultOverlay || !this.resultTitle) {
             return;
         }
@@ -3202,7 +2695,17 @@ class OverlayManager {
         }
         let title = "We tied!";
         let body = "Want a rematch or head back to the menu?";
-        if (snapshot.status === "won" && snapshot.winner) {
+        if (mode === "local") {
+            if (snapshot.status === "won" && snapshot.winner) {
+                title = snapshot.winner === "X" ? "Player 1 (X) wins!" : "Player 2 (O) wins!";
+                body = "Three big boards in a row seals it. Rematch?";
+            }
+            else {
+                title = "It's a draw!";
+                body = "Nobody claimed three boards. Play again?";
+            }
+        }
+        else if (snapshot.status === "won" && snapshot.winner) {
             if (snapshot.winner === "X") {
                 title = "You won!";
                 body = "Nice work! Try a rematch or bump the difficulty once it's ready.";
@@ -3353,22 +2856,17 @@ class GameUI {
     }
     handleCellClick(boardIndex, cellIndex) {
         var _a;
-        console.log("🖱️ CELL CLICKED:", { boardIndex, cellIndex, humanInputLocked: this.humanInputLocked });
         if (this.humanInputLocked) {
-            console.log("🖱️ CELL CLICK BLOCKED - human input locked");
             return;
         }
-        console.log("🖱️ CELL CLICK - Attempting move...");
         const result = this.engine.attemptMove(boardIndex, cellIndex);
         if (!result.success) {
             const reason = (_a = result.reason) !== null && _a !== void 0 ? _a : "that move breaks the rules.";
-            console.log("🖱️ CELL CLICK FAILED:", reason);
             this.noteIllegalAdaptiveAttempt();
             this.panelManager.showIllegalMove(reason);
             return;
         }
         this.commitAdaptiveSample();
-        console.log("🖱️ CELL CLICK SUCCESS - calling render");
         this.render();
     }
     beginGame(mode, difficulty) {
@@ -3467,10 +2965,7 @@ class GameUI {
         return label;
     }
     maybeShowResultOverlay(snapshot) {
-        if (this.mode !== "solo") {
-            return;
-        }
-        this.overlayManager.updateResultOverlay(snapshot);
+        this.overlayManager.updateResultOverlay(snapshot, this.mode);
     }
     handleAiFlow(snapshot) {
         if (this.mode !== "solo" ||
@@ -3710,9 +3205,6 @@ class GameUI {
         }
         const band = (_c = (_a = this.latestAiTelemetry.adaptiveBand) !== null && _a !== void 0 ? _a : (_b = this.aiProfile) === null || _b === void 0 ? void 0 : _b.adaptiveBand) !== null && _c !== void 0 ? _c : null;
         const parts = [`AI Telemetry: ${this.formatAdaptiveBandLabel(band)}`];
-        if (this.latestAiTelemetry.usedMcts) {
-            parts.push("MCTS");
-        }
         if (typeof this.latestAiTelemetry.decisionMs === "number" && !Number.isNaN(this.latestAiTelemetry.decisionMs)) {
             parts.push(`${Math.round(this.latestAiTelemetry.decisionMs)} ms`);
         }
@@ -3733,19 +3225,13 @@ class GameUI {
 
 
 document.addEventListener("DOMContentLoaded", () => {
-    console.log("🎮 ST3 Initializing...");
     // Initialize theme manager
     const themeSelect = document.getElementById("theme-select");
-    console.log("🎨 Theme select element:", themeSelect);
     new ThemeManager(themeSelect);
     // Initialize game engine and UI
-    console.log("⚙️ Creating game engine...");
     const engine = new GameEngine();
-    console.log("🖥️ Creating game UI...");
     const ui = new GameUI(engine);
-    console.log("🚀 Calling UI.init()...");
     ui.init();
-    console.log("✅ ST3 Initialization complete");
 });
 
 

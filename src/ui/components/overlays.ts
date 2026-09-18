@@ -50,50 +50,39 @@ export class OverlayManager {
 
     // Mode selection buttons
     const modeButtons = overlay.querySelectorAll("[data-mode-choice]");
-    console.log("🔍 Found mode buttons:", modeButtons.length, Array.from(modeButtons));
     modeButtons.forEach((button) => {
       const modeChoice = (button as HTMLElement).dataset.modeChoice as GameMode;
-      console.log("🎯 Processing mode button:", button, "choice:", modeChoice);
       if (!modeChoice) {
         console.warn("⚠️ Mode button missing data-mode-choice:", button);
         return;
       }
       button.addEventListener("click", () => {
-        console.log("🖱️ Mode button clicked:", modeChoice);
         this.pendingMode = modeChoice;
         this.showModeOverlay("difficulty");
       });
-      console.log("✅ Event listener added for mode:", modeChoice);
     });
 
     // Difficulty buttons
     const diffButtons = overlay.querySelectorAll("[data-difficulty-choice]");
-    console.log("🔍 Found difficulty buttons:", diffButtons.length, Array.from(diffButtons));
     diffButtons.forEach((button) => {
       const diff = (button as HTMLElement).dataset.difficultyChoice as Difficulty;
-      console.log("🎯 Processing difficulty button:", button, "choice:", diff);
       if (!diff) {
         console.warn("⚠️ Difficulty button missing data-difficulty-choice:", button);
         return;
       }
       button.addEventListener("click", (event) => {
-        console.log("🖱️ Difficulty button clicked:", diff, "button:", button);
-        console.log("🔍 Event details:", event);
 
         if ((button as HTMLButtonElement).disabled) {
-          console.log("⚠️ Difficulty button is disabled, ignoring click");
           return;
         }
 
         const mode = this.pendingMode ?? "solo";
-        console.log("🎮 Starting game with mode:", mode, "difficulty:", diff);
         if (mode === "solo") {
           this.onBeginGame?.(mode, diff);
         } else {
           this.onBeginGame?.(mode);
         }
       });
-      console.log("✅ Event listener added for difficulty:", diff);
     });
 
     // Back button
@@ -172,7 +161,6 @@ export class OverlayManager {
   }
 
   showModeOverlay(step: ModeStep): void {
-    console.log("📋 showModeOverlay called with step:", step);
     if (!this.modeOverlay) {
       console.warn("⚠️ Mode overlay element not found");
       return;
@@ -184,9 +172,7 @@ export class OverlayManager {
     this.modeOverlay.dataset.visible = "true";
     this.modeOverlay.setAttribute("aria-hidden", "false");
 
-    console.log("📋 Overlay step set to:", step, "dataset:", this.modeOverlay.dataset);
     this.refreshSettingsPanel();
-    console.log("✅ showModeOverlay complete");
   }
 
   hideModeOverlay(): void {
@@ -228,7 +214,7 @@ export class OverlayManager {
     this.resultOverlay.setAttribute("aria-hidden", "true");
   }
 
-  updateResultOverlay(snapshot: GameSnapshot): void {
+  updateResultOverlay(snapshot: GameSnapshot, mode: GameMode = "solo"): void {
     if (!this.resultOverlay || !this.resultTitle) {
       return;
     }
@@ -241,7 +227,15 @@ export class OverlayManager {
     let title = "We tied!";
     let body = "Want a rematch or head back to the menu?";
 
-    if (snapshot.status === "won" && snapshot.winner) {
+    if (mode === "local") {
+      if (snapshot.status === "won" && snapshot.winner) {
+        title = snapshot.winner === "X" ? "Player 1 (X) wins!" : "Player 2 (O) wins!";
+        body = "Three big boards in a row seals it. Rematch?";
+      } else {
+        title = "It's a draw!";
+        body = "Nobody claimed three boards. Play again?";
+      }
+    } else if (snapshot.status === "won" && snapshot.winner) {
       if (snapshot.winner === "X") {
         title = "You won!";
         body = "Nice work! Try a rematch or bump the difficulty once it's ready.";

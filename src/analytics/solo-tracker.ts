@@ -28,7 +28,6 @@ export class SoloStatsTracker {
     stats.lastUpdated = Date.now();
 
     this.save(stats);
-    this.logToConsole(ruleSet, difficulty, outcome, stats);
   }
 
   static getStats(): SoloStatsSnapshot | null {
@@ -148,21 +147,6 @@ export class SoloStatsTracker {
     } catch {
       // Ignore quota errors
     }
-  }
-
-  private static logToConsole(
-    ruleSet: RuleSet,
-    difficulty: Difficulty,
-    outcome: SoloOutcome,
-    stats: SoloStatsSnapshot
-  ): void {
-    if (typeof console === "undefined") {
-      return;
-    }
-
-    const label = `[ST3] Solo stats update (${ruleSet} · ${difficulty}) → ${outcome.toUpperCase()}`;
-    console.info(label);
-    console.table?.(stats.totals);
   }
 
   private static hasStorage(): boolean {

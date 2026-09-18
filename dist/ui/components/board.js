@@ -3,21 +3,16 @@ export class BoardRenderer {
     constructor(boardContainer) {
         this.miniBoards = [];
         this.cellButtons = [];
-        console.log("🎯 BoardRenderer constructor starting...");
-        console.log("🔍 Board container:", boardContainer);
         this.boardContainer = boardContainer;
         this.buildBoards();
-        console.log("✅ BoardRenderer constructor complete");
     }
     setCellClickHandler(handler) {
-        console.log("🎯 Setting cell click handler...");
         this.onCellClick = handler;
     }
     setBoardLocked(locked) {
         this.boardContainer.classList.toggle("board-locked", locked);
     }
     buildBoards() {
-        console.log("🏗️ Building game boards...");
         for (let boardIndex = 0; boardIndex < BOARD_COUNT; boardIndex += 1) {
             const miniBoard = document.createElement("div");
             miniBoard.className = "mini-board";
@@ -34,7 +29,6 @@ export class BoardRenderer {
                 cellButton.setAttribute("aria-label", `Board ${boardIndex + 1}, Square ${cellIndex + 1}`);
                 cellButton.addEventListener("click", () => {
                     var _a;
-                    console.log("🖱️ CELL EVENT FIRED:", { boardIndex, cellIndex, hasHandler: !!this.onCellClick });
                     (_a = this.onCellClick) === null || _a === void 0 ? void 0 : _a.call(this, boardIndex, cellIndex);
                 });
                 miniBoard.appendChild(cellButton);
@@ -46,12 +40,7 @@ export class BoardRenderer {
         }
     }
     updateBoards(snapshot, humanInputLocked) {
-        console.log("🎯 BOARD UPDATE START");
-        console.log("🎯 BOARD - humanInputLocked:", humanInputLocked);
-        console.log("🎯 BOARD - snapshot.allowedBoards:", snapshot.allowedBoards);
-        console.log("🎯 BOARD - snapshot.status:", snapshot.status);
         const allowedSet = new Set(snapshot.allowedBoards);
-        console.log("🎯 BOARD - Setting board-locked class:", humanInputLocked);
         this.setBoardLocked(humanInputLocked);
         this.miniBoards.forEach((boardEl, index) => {
             const state = snapshot.boards[index];
@@ -59,9 +48,7 @@ export class BoardRenderer {
                 return;
             }
             // Update board classes
-            const isCaptured = state.winner === "X" || state.winner === "O";
-            const shouldLockActive = isCaptured && snapshot.activeBoardIndex === index;
-            boardEl.classList.toggle("active-board", snapshot.activeBoardIndex === index && allowedSet.has(index) && !shouldLockActive);
+            boardEl.classList.toggle("active-board", snapshot.activeBoardIndex === index && allowedSet.has(index));
             boardEl.classList.toggle("free-choice", snapshot.activeBoardIndex === null && allowedSet.has(index));
             boardEl.classList.toggle("captured-p1", state.winner === "X");
             boardEl.classList.toggle("captured-p2", state.winner === "O");
@@ -73,8 +60,6 @@ export class BoardRenderer {
                 console.warn("🎯 BOARD - No cell buttons found for board", index);
                 return;
             }
-            let enabledCells = 0;
-            let disabledCells = 0;
             cells.forEach((button, cellIdx) => {
                 const value = state.cells[cellIdx];
                 button.textContent = value !== null && value !== void 0 ? value : "";
@@ -84,33 +69,11 @@ export class BoardRenderer {
                     snapshot.status !== "playing" ||
                     !allowedSet.has(index);
                 button.disabled = shouldDisable;
-                if (shouldDisable) {
-                    disabledCells++;
-                }
-                else {
-                    enabledCells++;
-                }
                 const isLastMove = !!snapshot.lastMove &&
                     snapshot.lastMove.boardIndex === index &&
                     snapshot.lastMove.cellIndex === cellIdx;
                 button.classList.toggle("last-move", isLastMove);
-                // Check if this cell should be clickable for human
-                if (!shouldDisable && !humanInputLocked) {
-                    // Log a sample cell that should be clickable
-                    if (cellIdx === 0) {
-                        console.log("🎯 BOARD - Sample clickable cell:", {
-                            board: index,
-                            cell: cellIdx,
-                            hasEventHandler: !!this.onCellClick,
-                            buttonDisabled: button.disabled,
-                            humanInputLocked
-                        });
-                    }
-                }
             });
-            console.log(`🎯 BOARD - Board ${index}: enabled=${enabledCells}, disabled=${disabledCells}`);
         });
-        console.log("🎯 BOARD - Event handler available:", !!this.onCellClick);
-        console.log("🎯 BOARD UPDATE COMPLETE");
     }
 }

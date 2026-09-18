@@ -111,25 +111,20 @@ export class GameUI {
   }
 
   private handleCellClick(boardIndex: number, cellIndex: number): void {
-    console.log("🖱️ CELL CLICKED:", { boardIndex, cellIndex, humanInputLocked: this.humanInputLocked });
 
     if (this.humanInputLocked) {
-      console.log("🖱️ CELL CLICK BLOCKED - human input locked");
       return;
     }
 
-    console.log("🖱️ CELL CLICK - Attempting move...");
     const result = this.engine.attemptMove(boardIndex, cellIndex);
     if (!result.success) {
       const reason = result.reason ?? "that move breaks the rules.";
-      console.log("🖱️ CELL CLICK FAILED:", reason);
       this.noteIllegalAdaptiveAttempt();
       this.panelManager.showIllegalMove(reason);
       return;
     }
 
     this.commitAdaptiveSample();
-    console.log("🖱️ CELL CLICK SUCCESS - calling render");
     this.render();
   }
 
@@ -249,10 +244,7 @@ export class GameUI {
   }
 
   private maybeShowResultOverlay(snapshot: GameSnapshot): void {
-    if (this.mode !== "solo") {
-      return;
-    }
-    this.overlayManager.updateResultOverlay(snapshot);
+    this.overlayManager.updateResultOverlay(snapshot, this.mode);
   }
 
   private handleAiFlow(snapshot: GameSnapshot): void {
@@ -530,9 +522,6 @@ export class GameUI {
     }
     const band = this.latestAiTelemetry.adaptiveBand ?? this.aiProfile?.adaptiveBand ?? null;
     const parts: string[] = [`AI Telemetry: ${this.formatAdaptiveBandLabel(band)}`];
-    if (this.latestAiTelemetry.usedMcts) {
-      parts.push("MCTS");
-    }
     if (typeof this.latestAiTelemetry.decisionMs === "number" && !Number.isNaN(this.latestAiTelemetry.decisionMs)) {
       parts.push(`${Math.round(this.latestAiTelemetry.decisionMs)} ms`);
     }

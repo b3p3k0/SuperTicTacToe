@@ -81,22 +81,17 @@ export class GameUI {
     }
     handleCellClick(boardIndex, cellIndex) {
         var _a;
-        console.log("🖱️ CELL CLICKED:", { boardIndex, cellIndex, humanInputLocked: this.humanInputLocked });
         if (this.humanInputLocked) {
-            console.log("🖱️ CELL CLICK BLOCKED - human input locked");
             return;
         }
-        console.log("🖱️ CELL CLICK - Attempting move...");
         const result = this.engine.attemptMove(boardIndex, cellIndex);
         if (!result.success) {
             const reason = (_a = result.reason) !== null && _a !== void 0 ? _a : "that move breaks the rules.";
-            console.log("🖱️ CELL CLICK FAILED:", reason);
             this.noteIllegalAdaptiveAttempt();
             this.panelManager.showIllegalMove(reason);
             return;
         }
         this.commitAdaptiveSample();
-        console.log("🖱️ CELL CLICK SUCCESS - calling render");
         this.render();
     }
     beginGame(mode, difficulty) {
@@ -195,10 +190,7 @@ export class GameUI {
         return label;
     }
     maybeShowResultOverlay(snapshot) {
-        if (this.mode !== "solo") {
-            return;
-        }
-        this.overlayManager.updateResultOverlay(snapshot);
+        this.overlayManager.updateResultOverlay(snapshot, this.mode);
     }
     handleAiFlow(snapshot) {
         if (this.mode !== "solo" ||
@@ -438,9 +430,6 @@ export class GameUI {
         }
         const band = (_c = (_a = this.latestAiTelemetry.adaptiveBand) !== null && _a !== void 0 ? _a : (_b = this.aiProfile) === null || _b === void 0 ? void 0 : _b.adaptiveBand) !== null && _c !== void 0 ? _c : null;
         const parts = [`AI Telemetry: ${this.formatAdaptiveBandLabel(band)}`];
-        if (this.latestAiTelemetry.usedMcts) {
-            parts.push("MCTS");
-        }
         if (typeof this.latestAiTelemetry.decisionMs === "number" && !Number.isNaN(this.latestAiTelemetry.decisionMs)) {
             parts.push(`${Math.round(this.latestAiTelemetry.decisionMs)} ms`);
         }
