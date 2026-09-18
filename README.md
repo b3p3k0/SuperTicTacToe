@@ -23,12 +23,13 @@ Want to dive deeper into how Super T3 works under the hood? We've got educationa
 
 - **[Coding With AI Partners](docs/coding-with-ai-partners.md)** - Discover the exciting world of "vibe coding" where humans and AI collaborate to build software faster than ever. Learn how AI agents turn ideas into code, why programming fundamentals matter more than ever, and what the future holds for human-AI collaboration in software development.
 
-
 - **[From Pixels to Play: How Computer Graphics Work](docs/from-pixels-to-play.md)** - Journey from mathematical descriptions to the pixels on your screen. Learn how browsers render smooth 60fps animations, why our color themes look appealing, how hardware acceleration makes graphics buttery-smooth, and the fascinating process that turns CSS code into visual magic.
 
 - **[Building Things That Don't Break: Software Testing and Quality](docs/building-things-that-dont-break.md)** - Develop the detective mindset of quality engineering. Discover how we test edge cases, prevent bugs through smart architecture, handle errors gracefully, and why building reliable software is both a technical challenge and an ethical responsibility.
 
 - **[How Games and AI Think](docs/how-games-and-ai-think.md)** - Learn how Super T3’s rule variants shape strategy, why decision trees and forks matter, and how our four AI personalities search, prune, and adapt to your moves.
+
+- **[Always Getting Better](docs/always-getting-better.md)** - The story of a bug that hid in our AI for months, how a plain question to a newer AI partner found it, and how we measured, fixed, and locked it down so it stays fixed.
 
 - **[The Joy of Building Together: How Shared Code Changed the World](docs/the-joy-of-building-together.md)** - Explore the fascinating history and philosophy of Free and Open Source Software (FOSS). Discover how collaborative development creates better software than traditional corporate approaches, why the greatest programmers share their work freely, and how you can join a global community of builders who code for the love of solving problems.
 
@@ -42,12 +43,25 @@ Prefer to browse them inside the game? Open `learn/` (or click the “Want to bu
 
 ```bash
 npm install
-npm run build    # compiles game.ts → game.js
-# or
-npm run watch    # auto-recompile while editing
+npm run build    # compiles src/**/*.ts → dist/, then bundle.js concatenates dist/ → game.js
+npm run watch    # auto-recompile src/ → dist/ while editing (run `node bundle.js` to refresh game.js)
+npm test         # engine rules, evaluator, and AI regression checks (no build needed; runs against dist/)
 ```
 
-All TypeScript source lives under `src/` (split into `core`, `ai`, `ui`, and `main` modules). Running the build rewrites `dist/*` plus `game.js`, which is what the browser loads. We keep those outputs in the repo for players, but contributors should re-run the build anytime they change the TypeScript.
+All TypeScript source lives under `src/` (split into `core`, `ai`, `analytics`, `ui`, and `main` modules). Running the build rewrites `dist/*` plus `game.js`, which is what the browser loads. We keep those outputs in the repo for players, but contributors should re-run the build anytime they change the TypeScript.
+
+### Self-play benchmark
+
+`bench/selfplay.mjs` plays the AI against itself on the real rules engine and reports win rates, think time, missed one-move wins, missed one-move blocks, and whether the AI's internal rules model agrees with the engine.
+
+```bash
+node bench/selfplay.mjs --games 100 --matchup hard-vs-hard --ruleset all
+node bench/selfplay.mjs --games 100 --matchup expert-vs-hard
+node bench/selfplay.mjs --ladder --games 20     # checks Easy < Normal < Hard < Expert
+node bench/selfplay.mjs --help
+```
+
+Results print as a short text summary and are saved as JSON under `bench/results/`. See [docs/benchmark-plan.md](docs/benchmark-plan.md) for the standard runs and the numbers from the last tuning pass.
 
 ---
 
@@ -69,13 +83,20 @@ All TypeScript source lives under `src/` (split into `core`, `ai`, `ui`, and `ma
 | File                                 | Purpose                                                                |
 | ------------------------------------ | ---------------------------------------------------------------------- |
 | `index.html`                         | Shell markup and dialog scaffolding                                    |
-| `style.css`                          | Responsive layout + color tokens (easy to reskin for future themes)    |
+| `style.css`                          | Responsive layout + color tokens for the game and the Learn Hub        |
 | `src/core/*`                         | Pure game logic, rule definitions, types, and constants                |
-| `src/ai/*`                           | AI controller, simulator, and difficulty strategies                    |
+| `src/ai/*`                           | AI controller, simulator, evaluator, opening book, difficulty strategies |
+| `src/analytics/*`                    | Browser-side solo stats and the adaptive-difficulty loop               |
 | `src/ui/*`                           | UI orchestration, overlays, panels, and theme manager                  |
 | `src/main.ts`                        | Entry point that wires the engine/UI/theme manager                     |
+| `dist/`                              | Compiled ES modules (committed so tests and the harness run with no build) |
+| `bundle.js`                          | Concatenates `dist/` into `game.js` in dependency order                |
 | `game.js`                            | Compiled bundle that ships with the repo (rebuilt via `npm run build`) |
-| `package.json` / `package-lock.json` | Tooling metadata (`typescript` dev dependency, build scripts)          |
+| `tests/`                             | Engine rule table, evaluator smoke test, AI regression checks (`npm test`) |
+| `bench/selfplay.mjs`                 | Self-play benchmark harness                                            |
+| `learn/`                             | The in-game Learn Hub (static pages; twins of `docs/*.md`)             |
+| `docs/`                              | Lesson sources, release notes, backlog, rulesheets, benchmark plan     |
+| `package.json` / `package-lock.json` | Tooling metadata (`typescript` dev dependency, build/test scripts)     |
 | `tsconfig.json`                      | Compiler settings targeting ES2018/browser-friendly output             |
 
 ---
@@ -106,5 +127,12 @@ Optional polish: if you want special fonts or effects for that theme, add a CSS 
 
 - **Solo outcome log**: peek at `localStorage.st3.soloStats` to see aggregate Human / AI / Draw counts for each rule set and difficulty (reset with `localStorage.removeItem("st3.soloStats")`).
 - **Diagnostics toggle**: run `localStorage.setItem("st3.aiDebug", "1")` in DevTools and refresh to see per-move candidate tables for Normal/Hard. Disable with `"0"` (or remove the key) when you’re done profiling.
+
+---
+
+## Releases & License
+
+- Changes are logged in [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md). Deferred ideas live in [docs/backlog.md](docs/backlog.md).
+- Super T3 is released under the [GNU GPL v3](LICENSE).
 
 Enjoy the grid warfare!

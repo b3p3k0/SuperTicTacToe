@@ -78,20 +78,19 @@
 </li>
 <li><strong>Hard – The Chess Master</strong>
   <ul>
-    <li>Runs minimax search 4–6 plies deep with alpha-beta pruning and a 750 ms budget per move.</li>
-    <li>Orders candidate moves by promise, caches repeated states, and sprinkles minimal randomness when Adaptive mode is off.</li>
+    <li>Runs minimax search 4–5 plies deep with alpha-beta pruning and about a second per move at most.</li>
+    <li>Orders candidate moves by promise, searches the best ones first on each deeper pass, and sprinkles minimal randomness when Adaptive mode is off.</li>
   </ul>
 </li>
 <li><strong>Expert – The Perfect Machine</strong>
   <ul>
-    <li>Extends think time to ~1.4 s (and longer in endgames) and removes all randomness.</li>
-    <li>When Adaptive mode is on and you are in the "flow" band, it adds Monte Carlo Tree Search rollouts for extra foresight.</li>
-  </ul>
+    <li>Searches deeper (up to 7 plies), extends think time to 1.5 s, and removes all randomness.</li>
+      </ul>
 </li>
 </ol>
 <h2>How the AI Chooses a Move</h2>
 <ol>
-<li><strong>Opening book</strong>: Early in the game, the AI checks a small library of proven sequences (e.g., center-center starts) to avoid aimless wandering.</li>
+<li><strong>Opening book</strong>: If the AI moves first, it plays the centre square of the centre board without searching. That is the entire book.</li>
 <li><strong>Immediate tactics</strong>: It grabs instant wins or blocks yours before doing anything fancy.</li>
 <li><strong>Generate &amp; order moves</strong>: Every legal move is scored quickly so promising options are searched first (centers, threats, routing plays).</li>
 <li><strong>Search the tree</strong>: Depending on difficulty, the AI explores alternating player turns, pruning branches that obviously fail. Leaves are evaluated with a shared heuristic that values board ownership, threats, routing control, and—under Battle rules—stability against recapture.</li>

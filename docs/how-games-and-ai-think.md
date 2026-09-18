@@ -41,15 +41,14 @@ We tuned four distinctive AIs so every player can find a fun challenge:
    - Always blocks threats, looks two moves ahead, and sometimes makes tiny blunders (~12%) to stay human-like.
    - Scores moves by counting patterns that create or block future forks.
 3. **Hard – The Chess Master**
-   - Runs minimax search 4–6 plies deep with alpha-beta pruning and a 750 ms budget per move.
-   - Orders candidate moves by promise, caches repeated states, and sprinkles minimal randomness when Adaptive mode is off.
+   - Runs minimax search 4–5 plies deep with alpha-beta pruning and about a second per move at most.
+   - Orders candidate moves by promise, searches the best ones first on each deeper pass, and sprinkles minimal randomness when Adaptive mode is off.
 4. **Expert – The Perfect Machine**
-   - Extends think time to ~1.4 s (and longer in endgames) and removes all randomness.
-   - When Adaptive mode is on and you are in the "flow" band, it adds Monte Carlo Tree Search rollouts for extra foresight.
+   - Searches deeper (up to 7 plies), extends think time to 1.5 s, and removes all randomness.
 
 ## How the AI Chooses a Move
 
-1. **Opening book**: Early in the game, the AI checks a small library of proven sequences (e.g., center-center starts) to avoid aimless wandering.
+1. **Opening book**: If the AI moves first, it plays the centre square of the centre board without searching. That is the entire book.
 2. **Immediate tactics**: It grabs instant wins or blocks yours before doing anything fancy.
 3. **Generate & order moves**: Every legal move is scored quickly so promising options are searched first (centers, threats, routing plays).
 4. **Search the tree**: Depending on difficulty, the AI explores alternating player turns, pruning branches that obviously fail. Leaves are evaluated with a shared heuristic that values board ownership, threats, routing control, and—under Battle rules—stability against recapture.

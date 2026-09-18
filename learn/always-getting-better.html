@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Always Getting Better | Learn Hub</title>
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body class="learn-lesson">
+    <div class="lesson-shell">
+      <a class="lesson-back" href="./">&larr; Back to Learning Hub</a>
+      <header class="lesson-header">
+        <p class="eyebrow">Super Tic-Tac-Toe Learn Hub</p>
+        <h1>Always Getting Better</h1>
+        <p>A bug hid in our AI for months. See how a plain question found it, how we measured it, and how we made sure it stays fixed.</p>
+      </header>
+      <main class="lesson-body">
+        <article class="lesson-article">
+<h1>Always Getting Better</h1>
+<p>The game worked. People played it. The Hard and Expert opponents beat most of us most of the time. We called the AI done and moved on to themes, lessons, and buttons.</p>
+<p>&quot;Done&quot; is a feeling, not a fact. This lesson is about the day we found that out.</p>
+<h2>The Question We Almost Didn&#39;t Ask</h2>
+<p>Months after the AI shipped, new AI coding partners came out. They were much better than the ones that helped us build the game. So we tried something simple. We gave one the whole project and asked, in plain words: &quot;Look at this critically and tell us what could be better.&quot; No hints. No list of suspects.</p>
+<p>The answer came back as a ranked list. At the top was a sentence we did not expect: the Hard and Expert opponents cannot finish a won game.</p>
+<h2>The Bug</h2>
+<p>Here is the position. O owns two big boards in a row. The third board in that row has two O marks and one empty square. Playing that square wins the whole game.</p>
+<p>Normal, the middle difficulty, took the win every time. Hard and Expert, the strong ones, played somewhere else. Every time. In every rule set.</p>
+<p>Why? The AI thinks in points. It looks a few moves ahead, adds up points for each position it can reach, and picks the move with the highest total. Owning a big board was worth 140 points or more. Winning the game was worth about 98 points.</p>
+<p>Read that again. A finished, won game scored less than &quot;I own one extra board.&quot; So the closer the AI got to winning, the less it wanted to win. Two different rulers had been used for two kinds of score, and nobody had held them side by side.</p>
+<p>We had played hundreds of games against it and never noticed. Hard still won a lot, because it was very good at grabbing boards. It just took the long way round, and sometimes the long way gave us time to escape.</p>
+<h2>Trust, But Measure</h2>
+<p>An AI partner told us this. We wanted proof, and we wanted a number, not a feeling.</p>
+<p>So we built a tool. It makes the game&#39;s AI play against itself, hundreds of games in a few minutes, on the real rules engine. After every move, the tool asks two questions:</p>
+<ul>
+<li>Was there a move that won the game right now, and did the AI take it?</li>
+<li>Was there a move that lost the game next turn, and did the AI avoid it?</li>
+</ul>
+<p>Then we ran 100 games of Hard against Hard in Battle mode. In those games the AI had 177 chances to win on the spot. It missed 91 of them. It walked into a one-move loss 106 times, out of 519 positions where a safe move existed.</p>
+<p>That is not a small bug. That is a coin flip on the most important move of the game.</p>
+<p>The tool also plays every difficulty against every other and prints a table. Expert, the level we call our best, scored 0.40 against Hard. It lost more than it won against the level below it. Nobody had ever checked.</p>
+<p>The fix was a few lines: make &quot;game won&quot; worth more than any pile of boards, and check for a winning move before searching at all. Then we ran the same 100 games again. Missed wins: 0 of 93. Walked into a loss: 0 of 614.</p>
+<p>If you have the code, you can run this yourself:</p>
+<pre><code class="language-bash">node bench/selfplay.mjs --games 100 --matchup hard-vs-hard
+</code></pre>
+<h2>The Second Surprise</h2>
+<p>With the first bug fixed, the tool kept running, and the numbers kept talking.</p>
+<p>The AI has a notebook. When it scores a position, it writes the score down so it never has to score that position twice. Good idea. But the note did not record how far ahead the AI had looked when it wrote it. So when the AI came back to look deeper, it found the old note, trusted it, and stopped. For almost a year it had been looking four moves ahead while the code said six.</p>
+<p>We took the notebook away. Now the AI really looks five moves ahead on Hard and up to seven on Expert. It takes a little longer to choose a move, and it wins about two games in three against the version that had the notebook. Slower and stronger was an easy trade.</p>
+<h2>Making It Stick</h2>
+<p>A fix is only half a fix. The other half is making sure the bug cannot sneak back in.</p>
+<p>We wrote 24 small tests. Each one sets up a board, asks the AI for a move, and checks whether it took the win or dodged the loss. On the old code, 17 of the 24 fail. On the new code, all 24 pass. Now every time anyone changes the AI, the tests run in a few seconds and tell us if the old mistake has returned.</p>
+<p>The same review found more. The Battle rules say you can steal a board back by making a new three-in-a-row. The code let a board change hands on any move at all, once both players had a line in it. Our own paper rulesheet had it right; the program did not. That got a fix and a test too.</p>
+<h2>Why We Keep Going</h2>
+<p>Three things we learned, and want you to keep.</p>
+<p>Working is not the same as right. The game played fine. People had fun. The bug was there the whole time, waiting for a position that mattered.</p>
+<p>Better tools change what is easy. A review like this used to mean a week of careful reading. This one took a day, because we could ask plainly and get a real answer. But the answer only counted after we checked it with our own tool and our own numbers. Ask boldly. Verify stubbornly.</p>
+<p>The best time to look for problems is when you think there are none. That is exactly when nobody else is looking.</p>
+<h2>Start Here</h2>
+<ul>
+<li>Pick something you made that works. Ask a friend, or an AI, what could be better. Do not explain or defend. Just listen and write it down.</li>
+<li>Before you fix anything, measure it. Write down one number. Fix it. Write the number again.</li>
+<li>Turn every bug you fix into a test, so it stays fixed.</li>
+<li>When something feels finished, that is your cue to look again.</li>
+</ul>
+<h2>The Point</h2>
+<p>Our AI was strong for almost a year and wrong the whole time. We did not find out by being clever. We found out by asking, measuring, and refusing to settle. Whatever you build, that is the habit worth keeping: it works today, so let&#39;s make it better tomorrow.</p>
+
+        </article>
+      </main>
+      <footer class="lesson-footer">
+        <a href="./">&larr; Back to Learning Hub</a>
+      </footer>
+    </div>
+    <script src="theme.js"></script>
+  </body>
+</html>
