@@ -34,6 +34,7 @@ Items from the September 2026 review that were not done in that pass. Each is on
 ## Tooling and docs
 
 - **`learn/theme.js` duplicates theme data.** It hardcodes `THEME_VERSION` and the default tokens from `src/core/constants.ts`. Three places must be bumped together. Generate it from constants at build time.
+- **The version string lives in three places** (`package.json`, the `index.html` footer, `docs/RELEASE_NOTES.md`). A small build step could stamp the footer from `package.json` so it is never forgotten.
 - **`AiTelemetry` has one listener slot.** A second consumer silently replaces the first.
 - **`st3.soloStats` has no schema version.** `mergeBuckets` accepts any value type.
 - **Five Learn Hub lessons still need the "say it once" trim:** punch-cards, how-web-games-work, coding-with-ai-partners, how-games-and-ai-think, from-pixels-to-play.

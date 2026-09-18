@@ -1,8 +1,6 @@
-# Release Notes - Super Tic-Tac-Toe
+# Release Notes - Super Tic-Tac-Toe v2.6.0
 
-## Unreleased
-
-_September 2026_
+_September 18, 2026_
 
 An AI review pass, driven by a new self-play harness. Every number below comes from `bench/selfplay.mjs`; see `docs/benchmark-plan.md` for the runs.
 
@@ -35,6 +33,7 @@ An AI review pass, driven by a new self-play harness. Every number below comes f
 - README build line, file map, scripts, and license corrected. `LICENSE` moved to the repo root. `package.json` version, license, author, and repository filled in.
 - `docs/backlog.md` lists deferred improvements. `docs/benchmark-plan.md` describes the real harness.
 - Removed the orphaned pre-refactor `game.ts` (1,855 lines).
+- Version bumped to 2.6.0 in `package.json`, the footer, and these notes.
 
 ---
 
