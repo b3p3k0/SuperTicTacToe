@@ -23,14 +23,13 @@ export class AiController {
 
   chooseMove(snapshot: GameSnapshot): AiMove | null {
     const decisionStart = this.getTimestamp();
-    let usedMcts = false;
     let player: "X" | "O" | null = snapshot.currentPlayer ?? null;
     const tuning = this.adaptiveEnabled
       ? AdaptiveTuning.resolve(this.difficulty, this.adaptiveBand)
       : undefined;
     const bookMove = OpeningBook.lookup(snapshot, this.difficulty);
     if (bookMove) {
-      return this.emitAfterDecision(snapshot, bookMove, decisionStart, false, player);
+      return this.emitAfterDecision(snapshot, bookMove, decisionStart, player);
     }
     switch (this.difficulty) {
       case "easy":
@@ -38,7 +37,6 @@ export class AiController {
           snapshot,
           EasyAiStrategy.choose(snapshot, tuning?.easy),
           decisionStart,
-          usedMcts,
           player,
         );
       case "hard": {
@@ -46,7 +44,6 @@ export class AiController {
         const preset = adaptiveActive
           ? tuning!.hard!
           : AdaptiveTuning.staticHardPreset();
-        usedMcts = !!preset.useMcts;
         return this.emitAfterDecision(
           snapshot,
           HardAiStrategy.choose(snapshot, {
@@ -55,7 +52,6 @@ export class AiController {
             ...preset,
           }),
           decisionStart,
-          usedMcts,
           player,
         );
       }
@@ -64,7 +60,6 @@ export class AiController {
         const preset = adaptiveActive
           ? tuning!.expert!
           : AdaptiveTuning.staticExpertPreset();
-        usedMcts = !!preset.useMcts;
         return this.emitAfterDecision(
           snapshot,
           HardAiStrategy.choose(snapshot, {
@@ -73,7 +68,6 @@ export class AiController {
             ...preset,
           }),
           decisionStart,
-          usedMcts,
           player,
         );
       }
@@ -83,7 +77,6 @@ export class AiController {
           snapshot,
           NormalAiStrategy.choose(snapshot, tuning?.normal),
           decisionStart,
-          usedMcts,
           player,
         );
     }
@@ -97,11 +90,10 @@ export class AiController {
     snapshot: GameSnapshot,
     move: AiMove | null,
     start: number,
-    usedMcts: boolean,
     player: "X" | "O" | null,
   ): AiMove | null {
     if (move) {
-      this.emitTelemetry(snapshot, start, usedMcts, player);
+      this.emitTelemetry(snapshot, start, player);
     }
     return move;
   }
@@ -109,7 +101,6 @@ export class AiController {
   private emitTelemetry(
     snapshot: GameSnapshot,
     start: number,
-    usedMcts: boolean,
     player: "X" | "O" | null,
   ): void {
     const decisionMs = Math.max(0, this.getTimestamp() - start);
@@ -118,7 +109,6 @@ export class AiController {
       difficulty: this.difficulty,
       ruleSet: snapshot.ruleSet,
       adaptiveBand: this.adaptiveBand,
-      usedMcts,
       decisionMs,
       player,
     });

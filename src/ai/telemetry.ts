@@ -9,7 +9,6 @@ interface AiDecisionEvent {
   ruleSet?: RuleSet;
   adaptiveBand?: AdaptiveBand | null;
   decisionMs?: number;
-  usedMcts?: boolean;
 }
 
 type TelemetryListener = (event: AiTelemetryEvent) => void;

@@ -15,7 +15,6 @@ const bundleOrder = [
   'dist/ai/simulator.js',
   'dist/ai/strategies/easy.js',
   'dist/ai/strategies/normal.js',
-  'dist/ai/search/dr-mcts.js',
   'dist/ai/strategies/hard.js',
   'dist/ai/opening-book.js',
   'dist/ai/controller.js',
@@ -57,7 +56,8 @@ for (const filePath of bundleOrder) {
     bundledCode += `// === ${filePath} ===\n`;
     bundledCode += content + '\n\n';
   } else {
-    console.warn(`File not found: ${filePath}`);
+    console.error(`File not found: ${filePath} (build it, or remove it from bundleOrder)`);
+    process.exit(1);
   }
 }
 

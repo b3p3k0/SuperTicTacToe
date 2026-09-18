@@ -21,8 +21,8 @@ export class AdaptiveTuning {
     }
     static normalTuning(band) {
         const blunderRate = band === "struggle" ? 0.22 : band === "coast" ? 0.05 : 0.15;
-        const branchCap = band === "coast" ? 8 : band === "struggle" ? 5 : 5;
-        return { blunderRate, branchCap };
+        const maxBranches = band === "coast" ? 8 : 5;
+        return { blunderRate, maxBranches };
     }
     static hardTuning(band) {
         const isFlow = band === "flow";
@@ -30,8 +30,6 @@ export class AdaptiveTuning {
             allowJitter: !isFlow,
             maxTimeMs: band === "coast" ? 1600 : band === "struggle" ? 650 : 1200,
             depthAdjustment: band === "coast" ? 1 : band === "struggle" ? -1 : 0,
-            useMcts: band !== "struggle",
-            mctsBudgetMs: band === "coast" ? 320 : isFlow ? 200 : 0,
         };
     }
     static expertTuning(band) {
@@ -53,8 +51,6 @@ export class AdaptiveTuning {
             allowJitter: false,
             maxTimeMs: band === "coast" ? 2000 : band === "struggle" ? 900 : 2200,
             depthAdjustment: band === "coast" ? 1 : band === "struggle" ? -1 : 2,
-            useMcts: band !== "struggle",
-            mctsBudgetMs: band === "coast" ? 450 : band === "flow" ? 450 : 250,
             ...(weightOverrides ? { weightOverrides } : {}),
         };
     }
@@ -63,8 +59,6 @@ export class AdaptiveTuning {
             allowJitter: true,
             maxTimeMs: 1100,
             depthAdjustment: 0,
-            useMcts: false,
-            mctsBudgetMs: 0,
         };
     }
     static staticExpertPreset() {
@@ -72,8 +66,6 @@ export class AdaptiveTuning {
             allowJitter: false,
             maxTimeMs: 1500,
             depthAdjustment: 0,
-            useMcts: true,
-            mctsBudgetMs: 250,
         };
     }
 }

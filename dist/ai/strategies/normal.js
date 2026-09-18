@@ -116,33 +116,6 @@ export class NormalAiStrategy {
         })
             .sort((a, b) => b.heuristic - a.heuristic);
     }
-    static simulateImmediatePunish(snapshot, move) {
-        const next = AiSimulator.applyMove(snapshot, move, "O");
-        if (!next) {
-            return 0;
-        }
-        const opponentCandidates = AiUtils.collectCandidates(next);
-        if (opponentCandidates.length === 0) {
-            return 0;
-        }
-        let penalty = 0;
-        const immediateLoss = AiUtils.findImmediateWin(next, opponentCandidates, "X");
-        if (immediateLoss) {
-            penalty -= 6;
-        }
-        if (snapshot.ruleSet === "battle") {
-            const contestedIndex = move.boardIndex;
-            const contestedBoard = next.boards[contestedIndex];
-            if (contestedBoard && contestedBoard.winner === "O" && !contestedBoard.isFull) {
-                const recaptureCandidates = opponentCandidates.filter((candidate) => candidate.boardIndex === contestedIndex);
-                const recaptureThreat = recaptureCandidates.some((candidate) => AiUtils.completesLine(contestedBoard.cells, candidate.cellIndex, "X"));
-                if (recaptureThreat) {
-                    penalty -= 4.5;
-                }
-            }
-        }
-        return penalty;
-    }
 }
 NormalAiStrategy.DEFAULT_BLUNDER_RATE = 0.12;
 NormalAiStrategy.DEFAULT_BRANCH_CAP = 6;

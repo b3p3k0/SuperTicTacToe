@@ -5,7 +5,6 @@ import { AiSimulator } from "../simulator.js";
 import { RuleAwareHeuristics } from "../rule-heuristics.js";
 import { AiDiagnostics } from "../diagnostics.js";
 import { AiEvaluator, EvaluationWeights } from "../evaluator.js";
-import { DrMctsSearch } from "../search/dr-mcts.js";
 
 interface ScoredMove {
   move: AiMove;
@@ -14,15 +13,12 @@ interface ScoredMove {
 
 interface SearchStats {
   nodes: number;
-  cacheHits: number;
 }
 
 interface HardStrategyOptions {
   allowJitter?: boolean;
   maxTimeMs?: number;
   depthAdjustment?: number;
-  useMcts?: boolean;
-  mctsBudgetMs?: number;
   band?: AdaptiveBand | null;
   player?: Player;
   weightOverrides?: Partial<EvaluationWeights>;
@@ -32,13 +28,12 @@ export class HardAiStrategy {
   private static readonly BASE_DEPTH = 4;
   private static readonly EXTENDED_DEPTH = 6;
   private static readonly HIGH_BRANCH_THRESHOLD = 16;
-  private static readonly HARD_TIME_MS = 750;
-  private static readonly EXPERT_TIME_MS = 1400;
-  private static readonly HARD_LATE_MS = 4000;
-  private static readonly EXPERT_LATE_MS = 6000;
-  private static readonly LATE_GAME_THRESHOLD = 18;
-  private static readonly QUIESCENCE_EXTENSION = 1;
+  private static readonly EXTENDED_BRANCH_THRESHOLD = 12;
+  private static readonly NARROW_BRANCH_THRESHOLD = 8;
+  private static readonly DEFAULT_TIME_MS = 1000;
   private static readonly QUIESCENCE_BRANCH_CAP = 6;
+  private static readonly TERMINAL_SCORE = 10000; // matches AiEvaluator terminalWin
+  private static readonly JITTER_TOLERANCE = 0.4;
 
   static choose(snapshot: GameSnapshot, options?: HardStrategyOptions): AiMove | null {
     const allowJitter = options?.allowJitter ?? false;
@@ -48,51 +43,55 @@ export class HardAiStrategy {
       return null;
     }
 
-    let ordered = this.orderCandidates(snapshot, candidates, "O");
-    if (options?.useMcts) {
-      const mcts = DrMctsSearch.run(snapshot, "O", {
-        maxTimeMs: options.mctsBudgetMs ?? 350,
-      });
-      if (mcts.length > 0) {
-        ordered = this.applyMctsOrdering(ordered, mcts);
-      }
+    const winNow = candidates.find(
+      (move) => AiSimulator.applyMove(snapshot, move, "O")?.winner === "O",
+    );
+    if (winNow) {
+      return winNow;
     }
+
+    const startTime = performance.now();
+    const maxTime = options?.maxTimeMs ?? this.DEFAULT_TIME_MS;
+
+    let ordered = this.orderCandidates(snapshot, candidates, "O");
 
     const depthSchedule = this.buildDepthSchedule(
       ordered.length,
       allowJitter,
       options?.depthAdjustment ?? 0,
     );
-    const cache = new Map<string, number>();
-    const stats: SearchStats = { nodes: 0, cacheHits: 0 };
-    const startTime = performance.now();
-    const maxTime = this.computeTimeBudget(snapshot, options?.maxTimeMs, allowJitter);
+    const stats: SearchStats = { nodes: 0 };
 
     let bestMove: AiMove | null = ordered[0]?.move ?? null;
     let bestScore = -Infinity;
     let depthReached = this.BASE_DEPTH;
     let lastIterationScores: ScoredMove[] = [];
+    let completedIterations = 0;
 
-    depthLoop: for (const depth of depthSchedule) {
+    for (const depth of depthSchedule) {
       depthReached = depth;
       let iterationBest: AiMove | null = null;
       let iterationScore = -Infinity;
+      let timedOut = false;
       const layerScores: ScoredMove[] = [];
       for (const { move } of ordered) {
         if (performance.now() - startTime > maxTime) {
-          break depthLoop;
+          timedOut = true;
+          break;
         }
         const next = AiSimulator.applyMove(snapshot, move, "O");
         if (!next) {
           continue;
         }
+        // Root alpha-beta window: a move that cannot beat the best so far is cut off early.
+        // Hard keeps a small margin so near-equal moves still get exact scores for the jitter pick.
+        const alpha = iterationScore - (allowJitter ? this.JITTER_TOLERANCE : 0);
         const score = this.minimax(
           next,
           1,
           depth,
-          -Infinity,
+          alpha,
           Infinity,
-          cache,
           stats,
           startTime,
           maxTime,
@@ -104,23 +103,24 @@ export class HardAiStrategy {
           iterationBest = move;
         }
       }
-      if (layerScores.length > 0) {
-        lastIterationScores = layerScores;
-      }
-      if (iterationBest) {
+      // Keep a cut-short pass only when no full pass exists; a finished pass beats a partial deeper one.
+      if (iterationBest && (!timedOut || completedIterations === 0)) {
         bestMove = iterationBest;
         bestScore = iterationScore;
+        lastIterationScores = layerScores;
       }
-      if (performance.now() - startTime > maxTime) {
+      if (timedOut) {
         break;
       }
+      completedIterations += 1;
+      // Search this pass's best moves first in the next pass; better ordering means more cut-offs.
+      ordered = [...layerScores].sort((a, b) => b.score - a.score);
     }
 
     if (allowJitter && lastIterationScores.length > 1) {
       const topScore = Math.max(...lastIterationScores.map((entry) => entry.score));
-      const tolerance = 0.4;
       const contenders = lastIterationScores.filter(
-        (entry) => topScore - entry.score <= tolerance,
+        (entry) => topScore - entry.score <= this.JITTER_TOLERANCE,
       );
       if (contenders.length > 1) {
         const choice =
@@ -139,14 +139,11 @@ export class HardAiStrategy {
         depth: depthReached,
         candidates: ordered.slice(0, 5),
         metadata: {
-          cacheEntries: cache.size,
           nodes: stats.nodes,
-          cacheHits: stats.cacheHits,
           jitter: allowJitter,
           timeMs: Number((performance.now() - startTime).toFixed(1)),
           maxTime,
           depthSchedule,
-          usedMcts: !!options?.useMcts,
         },
         breakdown,
       });
@@ -163,7 +160,6 @@ export class HardAiStrategy {
     maxDepth: number,
     alpha: number,
     beta: number,
-    cache: Map<string, number>,
     stats: SearchStats,
     startTime: number,
     maxTime: number,
@@ -173,13 +169,6 @@ export class HardAiStrategy {
 
     if (performance.now() - startTime > maxTime) {
       return AiEvaluator.evaluate(state, "O", weightOverrides);
-    }
-
-    const cacheKey = this.hashState(state, depth);
-    const cached = cache.get(cacheKey);
-    if (cached !== undefined) {
-      stats.cacheHits += 1;
-      return cached;
     }
 
     const terminal = this.evaluateTerminal(state, depth);
@@ -194,6 +183,7 @@ export class HardAiStrategy {
           return this.evaluateForcingBranch(
             state,
             forcing,
+            depth,
             alpha,
             beta,
             stats,
@@ -228,7 +218,6 @@ export class HardAiStrategy {
         maxDepth,
         alpha,
         beta,
-        cache,
         stats,
         startTime,
         maxTime,
@@ -254,27 +243,7 @@ export class HardAiStrategy {
       }
     }
 
-    cache.set(cacheKey, bestScore);
     return bestScore;
-  }
-
-  private static computeTimeBudget(
-    snapshot: GameSnapshot,
-    override: number | undefined,
-    allowJitter: boolean,
-  ): number {
-    if (typeof override === "number") {
-      return override;
-    }
-    const remainingCells = snapshot.boards.reduce((total, board) => {
-      return total + board.cells.filter((cell) => cell === null).length;
-    }, 0);
-    const lateGame = remainingCells <= this.LATE_GAME_THRESHOLD;
-    const base = allowJitter ? this.HARD_TIME_MS : this.EXPERT_TIME_MS;
-    if (lateGame) {
-      return allowJitter ? this.HARD_LATE_MS : this.EXPERT_LATE_MS;
-    }
-    return base;
   }
 
   private static buildDepthSchedule(
@@ -282,15 +251,16 @@ export class HardAiStrategy {
     allowJitter: boolean,
     depthAdjustment: number,
   ): number[] {
+    // Hard (jitter on) stops at depth 5. Expert goes to depth 6, and to 7 when the position is narrow.
     const depths: number[] = [this.BASE_DEPTH + depthAdjustment];
     if (candidateCount <= this.HIGH_BRANCH_THRESHOLD) {
       depths.push(this.BASE_DEPTH + 1 + depthAdjustment);
     }
-    if (candidateCount <= 12) {
+    if (!allowJitter && candidateCount <= this.EXTENDED_BRANCH_THRESHOLD) {
       depths.push(this.EXTENDED_DEPTH + depthAdjustment);
     }
-    if (allowJitter && candidateCount > 8 && depths.length > 2) {
-      depths.pop();
+    if (!allowJitter && candidateCount <= this.NARROW_BRANCH_THRESHOLD) {
+      depths.push(this.EXTENDED_DEPTH + 1 + depthAdjustment);
     }
     return depths
       .map((depth) => Math.max(3, depth))
@@ -299,7 +269,8 @@ export class HardAiStrategy {
 
   private static evaluateTerminal(state: GameSnapshot, depth: number): number | null {
     if (state.status === "won" && state.winner) {
-      return state.winner === "O" ? 100 - depth * 2 : depth * 2 - 100;
+      // Subtract depth so a sooner win (or later loss) is preferred.
+      return state.winner === "O" ? this.TERMINAL_SCORE - depth : depth - this.TERMINAL_SCORE;
     }
 
     if (state.status === "draw") {
@@ -341,32 +312,6 @@ export class HardAiStrategy {
         return { move, score: heuristic };
       })
       .sort((a, b) => b.score - a.score);
-  }
-
-  private static applyMctsOrdering(
-    ordered: ScoredMove[],
-    mcts: { move: AiMove; visits: number; value: number }[],
-  ): ScoredMove[] {
-    const map = new Map<string, { visits: number; value: number }>();
-    mcts.forEach((entry) => {
-      const key = this.moveKey(entry.move);
-      map.set(key, { visits: entry.visits, value: entry.value });
-    });
-    return ordered
-      .map((entry) => {
-        const bonus = map.get(this.moveKey(entry.move));
-        if (!bonus) {
-          return entry;
-        }
-        const visitBoost = Math.log(bonus.visits + 1);
-        const adjusted = entry.score + bonus.value * 6 + visitBoost;
-        return { move: entry.move, score: adjusted };
-      })
-      .sort((a, b) => b.score - a.score);
-  }
-
-  private static moveKey(move: AiMove): string {
-    return `${move.boardIndex}-${move.cellIndex}`;
   }
 
   private static shouldExtend(state: GameSnapshot): boolean {
@@ -415,6 +360,7 @@ export class HardAiStrategy {
   private static evaluateForcingBranch(
     state: GameSnapshot,
     moves: AiMove[],
+    depth: number,
     alpha: number,
     beta: number,
     stats: SearchStats,
@@ -433,7 +379,8 @@ export class HardAiStrategy {
         continue;
       }
       stats.nodes += 1;
-      const value = this.evaluateState(next, weightOverrides);
+      const value =
+        this.evaluateTerminal(next, depth + 1) ?? this.evaluateState(next, weightOverrides);
       if (maximizing) {
         if (value > bestScore) {
           bestScore = value;
@@ -454,14 +401,5 @@ export class HardAiStrategy {
       return this.evaluateState(state, weightOverrides);
     }
     return bestScore;
-  }
-
-  private static hashState(state: GameSnapshot, depth: number): string {
-    const boardKey = state.boards
-      .map((board) => board.cells.map((cell) => cell ?? "_").join(""))
-      .join("|");
-    const winners = state.boards.map((board) => board.winner ?? "_").join("");
-    const active = state.activeBoardIndex ?? "a";
-    return `${state.ruleSet}|${state.currentPlayer}|${active}|${depth}|${winners}|${boardKey}`;
   }
 }

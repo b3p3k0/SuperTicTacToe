@@ -13,64 +13,60 @@ export class AiController {
     chooseMove(snapshot) {
         var _a;
         const decisionStart = this.getTimestamp();
-        let usedMcts = false;
         let player = (_a = snapshot.currentPlayer) !== null && _a !== void 0 ? _a : null;
         const tuning = this.adaptiveEnabled
             ? AdaptiveTuning.resolve(this.difficulty, this.adaptiveBand)
             : undefined;
         const bookMove = OpeningBook.lookup(snapshot, this.difficulty);
         if (bookMove) {
-            return this.emitAfterDecision(snapshot, bookMove, decisionStart, false, player);
+            return this.emitAfterDecision(snapshot, bookMove, decisionStart, player);
         }
         switch (this.difficulty) {
             case "easy":
-                return this.emitAfterDecision(snapshot, EasyAiStrategy.choose(snapshot, tuning === null || tuning === void 0 ? void 0 : tuning.easy), decisionStart, usedMcts, player);
+                return this.emitAfterDecision(snapshot, EasyAiStrategy.choose(snapshot, tuning === null || tuning === void 0 ? void 0 : tuning.easy), decisionStart, player);
             case "hard": {
                 const adaptiveActive = this.adaptiveEnabled && !!this.adaptiveBand && (tuning === null || tuning === void 0 ? void 0 : tuning.hard);
                 const preset = adaptiveActive
                     ? tuning.hard
                     : AdaptiveTuning.staticHardPreset();
-                usedMcts = !!preset.useMcts;
                 return this.emitAfterDecision(snapshot, HardAiStrategy.choose(snapshot, {
                     player: snapshot.currentPlayer,
                     band: adaptiveActive ? this.adaptiveBand : null,
                     ...preset,
-                }), decisionStart, usedMcts, player);
+                }), decisionStart, player);
             }
             case "expert": {
                 const adaptiveActive = this.adaptiveEnabled && !!this.adaptiveBand && (tuning === null || tuning === void 0 ? void 0 : tuning.expert);
                 const preset = adaptiveActive
                     ? tuning.expert
                     : AdaptiveTuning.staticExpertPreset();
-                usedMcts = !!preset.useMcts;
                 return this.emitAfterDecision(snapshot, HardAiStrategy.choose(snapshot, {
                     player: snapshot.currentPlayer,
                     band: adaptiveActive ? this.adaptiveBand : null,
                     ...preset,
-                }), decisionStart, usedMcts, player);
+                }), decisionStart, player);
             }
             case "normal":
             default:
-                return this.emitAfterDecision(snapshot, NormalAiStrategy.choose(snapshot, tuning === null || tuning === void 0 ? void 0 : tuning.normal), decisionStart, usedMcts, player);
+                return this.emitAfterDecision(snapshot, NormalAiStrategy.choose(snapshot, tuning === null || tuning === void 0 ? void 0 : tuning.normal), decisionStart, player);
         }
     }
     updateAdaptiveBand(band) {
         this.adaptiveBand = band;
     }
-    emitAfterDecision(snapshot, move, start, usedMcts, player) {
+    emitAfterDecision(snapshot, move, start, player) {
         if (move) {
-            this.emitTelemetry(snapshot, start, usedMcts, player);
+            this.emitTelemetry(snapshot, start, player);
         }
         return move;
     }
-    emitTelemetry(snapshot, start, usedMcts, player) {
+    emitTelemetry(snapshot, start, player) {
         const decisionMs = Math.max(0, this.getTimestamp() - start);
         AiTelemetry.emit({
             topic: "ai-decision",
             difficulty: this.difficulty,
             ruleSet: snapshot.ruleSet,
             adaptiveBand: this.adaptiveBand,
-            usedMcts,
             decisionMs,
             player,
         });

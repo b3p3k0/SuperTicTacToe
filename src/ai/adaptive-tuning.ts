@@ -8,15 +8,13 @@ export interface EasyTuningOptions {
 
 export interface NormalTuningOptions {
   blunderRate: number;
-  branchCap: number;
+  maxBranches: number;
 }
 
 export interface HardTuningOptions {
   allowJitter: boolean;
   maxTimeMs?: number;
   depthAdjustment?: number;
-  useMcts?: boolean;
-  mctsBudgetMs?: number;
   weightOverrides?: Partial<EvaluationWeights>;
 }
 
@@ -55,8 +53,8 @@ export class AdaptiveTuning {
 
   private static normalTuning(band: AdaptiveBand): NormalTuningOptions {
     const blunderRate = band === "struggle" ? 0.22 : band === "coast" ? 0.05 : 0.15;
-    const branchCap = band === "coast" ? 8 : band === "struggle" ? 5 : 5;
-    return { blunderRate, branchCap };
+    const maxBranches = band === "coast" ? 8 : 5;
+    return { blunderRate, maxBranches };
   }
 
   private static hardTuning(band: AdaptiveBand): HardTuningOptions {
@@ -65,8 +63,6 @@ export class AdaptiveTuning {
       allowJitter: !isFlow,
       maxTimeMs: band === "coast" ? 1600 : band === "struggle" ? 650 : 1200,
       depthAdjustment: band === "coast" ? 1 : band === "struggle" ? -1 : 0,
-      useMcts: band !== "struggle",
-      mctsBudgetMs: band === "coast" ? 320 : isFlow ? 200 : 0,
     };
   }
 
@@ -89,8 +85,6 @@ export class AdaptiveTuning {
       allowJitter: false,
       maxTimeMs: band === "coast" ? 2000 : band === "struggle" ? 900 : 2200,
       depthAdjustment: band === "coast" ? 1 : band === "struggle" ? -1 : 2,
-      useMcts: band !== "struggle",
-      mctsBudgetMs: band === "coast" ? 450 : band === "flow" ? 450 : 250,
       ...(weightOverrides ? { weightOverrides } : {}),
     };
   }
@@ -100,8 +94,6 @@ export class AdaptiveTuning {
       allowJitter: true,
       maxTimeMs: 1100,
       depthAdjustment: 0,
-      useMcts: false,
-      mctsBudgetMs: 0,
     };
   }
 
@@ -110,8 +102,6 @@ export class AdaptiveTuning {
       allowJitter: false,
       maxTimeMs: 1500,
       depthAdjustment: 0,
-      useMcts: true,
-      mctsBudgetMs: 250,
     };
   }
 }

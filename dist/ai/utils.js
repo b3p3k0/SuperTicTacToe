@@ -78,44 +78,6 @@ export class AiUtils {
         }
         return score;
     }
-    static evaluateBoardComfort(board) {
-        let score = 0;
-        for (const pattern of WIN_PATTERNS) {
-            const marks = pattern.map((idx) => board.cells[idx]);
-            const ours = marks.filter((mark) => mark === "O").length;
-            const theirs = marks.filter((mark) => mark === "X").length;
-            if (theirs === 0) {
-                score += ours * 0.4;
-            }
-            if (ours === 0 && theirs === 2) {
-                score -= 1.5;
-            }
-        }
-        return score;
-    }
-    static createsMacroThreat(snapshot, move) {
-        const board = snapshot.boards[move.boardIndex];
-        const isBattle = snapshot.ruleSet === "battle";
-        const boardLocked = (board === null || board === void 0 ? void 0 : board.winner) && (!isBattle || board.isFull);
-        if (!board || boardLocked) {
-            return false;
-        }
-        if (!this.completesLine(board.cells, move.cellIndex, "O")) {
-            return false;
-        }
-        const futureWinners = snapshot.boards.map((mini, index) => {
-            if (index === move.boardIndex) {
-                return "O";
-            }
-            return mini.winner;
-        });
-        return WIN_PATTERNS.some((pattern) => {
-            const wins = pattern.map((idx) => futureWinners[idx]);
-            const oCount = wins.filter((mark) => mark === "O").length;
-            const blanks = wins.filter((mark) => !mark).length;
-            return oCount === 2 && blanks === 1;
-        });
-    }
     static completesLine(cells, cellIndex, player) {
         return WIN_PATTERNS.some((pattern) => {
             if (!pattern.includes(cellIndex)) {
@@ -287,25 +249,6 @@ export class AiUtils {
     static getOpponent(player) {
         return player === "X" ? "O" : "X";
     }
-    static findWinner(cells, priorityPlayer) {
-        if (priorityPlayer) {
-            if (this.hasLine(cells, priorityPlayer)) {
-                return priorityPlayer;
-            }
-            const opponent = this.getOpponent(priorityPlayer);
-            if (this.hasLine(cells, opponent)) {
-                return opponent;
-            }
-            return null;
-        }
-        for (const [a, b, c] of WIN_PATTERNS) {
-            const mark = cells[a];
-            if (mark && mark === cells[b] && mark === cells[c]) {
-                return mark;
-            }
-        }
-        return null;
-    }
     static findMacroWinner(boards) {
         var _a, _b, _c;
         for (const pattern of WIN_PATTERNS) {
@@ -316,10 +259,5 @@ export class AiUtils {
             }
         }
         return null;
-    }
-    static hasLine(cells, player) {
-        return WIN_PATTERNS.some(([a, b, c]) => {
-            return cells[a] === player && cells[b] === player && cells[c] === player;
-        });
     }
 }
